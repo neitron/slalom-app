@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Side, Transition, Trick } from '../domain/types'
+import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
 
 type Props = {
@@ -40,14 +41,14 @@ function onClick() {
     <div class="flex items-center gap-2 min-w-0">
       <div class="flex-1 min-w-0 flex items-center gap-1.5">
         <span v-if="fromTrick.icon" class="text-base leading-none shrink-0">{{ fromTrick.icon }}</span>
-        <span class="font-medium text-fg truncate">{{ fromTrick.name }}</span>
+        <span class="font-medium text-fg truncate">{{ displayName(fromTrick) }}</span>
         <span
           class="font-bold text-[11px] shrink-0"
           :style="{ color: sideColor(edge.fromSide) }"
         >{{ edge.fromSide ?? '–' }}</span>
         <span class="mx-1 text-muted shrink-0">{{ arrow }}</span>
         <span v-if="toTrick.icon" class="text-base leading-none shrink-0">{{ toTrick.icon }}</span>
-        <span class="font-medium text-fg truncate">{{ toTrick.name }}</span>
+        <span class="font-medium text-fg truncate">{{ displayName(toTrick) }}</span>
         <span
           class="font-bold text-[11px] shrink-0"
           :style="{ color: sideColor(edge.toSide) }"

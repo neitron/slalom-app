@@ -26,6 +26,7 @@ export interface TrickRow {
   last_practiced: string | null;
   status: TrickStatus;
   aliases: string[];
+  main_alias: string | null;
   video: string | null;
   icon: string | null;
   tags: string[];
@@ -86,6 +87,7 @@ export function mapTrickToServer(t: Trick): TrickRow {
     last_practiced: t.last,
     status: t.status,
     aliases: t.aliases,
+    main_alias: t.mainAlias ?? null,
     video: t.video,
     icon: t.icon,
     tags: t.tags,
@@ -110,6 +112,7 @@ export function mapTrickFromServer(r: TrickRow): Trick {
     last: r.last_practiced,
     status: r.status,
     aliases: r.aliases ?? [],
+    mainAlias: r.main_alias ?? null,
     video: r.video,
     icon: r.icon,
     tags: r.tags ?? [],

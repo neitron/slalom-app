@@ -37,6 +37,7 @@ export interface Trick {
   last: string | null;
   status: TrickStatus;
   aliases: string[];
+  mainAlias?: string | null;
   video: string | null;
   icon: string | null;
   tags: string[];

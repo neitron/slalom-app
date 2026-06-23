@@ -14,3 +14,16 @@ export const router = createRouter({
   history: createWebHashHistory(),
   routes,
 })
+
+router.afterEach(() => {
+  if (typeof document !== 'undefined') document.body.style.overflow = ''
+})
+
+export function prefetchRoutes(): void {
+  for (const r of routes) {
+    const c = r.component as unknown
+    if (typeof c === 'function') {
+      try { void (c as () => Promise<unknown>)() } catch { /* ignore */ }
+    }
+  }
+}

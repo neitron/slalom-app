@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Trick } from '../domain/types'
+import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
 
 type Props = {
@@ -78,7 +79,7 @@ function startLink(side: 'L' | 'R' | null) {
         <div class="flex items-start gap-2 mb-2">
           <div class="text-2xl leading-none select-none">{{ trick.icon ?? '·' }}</div>
           <div class="flex-1 min-w-0">
-            <div class="font-semibold text-fg text-[15px] leading-tight truncate">{{ trick.name }}</div>
+            <div class="font-semibold text-fg text-[15px] leading-tight truncate">{{ displayName(trick) }}</div>
             <div class="text-[11px] text-muted mt-0.5">{{ meta }}</div>
           </div>
           <button

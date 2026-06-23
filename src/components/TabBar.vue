@@ -11,7 +11,8 @@ const tabs = [
 
 <template>
   <nav
-    class="fixed bottom-0 inset-x-0 grid grid-cols-6 gap-0.5 bg-card border-t border-border pt-1 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+    class="fixed bottom-0 inset-x-0 grid grid-cols-6 gap-0.5 bg-card border-t border-border pt-1 px-1"
+    :style="{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }"
   >
     <RouterLink
       v-for="t in tabs"

@@ -5,6 +5,7 @@ import { useUiStore } from '../stores/ui'
 import { CATEGORIES, TIERS } from '../domain/constants'
 import { effectiveRate, hasRate } from '../domain/rating'
 import type { Category, Trick } from '../domain/types'
+import { displayName } from '../domain/display'
 import { resolveVideoUrl } from '../domain/video'
 import ChipFilter, { type ChipOption } from '../components/ChipFilter.vue'
 import SearchSort, { type SortMode } from '../components/SearchSort.vue'
@@ -117,7 +118,7 @@ function onVideo(t: Trick, e: MouseEvent) {
           <div class="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
             <span v-if="t.fav" class="text-fav">★</span>
             <span v-if="t.icon" class="text-base leading-none">{{ t.icon }}</span>
-            <span class="font-medium text-fg">{{ t.name }}</span>
+            <span class="font-medium text-fg">{{ displayName(t) }}</span>
           </div>
           <button
             type="button"
@@ -135,7 +136,7 @@ function onVideo(t: Trick, e: MouseEvent) {
         <div class="text-muted text-xs mt-1 truncate">
           <span class="text-accent/80">{{ TIERS[t.tier] }}</span>
           <span> · {{ t.category }}</span>
-          <span v-if="t.aliases.length"> · aka {{ t.aliases.join(', ') }}</span>
+          <span v-if="t.aliases.filter(a => a !== t.mainAlias).length"> · aka {{ t.aliases.filter(a => a !== t.mainAlias).join(', ') }}</span>
           <span v-if="t.tags.length" class="text-accent/80"> · {{ t.tags.map(x => '#' + x).join(' ') }}</span>
         </div>
 

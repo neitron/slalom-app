@@ -5,6 +5,7 @@ import { useUiStore } from '../stores/ui'
 import { TIERS } from '../domain/constants'
 import { effectiveRate, statusOf } from '../domain/rating'
 import { resolveVideoUrl } from '../domain/video'
+import { displayName } from '../domain/display'
 import type { Side, Trick } from '../domain/types'
 import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
@@ -171,6 +172,12 @@ async function removeAlias(a: string) {
   await tricksStore.updateAliases(trick.value.id, next)
 }
 
+async function toggleMainAlias(a: string) {
+  if (!trick.value?.id) return
+  const cur = trick.value.mainAlias
+  await tricksStore.setMainAlias(trick.value.id, cur === a ? null : a)
+}
+
 async function addTag() {
   const v = tagDraft.value.trim().replace(/^#/, '')
   if (!v || !trick.value?.id) return
@@ -205,7 +212,7 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
   <div
     v-if="isOpen && trick"
     class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100dvh"
+    style="height: 100svh"
     role="dialog"
     aria-modal="true"
   >
@@ -216,7 +223,7 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
 
     <div
       ref="panelRef"
-      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
+      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90svh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
       :style="{
         transform: `translateY(${dragY}px)`,
         transition: dragging ? 'none' : 'transform 0.2s ease-out',
@@ -239,7 +246,13 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
           @click="toggleFav"
         >★</button>
         <span v-if="trick.icon" class="text-xl leading-none">{{ trick.icon }}</span>
-        <h2 class="flex-1 text-lg font-semibold truncate">{{ trick.name }}</h2>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-lg font-semibold truncate">{{ displayName(trick) }}</h2>
+          <p
+            v-if="trick.mainAlias && trick.mainAlias !== trick.name"
+            class="text-[11px] text-muted truncate"
+          >Original: {{ trick.name }}</p>
+        </div>
         <button
           type="button"
           class="p-1 text-muted hover:text-fg"
@@ -313,13 +326,26 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
       </label>
 
       <section class="mt-4">
-        <h3 class="text-xs uppercase tracking-wide text-muted mb-1">Aliases</h3>
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="text-xs uppercase tracking-wide text-muted">Aliases</h3>
+          <span class="text-[10px] text-muted">tap ★ to set display name</span>
+        </div>
         <div class="flex flex-wrap gap-1.5 mb-2">
           <span
             v-for="a in trick.aliases"
             :key="a"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-card-2 border border-border-2 text-xs"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs"
+            :class="trick.mainAlias === a
+              ? 'bg-accent/15 border-accent text-fg'
+              : 'bg-card-2 border-border-2'"
           >
+            <button
+              type="button"
+              class="leading-none"
+              :class="trick.mainAlias === a ? 'text-accent' : 'text-muted hover:text-fg'"
+              :aria-label="trick.mainAlias === a ? `clear main alias` : `set ${a} as main`"
+              @click="toggleMainAlias(a)"
+            >{{ trick.mainAlias === a ? '★' : '☆' }}</button>
             {{ a }}
             <button
               type="button"

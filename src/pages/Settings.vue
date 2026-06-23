@@ -26,9 +26,12 @@ let pushTimer: number | null = null
 
 const reseedArmed = ref(false)
 const resetLayoutArmed = ref(false)
+const importArmed = ref(false)
+const importInputRef = ref<HTMLInputElement | null>(null)
 const status = ref<string>('')
 let reseedTimer: number | null = null
 let resetLayoutTimer: number | null = null
+let importTimer: number | null = null
 
 function setStatus(msg: string) {
   status.value = msg
@@ -214,20 +217,41 @@ async function doExport() {
 async function onImportFile(ev: Event) {
   const input = ev.target as HTMLInputElement
   const file = input.files?.[0]
-  if (!file) return
+  if (!file) {
+    importArmed.value = false
+    return
+  }
   const text = await file.text()
   try {
     await importJson(text)
     tricksStore.tricks = []
     tricksStore.loaded = false
-    await tricksStore.load()
+    transitionsStore.edges = []
+    transitionsStore.loaded = false
+    sequencesStore.sequences = []
+    sequencesStore.loaded = false
+    await Promise.all([tricksStore.load(), transitionsStore.load(), sequencesStore.load()])
     await refreshQueue()
     setStatus(`Imported ${file.name}.`)
   } catch (e) {
     setStatus(`Import failed: ${(e as Error).message}`)
   } finally {
     input.value = ''
+    importArmed.value = false
   }
+}
+
+function armImport() {
+  if (importArmed.value) {
+    importInputRef.value?.click()
+    return
+  }
+  importArmed.value = true
+  if (importTimer != null) window.clearTimeout(importTimer)
+  importTimer = window.setTimeout(() => {
+    importArmed.value = false
+    importTimer = null
+  }, 3000)
 }
 </script>
 
@@ -334,16 +358,6 @@ async function onImportFile(ev: Event) {
 
         <button
           type="button"
-          class="w-full py-2 rounded-lg text-sm transition-colors"
-          :class="pushArmed
-            ? 'bg-danger text-fg font-semibold'
-            : 'border border-border-2 text-muted hover:text-fg hover:bg-border/40'"
-          :disabled="auth.syncing"
-          @click="armPushLocal"
-        >{{ pushArmed ? 'Tap again to overwrite cloud' : 'Push local to cloud' }}</button>
-
-        <button
-          type="button"
           class="w-full py-2 rounded-lg border border-border-2 text-muted text-sm hover:text-fg hover:bg-border/40"
           @click="onSignOut"
         >Sign out</button>
@@ -372,40 +386,64 @@ async function onImportFile(ev: Event) {
 
     <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
       <h2 class="text-xs uppercase tracking-wide text-muted">Data</h2>
-
       <button
         type="button"
+        class="w-full py-2 rounded-lg border border-border-2 text-fg text-sm hover:bg-border/40"
+        @click="doExport"
+      >Export JSON</button>
+    </section>
+
+    <section class="bg-card border border-rate-bad/40 rounded-xl p-3 flex flex-col gap-3">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-rate-bad" />
+        <h2 class="text-xs uppercase tracking-wide text-rate-bad">Danger zone</h2>
+      </div>
+      <p class="text-[10.5px] text-muted">Each action requires two taps to confirm.</p>
+
+      <button
+        v-if="cloudConfigured && auth.isSignedIn"
+        type="button"
         class="w-full py-2 rounded-lg text-sm transition-colors"
-        :class="reseedArmed
+        :class="pushArmed
           ? 'bg-danger text-fg font-semibold'
-          : 'border border-border-2 text-fg hover:bg-border/40'"
-        @click="armReseed"
-      >{{ reseedArmed ? 'Tap again to wipe & re-seed' : 'Re-seed from bundle' }}</button>
+          : 'border border-rate-bad/40 text-rate-bad hover:bg-rate-bad/10'"
+        :disabled="auth.syncing"
+        @click="armPushLocal"
+      >{{ pushArmed ? 'Tap again to overwrite cloud' : 'Push local to cloud' }}</button>
 
       <button
         type="button"
         class="w-full py-2 rounded-lg text-sm transition-colors"
         :class="resetLayoutArmed
           ? 'bg-danger text-fg font-semibold'
-          : 'border border-border-2 text-muted hover:text-fg hover:bg-border/40'"
+          : 'border border-rate-bad/40 text-rate-bad hover:bg-rate-bad/10'"
         @click="armResetLayout"
       >{{ resetLayoutArmed ? 'Tap again to reset graph layout' : 'Reset graph layout' }}</button>
 
       <button
         type="button"
-        class="w-full py-2 rounded-lg border border-border-2 text-fg text-sm hover:bg-border/40"
-        @click="doExport"
-      >Export JSON</button>
+        class="w-full py-2 rounded-lg text-sm transition-colors"
+        :class="reseedArmed
+          ? 'bg-danger text-fg font-semibold'
+          : 'border border-rate-bad/40 text-rate-bad hover:bg-rate-bad/10'"
+        @click="armReseed"
+      >{{ reseedArmed ? 'Tap again to wipe & re-seed' : 'Re-seed from bundle' }}</button>
 
-      <label class="w-full py-2 rounded-lg border border-border-2 text-fg text-sm hover:bg-border/40 text-center cursor-pointer">
-        Import JSON
-        <input
-          type="file"
-          accept="application/json"
-          class="hidden"
-          @change="onImportFile"
-        >
-      </label>
+      <button
+        type="button"
+        class="w-full py-2 rounded-lg text-sm transition-colors"
+        :class="importArmed
+          ? 'bg-danger text-fg font-semibold'
+          : 'border border-rate-bad/40 text-rate-bad hover:bg-rate-bad/10'"
+        @click="armImport"
+      >{{ importArmed ? 'Tap again to choose file & replace' : 'Import JSON (replaces local data)' }}</button>
+      <input
+        ref="importInputRef"
+        type="file"
+        accept="application/json"
+        class="hidden"
+        @change="onImportFile"
+      >
     </section>
 
     <p

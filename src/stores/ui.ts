@@ -88,5 +88,10 @@ export const useUiStore = defineStore('ui', {
         window.setTimeout(() => this.dismissToast(id), 5000);
       }
     },
+    closeAllSheets(): void {
+      this.openSheetTrickId = null;
+      this.openTransitionId = null;
+      this.openSequenceId = null;
+    },
   },
 });

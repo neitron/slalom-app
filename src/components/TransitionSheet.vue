@@ -4,6 +4,7 @@ import { useTransitionsStore } from '../stores/transitions'
 import { useTricksStore } from '../stores/tricks'
 import { useUiStore } from '../stores/ui'
 import { TIERS } from '../domain/constants'
+import { displayName } from '../domain/display'
 import type { Side, Transition, Trick } from '../domain/types'
 import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
@@ -192,7 +193,7 @@ function sideChipBg(active: boolean, s: Side): string {
   <div
     v-if="isOpen && edge && fromTrick && toTrick"
     class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100dvh"
+    style="height: 100svh"
     role="dialog"
     aria-modal="true"
   >
@@ -203,7 +204,7 @@ function sideChipBg(active: boolean, s: Side): string {
 
     <div
       ref="panelRef"
-      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
+      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90svh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
       :style="{
         transform: `translateY(${dragY}px)`,
         transition: dragging ? 'none' : 'transform 0.2s ease-out',
@@ -221,14 +222,14 @@ function sideChipBg(active: boolean, s: Side): string {
       <div class="flex items-center gap-2">
         <h2 class="flex-1 text-base font-semibold leading-snug min-w-0 truncate">
           <span v-if="fromTrick.icon" class="mr-1">{{ fromTrick.icon }}</span>
-          <span class="text-fg">{{ fromTrick.name }}</span>
+          <span class="text-fg">{{ displayName(fromTrick) }}</span>
           <span
             class="ml-1 font-bold text-xs"
             :style="{ color: sideColor(edge.fromSide) }"
           >{{ edge.fromSide ?? '–' }}</span>
           <span class="mx-1.5 text-muted">{{ arrow }}</span>
           <span v-if="toTrick.icon" class="mr-1">{{ toTrick.icon }}</span>
-          <span class="text-fg">{{ toTrick.name }}</span>
+          <span class="text-fg">{{ displayName(toTrick) }}</span>
           <span
             class="ml-1 font-bold text-xs"
             :style="{ color: sideColor(edge.toSide) }"
@@ -251,7 +252,7 @@ function sideChipBg(active: boolean, s: Side): string {
             @click="openTrick(fromTrick.id)"
           >
             <span v-if="fromTrick.icon" class="mr-1">{{ fromTrick.icon }}</span>
-            <span class="font-medium">{{ fromTrick.name }}</span>
+            <span class="font-medium">{{ displayName(fromTrick) }}</span>
             <span class="text-muted text-xs"> · {{ TIERS[fromTrick.tier] }} · {{ fromTrick.category }}</span>
           </button>
         </dd>
@@ -263,7 +264,7 @@ function sideChipBg(active: boolean, s: Side): string {
             @click="openTrick(toTrick.id)"
           >
             <span v-if="toTrick.icon" class="mr-1">{{ toTrick.icon }}</span>
-            <span class="font-medium">{{ toTrick.name }}</span>
+            <span class="font-medium">{{ displayName(toTrick) }}</span>
             <span class="text-muted text-xs"> · {{ TIERS[toTrick.tier] }} · {{ toTrick.category }}</span>
           </button>
         </dd>

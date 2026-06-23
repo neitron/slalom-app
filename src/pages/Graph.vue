@@ -6,6 +6,7 @@ import { useSequencesStore } from '../stores/sequences'
 import { useUiStore } from '../stores/ui'
 import { loadView, saveView } from '../utils/graphView'
 import { edgeMatches } from '../domain/edges'
+import { displayName } from '../domain/display'
 import type { Side, Transition, Trick } from '../domain/types'
 
 interface ChainStep { trickId: string; side: Side }
@@ -288,6 +289,11 @@ function onEdgeBubbleClose(): void {
   selectedEdgeId.value = null
 }
 
+function onEdgeBubbleDetails(edgeId: string): void {
+  selectedEdgeId.value = null
+  uiStore.openTransition(edgeId)
+}
+
 function startSequenceMode(): void {
   sequenceMode.value = true
   sequenceSteps.value = []
@@ -335,8 +341,9 @@ const chainSteps = computed(() =>
 const linkingHintName = computed<string>(() => {
   const t = linkSourceTrick.value
   if (!t) return ''
+  const n = displayName(t)
   const side = linkSourceSide.value
-  return side ? `${t.name} (${side})` : t.name
+  return side ? `${n} (${side})` : n
 })
 
 const pendingLegTrick = computed<Trick | null>(() => {
@@ -365,7 +372,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-[calc(100dvh-5rem)] min-h-0">
+  <div class="flex flex-col h-[calc(100svh-5rem)] min-h-0">
     <div class="flex items-center gap-2 px-3 pt-2 pb-2 shrink-0">
       <h1 class="text-lg font-semibold flex-1">Graph</h1>
       <button
@@ -459,6 +466,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       @report="onEdgeReport"
       @toggle-bidi="onEdgeToggleBidi"
       @remove="onEdgeRemove"
+      @details="onEdgeBubbleDetails"
       @close="onEdgeBubbleClose"
     />
 

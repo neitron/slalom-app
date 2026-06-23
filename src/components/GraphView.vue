@@ -15,6 +15,7 @@ import { useTricksStore } from '../stores/tricks';
 import { useTransitionsStore } from '../stores/transitions';
 import { effectiveRate, rateColor, sideColor } from '../domain/rating';
 import { loadView, saveView, type NodePosition } from '../utils/graphView';
+import { displayName } from '../domain/display';
 import type { Transition, Trick } from '../domain/types';
 
 interface Props {
@@ -218,11 +219,12 @@ function ringStroke(t: Trick, side?: 'L' | 'R'): string {
 }
 
 function nodeLabel(t: Trick): string {
-  return t.name.length > 22 ? t.name.slice(0, 21) + '…' : t.name;
+  const n = displayName(t);
+  return n.length > 22 ? n.slice(0, 21) + '…' : n;
 }
 
 function glyphFor(t: Trick): string {
-  return t.icon || t.name.charAt(0).toUpperCase();
+  return t.icon || displayName(t).charAt(0).toUpperCase();
 }
 
 const initialized = ref(false);

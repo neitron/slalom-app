@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Side, Transition as TransitionEdge, Trick } from '../domain/types'
 import { useUiStore } from '../stores/ui'
+import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
 
 const uiStore = useUiStore()
@@ -19,6 +20,7 @@ const emit = defineEmits<{
   report: [edgeId: string, score: number]
   toggleBidi: [edgeId: string]
   remove: [edgeId: string]
+  details: [edgeId: string]
   close: []
 }>()
 
@@ -99,6 +101,10 @@ function report(score: number) {
 function toggleBidi() {
   if (props.edge.id) emit('toggleBidi', props.edge.id)
 }
+
+function openDetails() {
+  if (props.edge.id) emit('details', props.edge.id)
+}
 </script>
 
 <template>
@@ -112,14 +118,14 @@ function toggleBidi() {
       >
         <div class="flex items-start gap-2 mb-2">
           <div class="flex-1 min-w-0 text-[13px] font-semibold leading-snug">
-            <span class="text-fg">{{ fromTrick.name }}</span>
+            <span class="text-fg">{{ displayName(fromTrick) }}</span>
             <span
               v-if="edge.fromSide"
               class="ml-1 font-bold"
               :style="{ color: sideColor(edge.fromSide) }"
             >({{ edge.fromSide }})</span>
             <span class="mx-1.5 text-muted">{{ arrow }}</span>
-            <span class="text-fg">{{ toTrick.name }}</span>
+            <span class="text-fg">{{ displayName(toTrick) }}</span>
             <span
               v-if="edge.toSide"
               class="ml-1 font-bold"
@@ -158,6 +164,12 @@ function toggleBidi() {
           >
           <span>↔ both directions</span>
         </label>
+
+        <button
+          type="button"
+          class="w-full mt-2 py-1.5 rounded-md text-xs border border-border-2 bg-card-2 text-fg"
+          @click="openDetails"
+        >Details</button>
 
         <button
           type="button"

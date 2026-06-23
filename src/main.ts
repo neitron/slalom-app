@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-import { router } from './router'
+import { router, prefetchRoutes } from './router'
 import { supabaseConfigured } from './storage/supabase'
 import { migrateNonUuidIds } from './storage/migrateIds'
 import './style.css'
@@ -21,6 +21,13 @@ async function bootstrap(): Promise<void> {
 
   app.mount('#app')
 
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback
+  const schedule = (cb: () => void): void => {
+    if (typeof idle === 'function') idle(cb)
+    else window.setTimeout(cb, 50)
+  }
+  schedule(() => prefetchRoutes())
+
   if (supabaseConfigured()) {
     const initCloud = async (): Promise<void> => {
       const [{ useAuthStore }, sync] = await Promise.all([
@@ -39,9 +46,7 @@ async function bootstrap(): Promise<void> {
       }
       await sync.setupAutoFlush()
     }
-    const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback
-    if (typeof idle === 'function') idle(() => { void initCloud() })
-    else window.setTimeout(() => { void initCloud() }, 50)
+    schedule(() => { void initCloud() })
   }
 }
 

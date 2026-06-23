@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Trick } from '../domain/types'
+import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
 
 type Props = {
@@ -15,6 +16,10 @@ const emit = defineEmits<{
 }>()
 
 const hasVideoLink = computed(() => !!props.trick.video)
+
+const otherAliases = computed(() =>
+  props.trick.aliases.filter((a) => a !== props.trick.mainAlias),
+)
 
 function onCardClick() {
   emit('open', props.trick)
@@ -46,7 +51,7 @@ function onVideoClick(e: MouseEvent) {
           v-if="trick.icon"
           class="text-base leading-none"
         >{{ trick.icon }}</span>
-        <span class="font-medium text-fg">{{ trick.name }}</span>
+        <span class="font-medium text-fg">{{ displayName(trick) }}</span>
       </div>
       <button
         type="button"
@@ -70,7 +75,7 @@ function onVideoClick(e: MouseEvent) {
 
     <div class="text-muted text-xs mt-1 truncate">
       <span>{{ trick.category }}</span>
-      <span v-if="trick.aliases.length"> · aka {{ trick.aliases.join(', ') }}</span>
+      <span v-if="otherAliases.length"> · aka {{ otherAliases.join(', ') }}</span>
       <span
         v-if="trick.tags.length"
         class="text-accent/80"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Trick } from '../domain/types'
+import { displayName } from '../domain/display'
 
 defineProps<{
   leg: 'from' | 'to' | 'step'
@@ -14,7 +15,7 @@ const emit = defineEmits<{
 <template>
   <div class="inline-flex items-center gap-2 bg-card border border-border rounded-xl p-2 shadow-2xl">
     <span class="text-[11px] text-muted px-1">
-      {{ leg === 'from' ? 'from' : leg === 'to' ? 'to' : 'step' }} {{ trick.name }}:
+      {{ leg === 'from' ? 'from' : leg === 'to' ? 'to' : 'step' }} {{ displayName(trick) }}:
     </span>
     <button
       type="button"

@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useSequencesStore } from '../stores/sequences'
 import { useTricksStore } from '../stores/tricks'
 import { useUiStore } from '../stores/ui'
+import { displayName } from '../domain/display'
 import type { Sequence, Side } from '../domain/types'
 import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
@@ -168,7 +169,7 @@ const stepViews = computed<StepView[]>(() => {
     const t = tricksStore.byId(tid) ?? tricksStore.tricks.find((x) => x.name === step.name)
     return {
       key: `${i}-${step.name}`,
-      name: t?.name ?? step.name,
+      name: t ? displayName(t) : step.name,
       icon: t?.icon ?? null,
       side: step.side,
       trickId: t?.id ?? tid,
@@ -201,7 +202,7 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
   <div
     v-if="isOpen && seq"
     class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100dvh"
+    style="height: 100svh"
     role="dialog"
     aria-modal="true"
   >
@@ -212,7 +213,7 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
 
     <div
       ref="panelRef"
-      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
+      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90svh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
       :style="{
         transform: `translateY(${dragY}px)`,
         transition: dragging ? 'none' : 'transform 0.2s ease-out',

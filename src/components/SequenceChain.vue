@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useTricksStore } from '../stores/tricks'
 import { useTransitionsStore } from '../stores/transitions'
 import { edgeMatches } from '../domain/edges'
+import { displayName } from '../domain/display'
 import type { Side, Trick } from '../domain/types'
 
 type Step = { trickId: string; side: Side }
@@ -23,7 +24,7 @@ const chips = computed<Chip[]>(() =>
     return {
       key: `${i}-${s.trickId}`,
       id: t?.id ?? s.trickId,
-      name: t?.name ?? s.trickId,
+      name: t ? displayName(t) : s.trickId,
       icon: t?.icon ?? null,
       side: s.side,
     }

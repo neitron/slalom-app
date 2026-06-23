@@ -128,7 +128,17 @@ export const useTricksStore = defineStore('tricks', {
     },
 
     async updateAliases(id: string, aliases: string[]): Promise<void> {
-      await this.updateTrick({ id, aliases });
+      const t = this.byId(id);
+      const patch: Partial<Trick> & { id: string } = { id, aliases };
+      if (t?.mainAlias && !aliases.includes(t.mainAlias)) patch.mainAlias = null;
+      await this.updateTrick(patch);
+    },
+
+    async setMainAlias(id: string, alias: string | null): Promise<void> {
+      const t = this.byId(id);
+      if (!t) return;
+      const next = alias && t.aliases.includes(alias) ? alias : null;
+      await this.updateTrick({ id, mainAlias: next });
     },
 
     async updateTags(id: string, tags: string[]): Promise<void> {
