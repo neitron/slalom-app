@@ -70,6 +70,16 @@ async function onSignInGoogle() {
   await auth.signInWithGoogle(window.location.origin + import.meta.env.BASE_URL)
 }
 
+async function onReload() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(regs.map((r) => r.update()))
+    }
+  } catch { /* swallow */ }
+  window.location.reload()
+}
+
 async function onSyncNow() {
   auth.markSyncStart()
   try {
@@ -346,6 +356,18 @@ async function onImportFile(ev: Event) {
         <span class="inline-block w-2 h-2 rounded-full bg-rate-good"></span>
         <span class="text-sm">Storage mode: <span class="font-semibold">Local (Dexie)</span></span>
       </div>
+    </section>
+
+    <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
+      <h2 class="text-xs uppercase tracking-wide text-muted">App</h2>
+      <button
+        type="button"
+        class="w-full py-2 rounded-lg border border-border-2 text-fg text-sm hover:bg-border/40"
+        @click="onReload"
+      >Reload app (force update)</button>
+      <p class="text-[10.5px] text-muted">
+        Forces the service worker to fetch the latest deployed code. Use after a new release.
+      </p>
     </section>
 
     <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
