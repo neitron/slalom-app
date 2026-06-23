@@ -5,6 +5,7 @@ import RateFeedback, { type Report as RateFeedbackReport } from './components/Ra
 import TrickSheet from './components/TrickSheet.vue'
 import TransitionSheet from './components/TransitionSheet.vue'
 import SequenceSheet from './components/SequenceSheet.vue'
+import ToastStack from './components/ToastStack.vue'
 import { useUiStore } from './stores/ui'
 import { useTricksStore } from './stores/tricks'
 import { useTransitionsStore } from './stores/transitions'
@@ -31,8 +32,18 @@ async function reloadStoresFromDexie() {
 }
 
 const onPulled = () => { void reloadStoresFromDexie() }
-onMounted(() => { window.addEventListener('slalom:pulled', onPulled) })
-onBeforeUnmount(() => { window.removeEventListener('slalom:pulled', onPulled) })
+const onError = (e: Event) => {
+  const msg = (e as CustomEvent<{ message: string }>).detail?.message
+  if (msg) uiStore.showError(msg)
+}
+onMounted(() => {
+  window.addEventListener('slalom:pulled', onPulled)
+  window.addEventListener('slalom:error', onError as EventListener)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('slalom:pulled', onPulled)
+  window.removeEventListener('slalom:error', onError as EventListener)
+})
 
 const feedbackReport = computed<RateFeedbackReport | null>(() => {
   const f = uiStore.feedback
@@ -55,5 +66,6 @@ function onFeedbackClose() {
     <TransitionSheet />
     <SequenceSheet />
     <RateFeedback :report="feedbackReport" @close="onFeedbackClose" />
+    <ToastStack />
   </div>
 </template>

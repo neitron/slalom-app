@@ -12,6 +12,14 @@ export interface FeedbackReport {
   label?: string;
 }
 
+export type ToastKind = 'error' | 'info';
+export interface Toast {
+  id: number;
+  kind: ToastKind;
+  message: string;
+}
+let toastCounter = 0;
+
 export const useUiStore = defineStore('ui', {
   state: () => ({
     openSheetTrickId: null as string | null,
@@ -23,6 +31,7 @@ export const useUiStore = defineStore('ui', {
     search: '',
     sort: 'name' as SortKey,
     feedback: null as FeedbackReport | null,
+    toasts: [] as Toast[],
   }),
 
   actions: {
@@ -64,6 +73,20 @@ export const useUiStore = defineStore('ui', {
     },
     clearFeedback(): void {
       this.feedback = null;
+    },
+    pushToast(kind: ToastKind, message: string): number {
+      const id = ++toastCounter;
+      this.toasts.push({ id, kind, message });
+      return id;
+    },
+    dismissToast(id: number): void {
+      this.toasts = this.toasts.filter((t) => t.id !== id);
+    },
+    showError(message: string): void {
+      const id = this.pushToast('error', message);
+      if (typeof window !== 'undefined') {
+        window.setTimeout(() => this.dismissToast(id), 5000);
+      }
     },
   },
 });

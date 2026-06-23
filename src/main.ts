@@ -3,9 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import { router } from './router'
 import { supabaseConfigured } from './storage/supabase'
-import { runStartupSync, setupAutoFlush } from './storage/sync'
 import { migrateNonUuidIds } from './storage/migrateIds'
-import { useAuthStore } from './stores/auth'
 import './style.css'
 
 async function bootstrap(): Promise<void> {
@@ -21,21 +19,30 @@ async function bootstrap(): Promise<void> {
     console.warn('[migrate] failed', e)
   }
 
-  if (supabaseConfigured()) {
-    try {
-      await useAuthStore().init()
-    } catch (e) {
-      console.warn('[auth] init failed', e)
-    }
-    try {
-      await runStartupSync()
-    } catch (e) {
-      console.warn('[sync] startup failed', e)
-    }
-    setupAutoFlush()
-  }
-
   app.mount('#app')
+
+  if (supabaseConfigured()) {
+    const initCloud = async (): Promise<void> => {
+      const [{ useAuthStore }, sync] = await Promise.all([
+        import('./stores/auth'),
+        import('./storage/sync'),
+      ])
+      try {
+        await useAuthStore().init()
+      } catch (e) {
+        console.warn('[auth] init failed', e)
+      }
+      try {
+        await sync.runStartupSync()
+      } catch (e) {
+        console.warn('[sync] startup failed', e)
+      }
+      await sync.setupAutoFlush()
+    }
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback
+    if (typeof idle === 'function') idle(() => { void initCloud() })
+    else window.setTimeout(() => { void initCloud() }, 50)
+  }
 }
 
 void bootstrap()

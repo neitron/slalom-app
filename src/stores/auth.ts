@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Session, Subscription } from '@supabase/supabase-js';
-import { sb } from '../storage/supabase';
+import { getSb } from '../storage/supabase';
 
 interface AuthState {
   session: Session | null;
@@ -31,6 +31,7 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     async init(): Promise<void> {
+      const sb = await getSb();
       if (!sb) return;
       const { data } = await sb.auth.getSession();
       this.session = data.session;
@@ -57,6 +58,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async sendMagicLink(email: string, redirectTo: string): Promise<void> {
+      const sb = await getSb();
       if (!sb) {
         this.error = 'Supabase not configured';
         return;
@@ -76,6 +78,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async signInWithGoogle(redirectTo: string): Promise<void> {
+      const sb = await getSb();
       if (!sb) {
         this.error = 'Supabase not configured';
         return;
@@ -95,6 +98,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     async signOut(): Promise<void> {
+      const sb = await getSb();
       if (!sb) return;
       await sb.auth.signOut();
       this.session = null;

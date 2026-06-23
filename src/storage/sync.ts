@@ -1,4 +1,4 @@
-import { sb } from './supabase';
+import { getSb, reportSyncError } from './supabase';
 import { db } from './dexie';
 import { listOutbox, removeOutbox, type OutboxTable } from './outbox';
 import { withoutOutbox } from './repo';
@@ -18,14 +18,16 @@ import {
   type PracticeLogRow,
 } from './fieldMap';
 import type { PracticeLog, Sequence, Transition, Trick } from '../domain/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const PAGE = 1000;
 const CHUNK = 500;
 
-async function isSignedIn(): Promise<boolean> {
-  if (!sb) return false;
+async function signedInClient(): Promise<SupabaseClient | null> {
+  const sb = await getSb();
+  if (!sb) return null;
   const { data } = await sb.auth.getSession();
-  return !!data.session;
+  return data.session ? sb : null;
 }
 
 // ---- pending id sets (so pullAll skips entities with queued local ops) ----
@@ -53,8 +55,7 @@ async function collectPendingIds(): Promise<PendingIds> {
 }
 
 // ---- paginated full-table fetch ----
-async function fetchAll<T>(table: OutboxTable): Promise<T[]> {
-  if (!sb) return [];
+async function fetchAll<T>(sb: SupabaseClient, table: OutboxTable): Promise<T[]> {
   const acc: T[] = [];
   let from = 0;
   // eslint-disable-next-line no-constant-condition
@@ -76,17 +77,18 @@ export async function pullAll(): Promise<{
   sequences: number;
   practice_log: number;
 }> {
-  if (!sb || !(await isSignedIn())) {
+  const sb = await signedInClient();
+  if (!sb) {
     return { tricks: 0, transitions: 0, sequences: 0, practice_log: 0 };
   }
 
   const pending = await collectPendingIds();
 
   const [trickRows, transitionRows, sequenceRows, logRows] = await Promise.all([
-    fetchAll<TrickRow>('tricks'),
-    fetchAll<TransitionRow>('transitions'),
-    fetchAll<SequenceRow>('sequences'),
-    fetchAll<PracticeLogRow>('practice_log'),
+    fetchAll<TrickRow>(sb, 'tricks'),
+    fetchAll<TransitionRow>(sb, 'transitions'),
+    fetchAll<SequenceRow>(sb, 'sequences'),
+    fetchAll<PracticeLogRow>(sb, 'practice_log'),
   ]);
 
   const tricks: Trick[] = trickRows
@@ -177,7 +179,8 @@ function mapPayloadToServer(
 }
 
 export async function flushOutbox(): Promise<{ flushed: number; failed: number }> {
-  if (!sb || !(await isSignedIn())) return { flushed: 0, failed: 0 };
+  const sb = await signedInClient();
+  if (!sb) return { flushed: 0, failed: 0 };
 
   const rows = await listOutbox();
   let flushed = 0;
@@ -190,6 +193,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
         const { error } = await sb.from(row.table).upsert(serverRow, { onConflict: 'id' });
         if (error) {
           console.warn('[sync] upsert failed', row.table, error.message);
+          reportSyncError(`Push ${row.table}: ${error.message}`);
           failed++;
           break;
         }
@@ -202,6 +206,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
         const { error } = await sb.from(row.table).delete().eq('id', id);
         if (error) {
           console.warn('[sync] delete failed', row.table, error.message);
+          reportSyncError(`Delete ${row.table}: ${error.message}`);
           failed++;
           break;
         }
@@ -210,6 +215,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
       flushed++;
     } catch (e) {
       console.warn('[sync] flush exception', e);
+      reportSyncError(`Sync error: ${(e as Error).message}`);
       failed++;
       break;
     }
@@ -219,11 +225,12 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
 }
 
 async function bulkUpsert<T>(
+  sb: SupabaseClient,
   table: OutboxTable,
   rows: T[],
   map: (row: T) => Record<string, unknown>,
 ): Promise<number> {
-  if (!sb || rows.length === 0) return 0;
+  if (rows.length === 0) return 0;
   let pushed = 0;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK).map(map);
@@ -235,7 +242,8 @@ async function bulkUpsert<T>(
 }
 
 export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }> {
-  if (!sb || !(await isSignedIn())) {
+  const sb = await signedInClient();
+  if (!sb) {
     return { pushed: { tricks: 0, transitions: 0, sequences: 0, practice_log: 0 } };
   }
 
@@ -247,14 +255,14 @@ export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }
   ]);
 
   const pushed: Record<string, number> = {
-    tricks: await bulkUpsert('tricks', tricks, (t) => mapTrickToServer(t) as unknown as Record<string, unknown>),
-    transitions: await bulkUpsert('transitions', transitions, (t) =>
+    tricks: await bulkUpsert(sb, 'tricks', tricks, (t) => mapTrickToServer(t) as unknown as Record<string, unknown>),
+    transitions: await bulkUpsert(sb, 'transitions', transitions, (t) =>
       mapTransitionToServer(t) as unknown as Record<string, unknown>,
     ),
-    sequences: await bulkUpsert('sequences', sequences, (s) =>
+    sequences: await bulkUpsert(sb, 'sequences', sequences, (s) =>
       mapSequenceToServer(s) as unknown as Record<string, unknown>,
     ),
-    practice_log: await bulkUpsert('practice_log', logs, (p) =>
+    practice_log: await bulkUpsert(sb, 'practice_log', logs, (p) =>
       mapPracticeLogToServer(p) as unknown as Record<string, unknown>,
     ),
   };
@@ -263,6 +271,7 @@ export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }
 }
 
 export async function isServerEmpty(): Promise<boolean> {
+  const sb = await getSb();
   if (!sb) return false;
   const { count, error } = await sb
     .from('tricks')
@@ -272,8 +281,8 @@ export async function isServerEmpty(): Promise<boolean> {
 }
 
 export async function runStartupSync(): Promise<void> {
+  const sb = await signedInClient();
   if (!sb) return;
-  if (!(await isSignedIn())) return;
 
   const auth = useAuthStore();
   auth.markSyncStart();
@@ -287,6 +296,7 @@ export async function runStartupSync(): Promise<void> {
     }
   } catch (e) {
     console.error('[sync]', e);
+    reportSyncError(`Sync failed: ${(e as Error).message}`);
   } finally {
     auth.markSyncEnd();
   }
@@ -302,7 +312,10 @@ function scheduleFlush(delayMs = 600): void {
   if (flushTimer != null) window.clearTimeout(flushTimer);
   flushTimer = window.setTimeout(() => {
     flushTimer = null;
-    void flushOutbox().catch((e) => console.warn('[sync] auto flush failed', e));
+    void flushOutbox().catch((e) => {
+      console.warn('[sync] auto flush failed', e);
+      reportSyncError(`Auto-sync failed: ${(e as Error).message}`);
+    });
   }, delayMs);
 }
 
@@ -311,15 +324,19 @@ function schedulePull(delayMs = 400): void {
   if (pullTimer != null) window.clearTimeout(pullTimer);
   pullTimer = window.setTimeout(() => {
     pullTimer = null;
-    void pullAll().catch((e) => console.warn('[sync] auto pull failed', e));
+    void pullAll().catch((e) => {
+      console.warn('[sync] auto pull failed', e);
+      reportSyncError(`Auto-pull failed: ${(e as Error).message}`);
+    });
   }, delayMs);
 }
 
 // ---- realtime subscription (one channel per signed-in session) ----
-type Channel = ReturnType<NonNullable<typeof sb>['channel']>;
+type Channel = ReturnType<SupabaseClient['channel']>;
 let realtimeChannel: Channel | null = null;
 
 async function teardownRealtime(): Promise<void> {
+  const sb = await getSb();
   if (realtimeChannel && sb) {
     await sb.removeChannel(realtimeChannel);
   }
@@ -327,6 +344,7 @@ async function teardownRealtime(): Promise<void> {
 }
 
 async function startRealtime(): Promise<void> {
+  const sb = await getSb();
   if (!sb) return;
   if (realtimeChannel) return;
   realtimeChannel = sb.channel('slalom-changes');
@@ -341,8 +359,8 @@ async function startRealtime(): Promise<void> {
 }
 
 async function ensureRealtimeHealthy(): Promise<void> {
+  const sb = await signedInClient();
   if (!sb) return;
-  if (!(await isSignedIn())) return;
   const state = realtimeChannel?.state;
   if (!realtimeChannel || state === 'closed' || state === 'errored') {
     await teardownRealtime();
@@ -350,14 +368,18 @@ async function ensureRealtimeHealthy(): Promise<void> {
   }
 }
 
-export function setupAutoFlush(): void {
+export async function setupAutoFlush(): Promise<void> {
+  const sb = await getSb();
   if (!sb) return;
   if (autoWired) return;
   autoWired = true;
 
   sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session) {
-      void runStartupSync().catch((e) => console.warn('[sync] auto startup sync failed', e));
+      void runStartupSync().catch((e) => {
+        console.warn('[sync] auto startup sync failed', e);
+        reportSyncError(`Sync failed: ${(e as Error).message}`);
+      });
       void startRealtime().catch((e) => console.warn('[sync] realtime start failed', e));
     }
     if (event === 'SIGNED_OUT') {
@@ -366,7 +388,7 @@ export function setupAutoFlush(): void {
   });
 
   // If already signed in at boot (refresh), kick realtime on.
-  void isSignedIn().then((ok) => { if (ok) void startRealtime(); });
+  void signedInClient().then((ok) => { if (ok) void startRealtime(); });
 
   if (typeof window !== 'undefined') {
     const onResume = () => {
@@ -375,7 +397,10 @@ export function setupAutoFlush(): void {
       void ensureRealtimeHealthy();
     };
     window.addEventListener('online', () => {
-      void flushOutbox().catch((e) => console.warn('[sync] online flush failed', e));
+      void flushOutbox().catch((e) => {
+        console.warn('[sync] online flush failed', e);
+        reportSyncError(`Online sync failed: ${(e as Error).message}`);
+      });
       schedulePull(50);
       void ensureRealtimeHealthy();
     });

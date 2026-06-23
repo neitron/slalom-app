@@ -1,17 +1,13 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import AllTricks from './pages/AllTricks.vue'
-import Learning from './pages/Learning.vue'
-import Graph from './pages/Graph.vue'
-import Sequences from './pages/Sequences.vue'
-import Settings from './pages/Settings.vue'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'all', component: AllTricks },
-  { path: '/learning', name: 'learning', component: Learning },
-  { path: '/graph', name: 'graph', component: Graph },
+  { path: '/learning', name: 'learning', component: () => import('./pages/Learning.vue') },
+  { path: '/graph', name: 'graph', component: () => import('./pages/Graph.vue') },
   { path: '/transitions', name: 'transitions', component: () => import('./pages/Transitions.vue') },
-  { path: '/sequences', name: 'sequences', component: Sequences },
-  { path: '/settings', name: 'settings', component: Settings },
+  { path: '/sequences', name: 'sequences', component: () => import('./pages/Sequences.vue') },
+  { path: '/settings', name: 'settings', component: () => import('./pages/Settings.vue') },
 ]
 
 export const router = createRouter({
