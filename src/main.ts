@@ -4,12 +4,9 @@ import App from './App.vue'
 import { router, prefetchRoutes } from './router'
 import { supabaseConfigured } from './storage/supabase'
 import { migrateNonUuidIds } from './storage/migrateIds'
-import { setupViewportInsetVar } from './utils/viewportInset'
 import './style.css'
 
 async function bootstrap(): Promise<void> {
-  setupViewportInsetVar()
-
   const app = createApp(App)
   app.use(createPinia())
   app.use(router)

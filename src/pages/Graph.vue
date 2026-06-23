@@ -372,7 +372,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-[calc(100svh-5rem)] min-h-0">
+  <div class="flex flex-col h-full min-h-0">
     <div class="flex items-center gap-2 px-3 pt-2 pb-2 shrink-0">
       <h1 class="text-lg font-semibold flex-1">Graph</h1>
       <button

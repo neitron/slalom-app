@@ -57,8 +57,8 @@ function onFeedbackClose() {
 </script>
 
 <template>
-  <div class="flex flex-col min-h-svh">
-    <main class="flex-1 overflow-y-auto pb-20">
+  <div class="flex flex-col h-svh">
+    <main class="flex-1 min-h-0 overflow-y-auto">
       <RouterView />
     </main>
     <TabBar />
