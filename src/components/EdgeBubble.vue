@@ -1,0 +1,181 @@
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import type { Side, Transition as TransitionEdge, Trick } from '../domain/types'
+import { useUiStore } from '../stores/ui'
+import RateDots from './RateDots.vue'
+
+const uiStore = useUiStore()
+
+type Props = {
+  edge: TransitionEdge
+  fromTrick: Trick
+  toTrick: Trick
+  x: number
+  y: number
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  report: [edgeId: string, score: number]
+  toggleBidi: [edgeId: string]
+  remove: [edgeId: string]
+  close: []
+}>()
+
+const root = ref<HTMLDivElement | null>(null)
+const pos = ref({ left: props.x, top: props.y })
+
+const MARGIN = 8
+
+async function clamp() {
+  await nextTick()
+  const el = root.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  let left = props.x - rect.width / 2
+  let top = props.y + 14
+  if (left < MARGIN) left = MARGIN
+  if (left + rect.width > vw - MARGIN) left = vw - MARGIN - rect.width
+  if (top + rect.height > vh - MARGIN) top = props.y - rect.height - 14
+  if (top < MARGIN) top = MARGIN
+  pos.value = { left, top }
+}
+
+watch(() => [props.x, props.y], clamp)
+
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') emit('close')
+}
+
+onMounted(() => {
+  clamp()
+  window.addEventListener('keydown', onKey)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  clearArm()
+})
+
+function sideColor(side: Side): string {
+  if (side === 'L') return 'var(--side-l)'
+  if (side === 'R') return 'var(--side-r)'
+  return 'var(--side-none)'
+}
+
+const arrow = computed(() => (props.edge.bidi ? '⇄' : '→'))
+
+const removeArmed = ref(false)
+let armTimer: number | null = null
+
+function clearArm() {
+  if (armTimer != null) {
+    window.clearTimeout(armTimer)
+    armTimer = null
+  }
+  removeArmed.value = false
+}
+
+function onRemove() {
+  if (!props.edge.id) return
+  if (!removeArmed.value) {
+    removeArmed.value = true
+    armTimer = window.setTimeout(clearArm, 3000)
+    return
+  }
+  clearArm()
+  emit('remove', props.edge.id)
+}
+
+function report(score: number) {
+  if (!props.edge.id) return
+  const s = score as 1 | 2 | 3 | 4 | 5
+  uiStore.triggerFeedback({ score: s, side: null, context: 'transition' })
+  emit('report', props.edge.id, score)
+}
+
+function toggleBidi() {
+  if (props.edge.id) emit('toggleBidi', props.edge.id)
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <Transition name="gb">
+      <div
+        ref="root"
+        class="fixed z-50 bg-card border border-border rounded-xl p-3 shadow-2xl w-[260px]"
+        :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
+        @click.stop
+      >
+        <div class="flex items-start gap-2 mb-2">
+          <div class="flex-1 min-w-0 text-[13px] font-semibold leading-snug">
+            <span class="text-fg">{{ fromTrick.name }}</span>
+            <span
+              v-if="edge.fromSide"
+              class="ml-1 font-bold"
+              :style="{ color: sideColor(edge.fromSide) }"
+            >({{ edge.fromSide }})</span>
+            <span class="mx-1.5 text-muted">{{ arrow }}</span>
+            <span class="text-fg">{{ toTrick.name }}</span>
+            <span
+              v-if="edge.toSide"
+              class="ml-1 font-bold"
+              :style="{ color: sideColor(edge.toSide) }"
+            >({{ edge.toSide }})</span>
+          </div>
+          <button
+            type="button"
+            class="text-muted text-base leading-none -mr-1 -mt-1 w-6 h-6 grid place-items-center"
+            aria-label="Close"
+            @click="emit('close')"
+          >✕</button>
+        </div>
+
+        <RateDots
+          :rate="edge.rate"
+          size="md"
+        />
+
+        <div class="grid grid-cols-5 gap-1 mt-3">
+          <button
+            v-for="n in 5"
+            :key="n"
+            type="button"
+            class="py-1.5 rounded-md border border-border-2 bg-card-2 text-fg text-xs"
+            @click="report(n)"
+          >{{ n }}</button>
+        </div>
+
+        <label class="flex items-center gap-2 mt-3 text-[12px] text-fg cursor-pointer select-none">
+          <input
+            type="checkbox"
+            :checked="edge.bidi"
+            class="accent-accent"
+            @change="toggleBidi"
+          >
+          <span>↔ both directions</span>
+        </label>
+
+        <button
+          type="button"
+          class="w-full mt-2 py-1.5 rounded-md text-xs border"
+          :class="removeArmed
+            ? 'bg-danger text-fg border-danger'
+            : 'border-border-2 bg-card-2 text-muted'"
+          @click="onRemove"
+        >{{ removeArmed ? 'Tap again to confirm' : 'Remove edge' }}</button>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<style scoped>
+.gb-enter-active, .gb-leave-active {
+  transition: transform 180ms cubic-bezier(0.18, 1.2, 0.42, 1), opacity 140ms ease;
+}
+.gb-enter-from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+.gb-leave-to   { opacity: 0; transform: translateY(-3px) scale(0.98); }
+</style>

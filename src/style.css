@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  html, body {
+    @apply bg-bg text-fg;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+:root {
+  color-scheme: dark;
+  --rate-good: #3fbf75;
+  --rate-mid: #e0a93e;
+  --rate-bad: #d95757;
+  --rate-none: #565764;
+  --side-l: #ffb36b;
+  --side-r: #7cc5ff;
+  --side-none: #cbb3e6;
+}
+
+@layer components {
+  .btn-l { @apply border border-side-l text-side-l hover:bg-side-l hover:text-bg; }
+  .btn-r { @apply border border-side-r text-side-r hover:bg-side-r hover:text-bg; }
+  .rate-dot { @apply inline-block w-[5px] h-[5px] rounded-full; }
+}

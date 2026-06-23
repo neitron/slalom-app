@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slalom Tricks</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #14151a; color: #e6e6ec; padding: 16px; font-size: 14px;
+  }
+  /* Page navigation */
+  .pagenav {
+    display: inline-flex; gap: 4px; background: #1c1d24; border: 1px solid #2a2b33;
+    border-radius: 12px; padding: 4px; margin-bottom: 14px;
+  }
+  .pbtn {
+    padding: 8px 20px; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600;
+    color: #9a9aa6; user-select: none; white-space: nowrap;
+  }
+  .pbtn:hover { color: #d0d0da; }
+  .pbtn.active { background: #2c2e3a; color: #fff; }
+  .pbtn .n { opacity: .5; font-size: 11.5px; font-weight: 400; }
+  /* Tier tabs */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid #2a2b33; }
+  .tab {
+    padding: 8px 14px; cursor: pointer; font-size: 13px; user-select: none;
+    border-bottom: 2px solid transparent; color: #9a9aa6; white-space: nowrap;
+  }
+  .tab:hover { color: #d0d0da; }
+  .tab.active { color: #fff; border-bottom-color: #6f8cff; }
+  .tab .n { opacity: .5; font-size: 11px; }
+  /* Secondary filter */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip {
+    padding: 5px 11px; border-radius: 14px; border: 1px solid #2e2f38; background: #1c1d24;
+    cursor: pointer; font-size: 12px; color: #b6b6c2; user-select: none; white-space: nowrap;
+  }
+  .chip.active { background: #6f8cff; color: #11121a; border-color: #6f8cff; font-weight: 600; }
+  .topbar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .topbar input {
+    flex: 1; padding: 7px 10px; border: 1px solid #2e2f38; border-radius: 8px;
+    font-size: 14px; background: #1c1d24; color: #e6e6ec;
+  }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat { background: #1c1d24; border: 1px solid #2a2b33; border-radius: 10px; padding: 8px 14px; }
+  .stat b { font-size: 18px; display: block; }
+  .stat span { color: #8b8b98; font-size: 11.5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .card {
+    background: #1c1d24; border: 1px solid #2a2b33; border-radius: 10px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: border-color .12s;
+  }
+  .card:hover { border-color: #6f8cff; }
+  .card .name { font-weight: 600; font-size: 13.5px; }
+  .card .meta { color: #8b8b98; font-size: 11px; }
+  .dots { display: flex; align-items: center; gap: 4px; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: #34353f; }
+  .dots .lbl { font-size: 10.5px; color: #8b8b98; margin-left: 4px; }
+  .dots .side { font-size: 9.5px; font-weight: 700; color: #8b8b98; width: 10px; }
+  .msg { text-align: center; color: #8b8b98; padding: 40px 0; }
+  .error { color: #ff9d9d; background: #3a2024; border: 1px solid #5d3036; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  /* Modal */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+    align-items: center; justify-content: center; z-index: 20; padding: 16px;
+  }
+  #overlay.open { display: flex; }
+  #soverlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none;
+    align-items: center; justify-content: center; z-index: 22; padding: 16px;
+  }
+  #soverlay.open { display: flex; }
+  .genrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .genrow label { font-size: 12.5px; color: #8b8b98; min-width: 110px; }
+  .genrow input, .genrow select {
+    flex: 1; padding: 7px 9px; border: 1px solid #32333e; border-radius: 8px;
+    background: #24252e; color: #e6e6ec; font-size: 13px;
+  }
+  .genrow .bbtn { padding: 9px 0; font-size: 13px; }
+  .schain { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 12px; }
+  .schip {
+    background: #24252e; border: 1px solid #32333e; border-radius: 12px;
+    padding: 4px 10px; font-size: 12px; color: #d0d0da;
+  }
+  .sarr { color: #6e6f7a; font-size: 12px; }
+  .sarr.warn { color: #e0a93e; cursor: help; }
+  .seqbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .seqcard {
+    background: #1c1d24; border: 1px solid #2a2b33; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .seqhead { display: flex; align-items: center; gap: 10px; }
+  .sortsel {
+    padding: 7px 9px; border: 1px solid #2e2f38; border-radius: 8px;
+    background: #1c1d24; color: #b6b6c2; font-size: 12.5px; cursor: pointer;
+  }
+  .seqrate { display: flex; align-items: center; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+  .seqrate .dots { margin-right: 8px; }
+  .srlbl { font-size: 10.5px; color: #8b8b98; }
+  .seqrate .srate { flex: none; width: 26px; padding: 5px 0; font-size: 11.5px; }
+  .sname { font-weight: 600; font-size: 13.5px; flex: 1; }
+  .sdate { color: #6e6f7a; font-size: 11px; }
+  .ghint .bbtn { flex: none; padding: 3px 10px; font-size: 11px; margin-left: 6px; }
+  .modal {
+    background: #1e1f27; border: 1px solid #32333e; border-radius: 14px;
+    padding: 20px; width: 100%; max-width: 420px; position: relative;
+  }
+  .modal.busy { opacity: .55; pointer-events: none; }
+  .modal h3 { font-size: 17px; margin-bottom: 2px; padding-right: 28px; }
+  .modal .sub { color: #8b8b98; font-size: 12px; margin-bottom: 14px; }
+  .modal .close {
+    position: absolute; top: 12px; right: 14px; cursor: pointer; color: #8b8b98;
+    font-size: 18px; line-height: 1; background: none; border: none;
+  }
+  .drow { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2a2b33; font-size: 13px; }
+  .drow span:first-child { color: #8b8b98; }
+  .modal .dots { margin: 14px 0 4px; }
+  .modal .dot { width: 8px; height: 8px; }
+  .report-title { font-size: 12.5px; color: #b6b6c2; margin: 16px 0 8px; }
+  .rbtns { display: flex; gap: 6px; }
+  .rbtn {
+    flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid #32333e; background: #24252e;
+    font-size: 14px; cursor: pointer; color: #d0d0da;
+  }
+  .rbtn small { display: block; font-size: 9px; color: #8b8b98; }
+  .rbtn:hover { background: #6f8cff; color: #11121a; border-color: #6f8cff; }
+  .rbtn:hover small { color: #11121a; }
+  .reset {
+    margin-top: 14px; width: 100%; padding: 8px 0; border-radius: 8px; font-size: 12px;
+    border: 1px solid #4a2c30; background: transparent; color: #b06a6a; cursor: pointer;
+  }
+  .reset:hover { background: #3a2024; color: #ff9d9d; }
+  .reset.confirm { background: #c44545; border-color: #c44545; color: #fff; font-weight: 600; }
+  .aka { margin-top: 12px; }
+  .aka label { font-size: 11.5px; color: #8b8b98; display: block; margin-bottom: 5px; }
+  .aka-row { display: flex; gap: 6px; }
+  .aka-row input {
+    flex: 1; padding: 7px 9px; border: 1px solid #32333e; border-radius: 8px;
+    background: #24252e; color: #e6e6ec; font-size: 12.5px;
+  }
+  .aka-row button {
+    padding: 7px 14px; border-radius: 8px; border: 1px solid #32333e; background: #24252e;
+    color: #d0d0da; font-size: 12.5px; cursor: pointer;
+  }
+  .aka-row button:hover { background: #6f8cff; color: #11121a; border-color: #6f8cff; }
+  .ipick { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pencil {
+    background: none; border: none; color: #8b8b98; cursor: pointer;
+    font-size: 14px; padding: 0 4px; vertical-align: 1px;
+  }
+  .pencil:hover { color: #fff; }
+  /* portal leg colors — L: light orange, R: light blue */
+  .lt { color: #ffb36b; font-weight: 600; }
+  .rt { color: #7cc5ff; font-weight: 600; }
+  .btn-l { border-color: #6b4a2c !important; color: #ffb36b !important; }
+  .btn-l:hover { background: #ffb36b !important; border-color: #ffb36b !important; color: #11121a !important; }
+  .btn-l:hover small { color: #11121a !important; }
+  .btn-r { border-color: #2c4a6b !important; color: #7cc5ff !important; }
+  .btn-r:hover { background: #7cc5ff !important; border-color: #7cc5ff !important; color: #11121a !important; }
+  .btn-r:hover small { color: #11121a !important; }
+  .ibtn {
+    width: 27px; height: 27px; border-radius: 7px; border: 1px solid #32333e; background: #24252e;
+    color: #8b8b98; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .ibtn:hover { border-color: #6f8cff; }
+  .ibtn.sel { border-color: #6f8cff; background: #2c3550; }
+  .cbtn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+  .cbtn.sel { border-color: #fff; }
+  .cico { display: inline-flex; vertical-align: -1px; margin-right: 5px; }
+  .watch {
+    display: inline-block; margin-top: 7px; font-size: 12px; color: #9ab0ff;
+    text-decoration: none;
+  }
+  .watch:hover { text-decoration: underline; }
+  .watch.concrete { color: #3fbf75; }
+  .name-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+  .vic { color: #565764; flex-shrink: 0; line-height: 1; padding: 2px; border-radius: 6px; }
+  .vic.concrete { color: #6f8cff; }
+  .vic:hover { color: #fff; background: #32333e; }
+  .vic.concrete:hover { color: #11121a; background: #6f8cff; }
+  /* Graph */
+  .gwrap { position: relative; background: #17181f; border: 1px solid #2a2b33; border-radius: 12px; overflow: hidden; }
+  .gwrap svg { display: block; width: 100%; }
+  .ghint {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 2;
+    background: #2c2e3a; color: #cdd6ff; font-size: 12px; padding: 6px 14px; border-radius: 14px;
+    white-space: nowrap;
+  }
+  .glegend { margin-top: 8px; font-size: 11.5px; color: #6e6f7a; text-align: center; }
+  .gctrl { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 2; }
+  .gctrl button {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid #3a3b47; background: #22232c;
+    color: #d0d0da; font-size: 15px; cursor: pointer; line-height: 1;
+  }
+  .gctrl button:hover { background: #6f8cff; color: #11121a; border-color: #6f8cff; }
+  .gctrl button.on { background: #3fbf75; color: #11121a; border-color: #3fbf75; }
+  .gbubble {
+    position: absolute; z-index: 3; width: 240px; background: #22232c; border: 1px solid #3a3b47;
+    border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 22px rgba(0,0,0,.5);
+  }
+  .gbubble .bname { font-weight: 600; font-size: 13px; }
+  .gbubble .bmeta { color: #8b8b98; font-size: 11px; margin: 2px 0 4px; }
+  .brow { display: flex; gap: 5px; margin-top: 7px; }
+  .bbtn {
+    flex: 1; padding: 6px 4px; border-radius: 7px; border: 1px solid #3a3b47; background: #2a2b35;
+    color: #d0d0da; font-size: 11.5px; cursor: pointer;
+  }
+  .bbtn:hover { background: #6f8cff; color: #11121a; border-color: #6f8cff; }
+  .bdanger { color: #b06a6a; }
+  .bdanger:hover { background: #c44545; border-color: #c44545; color: #fff; }
+  .bdanger.confirm { background: #c44545; border-color: #c44545; color: #fff; font-weight: 600; }
+  #toast {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: #c44545; color: #fff; padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; display: none; z-index: 30;
+  }
+</style>
+</head>
+<body>
+  <div class="pagenav" id="pagenav"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="filters" id="filters"></div>
+  <div class="topbar">
+    <input type="search" id="search" placeholder="Search all tricks…">
+    <select id="sort" class="sortsel">
+      <option value="">A–Z</option>
+      <option value="best">Best first</option>
+      <option value="worst">Worst first</option>
+    </select>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div id="content"><div class="msg">Loading tricks from Miro…</div></div>
+
+  <div id="overlay"><div class="modal" id="modal"></div></div>
+  <div id="soverlay"><div class="modal" id="smodal"></div></div>
+  <div id="toast"></div>
+
+<script>
+const TABLE_URL = "https://miro.com/app/board/uXjVHGixR4Y=/?moveToWidget=3458764675158872166";
+const TRANS_URL = "https://miro.com/app/board/uXjVHGixR4Y=/?moveToWidget=3458764675178041203";
+const SEQ_URL = "https://miro.com/app/board/uXjVHGixR4Y=/?moveToWidget=3458764675180311496";
+const SRV = "mcp__5554c050-8543-4b77-badc-d3871cf01fa4__";
+const TIER_NAMES = { 1: "Basics", 2: "Beginner", 3: "Intermediate", 4: "Advanced", 5: "Challenging", 6: "Master" };
+const CAT_ORDER = ["forward", "backward", "cross", "eagle", "one-foot", "sitting", "spin", "seven", "wheeling"];
+const SCORE_HINTS = { 1: "bad", 2: "rough", 3: "ok", 4: "good", 5: "excellent" };
+const ALPHA = 0.4;
+let tricks = [];
+let edges = [];
+let sequences = [];
+let seqMode = null;   // { path: [trick names] } while building on graph
+let linkingFrom = null;
+let nodePos = JSON.parse(localStorage.getItem("slalom_pos") || "{}");
+let page = localStorage.getItem("slalom_page") || "browse";
+let tier = parseInt(localStorage.getItem("slalom_tier") || "1", 10) || 1;
+let cat = localStorage.getItem("slalom_cat2") || "all";
+let query = "";
+let openRow = null;
+
+function parseResult(r) {
+  if (r.isError) throw new Error((r.content && r.content[0] && r.content[0].text) || "MCP error");
+  return r.structuredContent ?? JSON.parse(r.content[0].text);
+}
+
+/* MCP read results are cached by the host keyed on tool+args; vary `limit`
+   so post-write refetches bypass the cache instead of returning stale rows. */
+let fetchSeq = 0;
+function bustLimit() { return 50 + (fetchSeq++ % 49); }
+
+async function loadAll() {
+  const rows = [];
+  let cursor = null;
+  const lim = bustLimit();
+  for (let i = 0; i < 20; i++) {
+    const args = { miro_url: TABLE_URL, limit: lim };
+    if (cursor) args.next_cursor = cursor;
+    const data = parseResult(await window.cowork.callMcpTool(SRV + "table_list_rows", args));
+    rows.push(...(data.rows || []));
+    cursor = data.cursor;
+    if (!cursor || (data.total && rows.length >= data.total)) break;
+  }
+  return rows;
+}
+
+function cell(row, title) {
+  return (row.cells || []).find(c => c.columnTitle === title) || {};
+}
+
+function toTrick(row) {
+  const desc = cell(row, "Description").content || "";
+  const m = desc.match(/Tier\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*in\s*([^|]+?)\s*\|\s*out\s*([^|]+)/i);
+  const rm = desc.match(/\|\s*rate\s+([\d.]+)/i);
+  const rlm = desc.match(/rateL\s+([\d.]+)/i);
+  const rrm = desc.match(/rateR\s+([\d.]+)/i);
+  const lrFlag = /\|\s*lr\s*(\||$)/i.test(desc);
+  const lm = desc.match(/last\s*(\d{4}-\d{2}-\d{2})/i);
+  const am = desc.match(/aka\s*([^|]+)/i);
+  const vm = desc.match(/video\s*(https?:\/\/[^\s|]+)/i);
+  const im = desc.match(/icon\s+([^|\s]+)/i);
+  const tgm = desc.match(/\|\s*tags\s*([^|]+)/i);
+  const favFlag = /\|\s*fav\s*(\||$)/i.test(desc);
+  const statusCell = cell(row, "Status");
+  return {
+    rowId: row.rowId,
+    name: cell(row, "Title").content || "(untitled)",
+    tier: m ? parseInt(m[1], 10) : 0,
+    category: m ? m[2].trim() : "other",
+    stIn: m ? m[3].trim() : "", stOut: m ? m[4].trim() : "",
+    status: (statusCell.options && statusCell.options[0] && statusCell.options[0].displayValue) || "Not Started",
+    rate: rm ? parseFloat(rm[1]) : null,
+    lr: lrFlag,
+    rateL: rlm ? parseFloat(rlm[1]) : null,
+    rateR: rrm ? parseFloat(rrm[1]) : null,
+    last: lm ? lm[1] : null,
+    aliases: am ? am[1].split(";").map(s => s.trim()).filter(Boolean) : [],
+    video: vm ? vm[1] : null,
+    icon: im ? (LEGACY_ICONS[im[1]] || im[1]) : null,
+    tags: tgm ? tgm[1].split(";").map(s => s.trim().toLowerCase()).filter(Boolean) : [],
+    fav: favFlag
+  };
+}
+
+function buildDesc(t) {
+  let d = `Tier ${t.tier} | ${t.category} | in ${t.stIn} | out ${t.stOut}`;
+  if (t.lr) {
+    d += " | lr";
+    if (t.rateL != null) d += ` | rateL ${t.rateL}`;
+    if (t.rateR != null) d += ` | rateR ${t.rateR}`;
+    if (hasRate(t) && t.last) d += ` | last ${t.last}`;
+  } else if (t.rate != null) d += ` | rate ${t.rate} | last ${t.last}`;
+  if (t.aliases.length) d += ` | aka ${t.aliases.join("; ")}`;
+  if (t.video) d += ` | video ${t.video}`;
+  if (t.icon) d += ` | icon ${t.icon}`;
+  if (t.tags.length) d += ` | tags ${t.tags.join("; ")}`;
+  if (t.fav) d += " | fav";
+  return d;
+}
+
+/* L/R (leading foot) helpers */
+function hasRate(t) { return t.lr ? (t.rateL != null || t.rateR != null) : t.rate != null; }
+function effRate(t) {
+  if (!t.lr) return t.rate;
+  const v = [t.rateL, t.rateR].filter(x => x != null);
+  return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 100) / 100 : null;
+}
+
+async function toggleLR(rowId) {
+  const t = tricks.find(x => x.rowId === rowId);
+  if (!t) return;
+  const prev = { lr: t.lr, rate: t.rate, rateL: t.rateL, rateR: t.rateR };
+  if (!t.lr) { t.lr = true; t.rateL = t.rate; t.rateR = t.rate; t.rate = null; }
+  else { t.rate = effRate(t); t.lr = false; t.rateL = null; t.rateR = null; }
+  renderModal();
+  render();
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TABLE_URL,
+      rows: [{ rowId, cells: [{ columnTitle: "Description", value: buildDesc(t) }] }]
+    }));
+  } catch (e) {
+    Object.assign(t, prev);
+    toast("Could not save to Miro: " + e.message);
+    renderModal();
+    render();
+  }
+}
+
+async function saveIconStyle(rowId, patch) {
+  const t = tricks.find(x => x.rowId === rowId);
+  if (!t) return;
+  const prev = {};
+  for (const k in patch) prev[k] = t[k];
+  Object.assign(t, patch);
+  renderModal();
+  render();
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TABLE_URL,
+      rows: [{ rowId, cells: [{ columnTitle: "Description", value: buildDesc(t) }] }]
+    }));
+  } catch (e) {
+    Object.assign(t, prev);
+    toast("Could not save to Miro: " + e.message);
+    renderModal();
+    render();
+  }
+}
+
+/* Legacy icon-name → emoji mapping (older saved data) */
+const LEGACY_ICONS = { star:"⭐", bolt:"⚡", fire:"🔥", heart:"❤️", diamond:"💎", spin:"🌀", arrow:"➡️", target:"🎯", flag:"🚩", moon:"🌙", sun:"☀️", wheel:"🛞", rollerblade:"🛼", skate:"⛸️", skateboard:"🛹", rocket:"🚀", crown:"👑", trophy:"🏆", medal:"🥇", skull:"💀", ghost:"👻", alien:"👽", cat:"🐱", dog:"🐶", bird:"🐦", flower:"🌸", leaf:"🍃", snowflake:"❄️", waves:"🌊", music:"🎵", shield:"🛡️", sword:"⚔️", anchor:"⚓", compass:"🧭", infinity:"♾️", brain:"🧠", eye:"👁️", footprint:"👣", sneaker:"👟", bike:"🚴", run:"🏃", lifter:"🏋️", turtle:"🐢", rabbit:"🐰", penguin:"🐧", owl:"🦉", spider:"🕷️", puzzle:"🧩", key:"🔑", bell:"🔔", dice:"🎲" };
+
+/* Concrete YouTube tutorial links from pagophilia.com USARS slalom grades */
+const YT = id => "https://www.youtube.com/watch?v=" + id;
+const KNOWN_VIDEOS = {
+  "Fish": YT("CoTcgVYeyd4"),
+  "Snake": YT("eeGshwLWtug"),
+  "Backwards Snake": YT("mxcttRftOCo"),
+  "Criss-Cross": YT("YL05Pt2RULs"),
+  "Backwards Criss-Cross": YT("_qSGLlFQEP4"),
+  "Grapevine": YT("43HgxtE7cj0"),
+  "Nelson": YT("EpZ8RxamiKY"),
+  "Backwards Nelson": YT("xhSrIHI1ZqE"),
+  "Sun": YT("vsXG_tiIABk"),
+  "Crazy": YT("oBfMkUDIj5I"),
+  "Mabrouk": YT("ijBs6QEjGm0"),
+  "Stroll": YT("STm1g4XDq-8"),
+  "Backwards Stroll": YT("5QcUa_HSBx4"),
+  "Crab": YT("YaxhnnAOhT4"),
+  "One Foot": YT("xXvWL161TYU"),
+  "Backwards One Foot": YT("o7CPngmmgZw"),
+  "Italian": YT("EHuRAmKa0HY"),
+  "Mexican": YT("3_cAoCHX8lk"),
+  "Crazy Sun": YT("I6NzxEl8gyo"),
+  "Eight": YT("pRtlW6gllEU"),
+  "Backwards Eight": YT("i9avmxMW4qw"),
+  "X": YT("7_kvlyyI6vE"),
+  "X Jump (Crab Cross)": YT("rkKoSyIk88o"),
+  "Toe-Toe Snake": YT("jCq_sXclFdw"),
+  "Volt": YT("4JjXjBnUG2Q"),
+  "Eagle": YT("ujs5Vx7v7AQ"),
+  "Eagle Cross (Independent)": YT("ujs5Vx7v7AQ"),
+  "Small Car": YT("22JgQVHr_U8"),
+  "J-Turn": YT("mwfYY6lK5hg"),
+  "Backwards J-Turn": YT("xdUrxYkJj74"),
+  "Brush": YT("Nge57TIXvRo"),
+  "Special": YT("ull2hjPNdyA"),
+  "Backwards Heel-Toe Snake": YT("k1H5RDDkMas"),
+  "Crazy One Cone": YT("PtkZR08drhg"),
+  "Wiper": YT("kOHNJi4ABMQ"),
+  "Fan Volt": YT("aA5fNwxhidY"),
+  "Total Cross": YT("3HVjvocKEBY"),
+  "Swan": YT("xIMtd8hN6eQ"),
+  "Screw": YT("pRVtgFYL4lY"),
+  "Toe Wheeling": YT("VfCNoPNBU6Y"),
+  "Heel Wheeling": YT("VfCNoPNBU6Y"),
+  "Crazy Leg": YT("0pAMncgkyMM"),
+  "Footgun": YT("MnECrRC12Y0"),
+  "Backwards Footgun": YT("WQ1afjHr6II"),
+  "Kasakchok": YT("i7rQVwqFy_E"),
+  "Backwards Kasakchok": YT("G8hJmvWbHDo"),
+  "Christie": YT("AMkFs6tMexM"),
+  "Backwards Christie": YT("hfY5cHQ5fi8"),
+  "Toe Christie": YT("yioZcT3SFaM"),
+  "Deckchair (Corvo)": YT("JJTg1feKYos"),
+  "B To F Wheeling": YT("ksd6a3eHi3A"),
+  "Sewing Machine": YT("U7C-bHw51nE"),
+  "Cobra": YT("3qMxCTHOtJU"),
+  "Backwards Cobra": YT("rFZh55-LYww"),
+  "Chicken Leg": YT("8n_EeawdHMc"),
+  "Toe Reverse Eagle": YT("fVWPldGByyE"),
+  "Butterfly": YT("rrrOLa3UOjs")
+};
+
+/* ---------- Transitions (edges) ---------- */
+async function loadTransitions() {
+  const rows = [];
+  let cursor = null;
+  const lim = bustLimit();
+  for (let i = 0; i < 20; i++) {
+    const args = { miro_url: TRANS_URL, limit: lim };
+    if (cursor) args.next_cursor = cursor;
+    const data = parseResult(await window.cowork.callMcpTool(SRV + "table_list_rows", args));
+    rows.push(...(data.rows || []));
+    cursor = data.cursor;
+    if (!cursor || (data.total && rows.length >= data.total)) break;
+  }
+  return rows.map(r => {
+    const st = cell(r, "State").content || "active";
+    const fs = st.match(/from\s*(L|R)\b/i);
+    const ts = st.match(/to\s*(L|R)\b/i);
+    return {
+      rowId: r.rowId,
+      from: cell(r, "From").content || "",
+      to: cell(r, "To").content || "",
+      fromSide: fs ? fs[1].toUpperCase() : null,
+      toSide: ts ? ts[1].toUpperCase() : null,
+      bidi: /\bbidi\b/i.test(st),
+      rate: cell(r, "Rate").content ? parseFloat(cell(r, "Rate").content) : null,
+      last: cell(r, "Last").content || null,
+      state: st
+    };
+  }).filter(e => e.from && e.to && !e.state.includes("removed"));
+}
+
+async function addEdge(fromName, toName, fromSide, toSide) {
+  fromSide = fromSide || null; toSide = toSide || null;
+  if (edges.some(e => e.from === fromName && e.to === toName && e.fromSide === fromSide && e.toSide === toSide)) {
+    toast("Transition already exists"); return;
+  }
+  const stateVal = "active" + (fromSide ? ` | from ${fromSide}` : "") + (toSide ? ` | to ${toSide}` : "");
+  const temp = { rowId: null, from: fromName, to: toName, fromSide, toSide, bidi: false, rate: null, last: null, state: stateVal };
+  edges.push(temp);
+  render(); // show immediately
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TRANS_URL,
+      rows: [{ cells: [
+        { columnTitle: "From", value: fromName },
+        { columnTitle: "To", value: toName },
+        { columnTitle: "State", value: stateVal }
+      ] }]
+    }));
+    edges = await loadTransitions(); // pick up the real rowId
+  } catch (e) {
+    edges = edges.filter(x => x !== temp);
+    toast("Could not save transition: " + e.message);
+  }
+  render();
+}
+
+async function syncEdge(edge, cells) {
+  if (!edge.rowId) { toast("This transition is still saving — try again in a moment"); return false; }
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TRANS_URL, rows: [{ rowId: edge.rowId, cells }]
+    }));
+    return true;
+  } catch (e) { toast("Could not save to Miro: " + e.message); return false; }
+}
+
+async function reportEdge(edge, score) {
+  const prev = { rate: edge.rate, last: edge.last };
+  edge.rate = edge.rate == null ? score : Math.round((((1 - ALPHA) * edge.rate) + ALPHA * score) * 100) / 100;
+  edge.last = todayStr();
+  const ok = await syncEdge(edge, [
+    { columnTitle: "Rate", value: String(edge.rate) },
+    { columnTitle: "Last", value: edge.last }
+  ]);
+  if (!ok) Object.assign(edge, prev);
+  render();
+}
+
+async function toggleEdgeBidi(edge) {
+  const prev = edge.bidi;
+  edge.bidi = !edge.bidi;
+  const stateVal = "active" +
+    (edge.fromSide ? ` | from ${edge.fromSide}` : "") +
+    (edge.toSide ? ` | to ${edge.toSide}` : "") +
+    (edge.bidi ? " | bidi" : "");
+  const ok = await syncEdge(edge, [{ columnTitle: "State", value: stateVal }]);
+  if (!ok) edge.bidi = prev;
+  render();
+}
+
+async function removeEdge(edge) {
+  const ok = await syncEdge(edge, [{ columnTitle: "State", value: "removed" }]);
+  if (ok) edges = edges.filter(e => e.rowId !== edge.rowId);
+  render();
+}
+
+/* ---------- Sequences ---------- */
+const SEQ_SEP = " > ";
+
+async function loadSequences() {
+  const rows = [];
+  let cursor = null;
+  const lim = bustLimit();
+  for (let i = 0; i < 20; i++) {
+    const args = { miro_url: SEQ_URL, limit: lim };
+    if (cursor) args.next_cursor = cursor;
+    const data = parseResult(await window.cowork.callMcpTool(SRV + "table_list_rows", args));
+    rows.push(...(data.rows || []));
+    cursor = data.cursor;
+    if (!cursor || (data.total && rows.length >= data.total)) break;
+  }
+  return rows.map(r => {
+    const st = cell(r, "State").content || "active";
+    const rm = st.match(/rate\s*([\d.]+)/i);
+    const lm = st.match(/last\s*(\d{4}-\d{2}-\d{2})/i);
+    return {
+      rowId: r.rowId,
+      name: cell(r, "Name").content || "(unnamed)",
+      tricks: (cell(r, "Tricks").content || "").split(SEQ_SEP).filter(Boolean).map(parseStep),
+      created: cell(r, "Created").content || "",
+      rate: rm ? parseFloat(rm[1]) : null,
+      last: lm ? lm[1] : null,
+      state: st
+    };
+  }).filter(s => s.tricks.length && !s.state.includes("removed"));
+}
+
+/* sequence steps: { name, side } — side is L/R or null; serialized as "Name ~L" */
+function parseStep(s) {
+  const m = s.match(/^(.*?)(?:\s*~\s*([LR]))?$/);
+  return { name: (m ? m[1] : s).trim(), side: m && m[2] ? m[2] : null };
+}
+function stepToStr(st) { return st.side ? `${st.name} ~${st.side}` : st.name; }
+function normSteps(arr) { return arr.map(s => typeof s === "string" ? { name: s, side: null } : s); }
+
+async function reportSequence(seq, score) {
+  if (!seq.rowId) { toast("This sequence is still saving — try again in a moment"); return; }
+  const prev = { rate: seq.rate, last: seq.last };
+  seq.rate = seq.rate == null ? score : Math.round((((1 - ALPHA) * seq.rate) + ALPHA * score) * 100) / 100;
+  seq.last = todayStr();
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: SEQ_URL,
+      rows: [{ rowId: seq.rowId, cells: [{ columnTitle: "State", value: `active | rate ${seq.rate} | last ${seq.last}` }] }]
+    }));
+  } catch (e) {
+    Object.assign(seq, prev);
+    toast("Could not save to Miro: " + e.message);
+  }
+  render();
+}
+
+async function addSequence(name, steps) {
+  steps = normSteps(steps);
+  const temp = { rowId: null, name, tricks: steps, created: todayStr(), state: "active" };
+  sequences.push(temp);
+  render(); // show immediately
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: SEQ_URL,
+      rows: [{ cells: [
+        { columnTitle: "Name", value: name },
+        { columnTitle: "Tricks", value: steps.map(stepToStr).join(SEQ_SEP) },
+        { columnTitle: "Created", value: todayStr() },
+        { columnTitle: "State", value: "active" }
+      ] }]
+    }));
+    sequences = await loadSequences(); // pick up the real rowId
+    render();
+    return true;
+  } catch (e) {
+    sequences = sequences.filter(s => s !== temp);
+    render();
+    toast("Could not save sequence: " + e.message);
+    return false;
+  }
+}
+
+async function removeSequence(seq) {
+  if (!seq) return;
+  if (!seq.rowId) { toast("This sequence is still saving — try again in a moment"); return; }
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: SEQ_URL, rows: [{ rowId: seq.rowId, cells: [{ columnTitle: "State", value: "removed" }] }]
+    }));
+    sequences = sequences.filter(s => s.rowId !== seq.rowId);
+  } catch (e) { toast("Could not save to Miro: " + e.message); }
+  render();
+}
+
+function hasEdge(fromName, toName) {
+  return edges.some(e =>
+    (e.from === fromName && e.to === toName) ||
+    (e.bidi && e.from === toName && e.to === fromName));
+}
+
+/* generator filters */
+function genFilter(t, st) {
+  if (st.tier && t.tier > st.tier) return false;
+  if (st.exCats.includes(t.category)) return false;
+  if (t.tags.some(tag => st.exTags.includes(tag))) return false;
+  return true;
+}
+const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
+function sample(arr, n) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+}
+
+/* mode: walk the transition graph (leg-aware, respects two-way edges) */
+function genGraphWalk(n, st) {
+  const pool = graphNodes().filter(t => genFilter(t, st));
+  const names = new Set(pool.map(t => t.name));
+  const opts = {};
+  edges.forEach(e => {
+    if (!names.has(e.from) || !names.has(e.to)) return;
+    (opts[e.from] = opts[e.from] || []).push({ to: e.to, fromSide: e.fromSide, toSide: e.toSide });
+    if (e.bidi) (opts[e.to] = opts[e.to] || []).push({ to: e.from, fromSide: e.toSide, toSide: e.fromSide });
+  });
+  const starts = Object.keys(opts);
+  if (!starts.length) return null;
+  let cur = { name: rnd(starts), side: null };
+  const steps = [cur];
+  while (steps.length < n) {
+    const cand = (opts[cur.name] || []).filter(o => sideOk(o.fromSide, cur.side));
+    if (!cand.length) break;
+    const fresh = cand.filter(o => !steps.some(s => s.name === o.to));
+    const pick = rnd(fresh.length ? fresh : cand);
+    if (pick.fromSide && !cur.side) cur.side = pick.fromSide; // refine the step we leave from
+    cur = { name: pick.to, side: pick.toSide || null };
+    steps.push(cur);
+  }
+  return steps.length >= 2 ? steps : null;
+}
+
+/* mode: shuffle of practiced tricks, edges ignored */
+function genKnownShuffle(n, st) {
+  const pool = tricks.filter(t => hasRate(t) && genFilter(t, st));
+  if (pool.length < 2) return null;
+  return sample(pool, n).map(t => ({ name: t.name, side: null }));
+}
+
+/* mode: totally random tricks; optional exit→entry stance matching */
+function genTotallyRandom(n, st) {
+  const pool = tricks.filter(t => genFilter(t, st));
+  if (pool.length < 2) return null;
+  if (!st.stance) return sample(pool, n).map(t => ({ name: t.name, side: null }));
+  const byName2 = {};
+  pool.forEach(t => byName2[t.name] = t);
+  let cur = rnd(pool);
+  const used = new Set([cur.name]);
+  const steps = [{ name: cur.name, side: null }];
+  while (steps.length < n) {
+    const unused = pool.filter(t => !used.has(t.name));
+    if (!unused.length) break;
+    const matching = unused.filter(t => t.stIn === cur.stOut);
+    cur = rnd(matching.length ? matching : unused); // fall back to any trick if no stance match
+    used.add(cur.name);
+    steps.push({ name: cur.name, side: null });
+  }
+  return steps.length >= 2 ? steps : null;
+}
+
+/* sequence popup (generator / save) */
+function openSeqPopup(mode, presetPath) {
+  const ov = document.getElementById("soverlay");
+  ov.classList.add("open");
+  ov.dataset.mode = mode;
+  ov.dataset.path = JSON.stringify(presetPath || []);
+  renderSeqPopup();
+}
+function closeSeqPopup() { document.getElementById("soverlay").classList.remove("open"); }
+
+function sideOk(edgeSide, stepSide) { return edgeSide == null || stepSide == null || edgeSide === stepSide; }
+
+function hasEdgeStep(a, b) {
+  return edges.some(e =>
+    (e.from === a.name && e.to === b.name && sideOk(e.fromSide, a.side) && sideOk(e.toSide, b.side)) ||
+    (e.bidi && e.from === b.name && e.to === a.name && sideOk(e.fromSide, b.side) && sideOk(e.toSide, a.side)));
+}
+
+function chainHtml(steps) {
+  steps = normSteps(steps);
+  return `<div class="schain">` + steps.map((st, i) => {
+    const warn = i > 0 && !hasEdgeStep(steps[i - 1], st);
+    const sideHtml = st.side ? ` <b style="color:${st.side === "L" ? SIDE_L_COLOR : SIDE_R_COLOR}">${st.side}</b>` : "";
+    return (i > 0 ? `<span class="sarr ${warn ? "warn" : ""}" title="${warn ? "No matching transition learned between these tricks" : ""}">${warn ? "⚠" : "→"}</span>` : "") +
+      `<span class="schip">${st.name}${sideHtml}</span>`;
+  }).join("") + `</div>`;
+}
+
+const GEN_MODES = {
+  graph: { label: "Walk my transition graph", sub: "Follows learned transitions (leg-aware, two-way included)", max: 12 },
+  known: { label: "Shuffle tricks I know", sub: "Random order of practiced tricks — edges ignored", max: 12 },
+  random: { label: "Totally random tricks", sub: "Any tricks from the full list, known or not", max: 8 }
+};
+
+function genState() {
+  let st = {};
+  try { st = JSON.parse(localStorage.getItem("slalom_gen2") || "{}"); } catch (_) {}
+  return {
+    mode: GEN_MODES[st.mode] ? st.mode : "graph",
+    n: st.n || 4,
+    tier: st.tier || 0,
+    exCats: Array.isArray(st.exCats) ? st.exCats : [],
+    exTags: Array.isArray(st.exTags) ? st.exTags : [],
+    stance: !!st.stance
+  };
+}
+function saveGenState(st) { localStorage.setItem("slalom_gen2", JSON.stringify(st)); }
+
+function renderSeqPopup() {
+  const ov = document.getElementById("soverlay");
+  const m = document.getElementById("smodal");
+  const mode = ov.dataset.mode;
+  const path = JSON.parse(ov.dataset.path || "[]");
+  const defName = `${path.length || "?"} tricks · ${todayStr()}`;
+  if (mode === "gen") {
+    const st = genState();
+    const gm = GEN_MODES[st.mode];
+    const allTags = [...new Set(tricks.flatMap(t => t.tags))].sort();
+    const catChips = CAT_ORDER.filter(c => tricks.some(t => t.category === c)).map(c =>
+      `<span class="chip${st.exCats.includes(c) ? " active" : ""}" data-excat="${c}">${c}</span>`).join("");
+    const tagChips = allTags.length
+      ? allTags.map(tg => `<span class="chip${st.exTags.includes(tg) ? " active" : ""}" data-extag="${tg}">#${tg}</span>`).join("")
+      : '<span class="glegend" style="margin:0">no tags yet — add them in trick details</span>';
+    m.innerHTML = `
+      <button class="close" id="sclose">✕</button>
+      <h3>Generate sequence</h3>
+      <div class="sub">${gm.sub}</div>
+      <div class="genrow"><label>Mode</label>
+        <select id="gen-mode">
+          ${Object.keys(GEN_MODES).map(k => `<option value="${k}" ${k === st.mode ? "selected" : ""}>${GEN_MODES[k].label}</option>`).join("")}
+        </select></div>
+      <div class="genrow"><label>Tricks (max ${gm.max})</label>
+        <input type="number" id="gen-n" min="2" max="${gm.max}" value="${Math.min(st.n, gm.max)}"></div>
+      <div class="genrow"><label>Difficulty up to</label>
+        <select id="gen-tier">
+          <option value="0">Any</option>
+          ${[1, 2, 3, 4, 5, 6].map(tr => `<option value="${tr}" ${tr === st.tier ? "selected" : ""}>${TIER_NAMES[tr]}</option>`).join("")}
+        </select></div>
+      ${st.mode === "random" ? `
+      <div class="genrow"><label>Smart order</label>
+        <label style="cursor:pointer;font-size:12.5px;color:#b6b6c2"><input type="checkbox" id="gen-stance" ${st.stance ? "checked" : ""}> match exit → entry stance</label>
+      </div>` : ""}
+      <div class="genrow"><label>Exclude categories</label></div>
+      <div class="ipick">${catChips}</div>
+      <div class="genrow"><label>Exclude tags</label></div>
+      <div class="ipick">${tagChips}</div>
+      ${path.length ? chainHtml(path) : ""}
+      <div class="genrow" style="margin-top:12px">
+        <button class="bbtn" id="gen-go">${path.length ? "Regenerate" : "Generate"}</button>
+        ${path.length ? '<button class="bbtn" id="gen-save">Save sequence</button>' : ""}
+      </div>`;
+    const persist = patch => { saveGenState({ ...genState(), ...patch }); ov.dataset.path = "[]"; renderSeqPopup(); };
+    document.getElementById("gen-mode").addEventListener("change", e => persist({ mode: e.target.value }));
+    const stanceEl = document.getElementById("gen-stance");
+    if (stanceEl) stanceEl.addEventListener("change", e => saveGenState({ ...genState(), stance: e.target.checked }));
+    m.querySelectorAll("[data-excat]").forEach(ch => ch.addEventListener("click", () => {
+      const s2 = genState();
+      const c = ch.dataset.excat;
+      s2.exCats = s2.exCats.includes(c) ? s2.exCats.filter(x => x !== c) : [...s2.exCats, c];
+      persist(s2);
+    }));
+    m.querySelectorAll("[data-extag]").forEach(ch => ch.addEventListener("click", () => {
+      const s2 = genState();
+      const tg = ch.dataset.extag;
+      s2.exTags = s2.exTags.includes(tg) ? s2.exTags.filter(x => x !== tg) : [...s2.exTags, tg];
+      persist(s2);
+    }));
+  } else {
+    m.innerHTML = `
+      <button class="close" id="sclose">✕</button>
+      <h3>Save sequence</h3>
+      <div class="sub">Built on the graph</div>
+      ${chainHtml(path)}
+      <div class="genrow" style="margin-top:12px"><label>Name</label>
+        <input type="text" id="seq-name" value="${defName}"></div>
+      <div class="genrow"><button class="bbtn" id="seq-save">Save</button></div>`;
+  }
+  document.getElementById("sclose").addEventListener("click", closeSeqPopup);
+  const go = document.getElementById("gen-go");
+  if (go) go.addEventListener("click", () => {
+    const st = genState();
+    const gm = GEN_MODES[st.mode];
+    st.n = Math.min(Math.max(parseInt(document.getElementById("gen-n").value, 10) || 4, 2), gm.max);
+    st.tier = parseInt(document.getElementById("gen-tier").value, 10) || 0;
+    const stanceEl = document.getElementById("gen-stance");
+    if (stanceEl) st.stance = stanceEl.checked;
+    saveGenState(st);
+    const p = st.mode === "graph" ? genGraphWalk(st.n, st)
+      : st.mode === "known" ? genKnownShuffle(st.n, st)
+      : genTotallyRandom(st.n, st);
+    if (!p) {
+      toast(st.mode === "graph" ? "Not enough transitions in the graph for these settings" : "Not enough tricks match these filters");
+      return;
+    }
+    if (p.length < st.n) toast(`Stopped at ${p.length} — ran out of ${st.mode === "graph" ? "transitions" : "tricks"}`);
+    ov.dataset.path = JSON.stringify(p);
+    renderSeqPopup();
+  });
+  const gs = document.getElementById("gen-save");
+  if (gs) gs.addEventListener("click", async () => {
+    const p = JSON.parse(ov.dataset.path || "[]");
+    closeSeqPopup();
+    if (await addSequence(`${p.length} tricks · ${todayStr()}`, p)) { page = "sequences"; localStorage.setItem("slalom_page", page); }
+    render();
+  });
+  const ss = document.getElementById("seq-save");
+  if (ss) ss.addEventListener("click", async () => {
+    const p = JSON.parse(ov.dataset.path || "[]");
+    const nm = (document.getElementById("seq-name").value || defName).trim();
+    closeSeqPopup();
+    seqMode = null;
+    if (await addSequence(nm, p)) { page = "sequences"; localStorage.setItem("slalom_page", page); }
+    render();
+  });
+}
+
+function renderSequences() {
+  const content = document.getElementById("content");
+  const seqSort = localStorage.getItem("slalom_seq_sort") || "new";
+  let list = [...sequences];
+  if (seqSort === "best") list.sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0) || a.name.localeCompare(b.name));
+  else if (seqSort === "worst") list.sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0) || a.name.localeCompare(b.name));
+  else list.reverse(); // newest first
+  const toolbar = `
+    <div class="seqbar">
+      <button class="bbtn" id="seq-gen" style="flex:none;padding:8px 16px;font-size:13px">🎲 Generate sequence</button>
+      <select id="seq-sort" class="sortsel">
+        <option value="new" ${seqSort === "new" ? "selected" : ""}>Newest first</option>
+        <option value="best" ${seqSort === "best" ? "selected" : ""}>Best first</option>
+        <option value="worst" ${seqSort === "worst" ? "selected" : ""}>Worst first</option>
+      </select>
+      <span class="glegend" style="margin:0">or build one manually: Graph page → ⛓ button</span>
+    </div>`;
+  const cards = list.length ? list.map((s, i) => `
+    <div class="seqcard">
+      <div class="seqhead">
+        <span class="sname">${s.name}</span>
+        <span class="sdate">${s.created}${s.last ? " · practiced " + s.last : ""}</span>
+        <button class="bbtn bdanger sdel" data-id="${s.rowId}" style="flex:none">Delete</button>
+      </div>
+      ${chainHtml(s.tricks)}
+      <div class="seqrate">
+        ${dotsHtml(s)}
+        <span class="srlbl">Today:</span>
+        ${[1, 2, 3, 4, 5].map(sc => `<button class="bbtn srate" data-id="${s.rowId}" data-s="${sc}">${sc}</button>`).join("")}
+      </div>
+    </div>`).join("")
+    : '<div class="msg">No sequences yet — generate one or build it on the graph.</div>';
+  content.innerHTML = toolbar + cards;
+  document.getElementById("seq-gen").addEventListener("click", () => openSeqPopup("gen"));
+  document.getElementById("seq-sort").addEventListener("change", e => {
+    localStorage.setItem("slalom_seq_sort", e.target.value);
+    renderSequences();
+  });
+  content.querySelectorAll(".srate").forEach(b => b.addEventListener("click", () =>
+    reportSequence(sequences.find(s => s.rowId === b.dataset.id), parseInt(b.dataset.s, 10))));
+  content.querySelectorAll(".sdel").forEach(b => b.addEventListener("click", () => {
+    if (b.classList.contains("confirm")) { removeSequence(sequences.find(s => s.rowId === b.dataset.id)); return; }
+    b.classList.add("confirm");
+    b.textContent = "Confirm";
+    setTimeout(() => { b.classList.remove("confirm"); b.textContent = "Delete"; }, 3000);
+  }));
+}
+
+function ytId(url) {
+  const m = (url || "").match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+  return m ? m[1] : null;
+}
+
+function videoUrl(t) {
+  if (t.video) return { url: t.video, concrete: true };
+  if (KNOWN_VIDEOS[t.name]) return { url: KNOWN_VIDEOS[t.name], concrete: true };
+  const q = encodeURIComponent(`freestyle slalom skating ${t.name} tutorial`);
+  return { url: `https://www.youtube.com/results?search_query=${q}`, concrete: false };
+}
+
+function matches(t, q) {
+  return t.name.toLowerCase().includes(q) || t.aliases.some(a => a.toLowerCase().includes(q));
+}
+
+function rateColor(r) {
+  if (r >= 4) return "#3fbf75";
+  if (r >= 2.5) return "#e0a93e";
+  return "#d95757";
+}
+
+function dotsRow(rate, label) {
+  const filled = rate == null ? 0 : Math.round(rate);
+  const col = rateColor(rate || 0);
+  const sideCol = label === "L" ? SIDE_L_COLOR : label === "R" ? SIDE_R_COLOR : "#8b8b98";
+  let h = '<div class="dots">' + (label ? `<span class="side" style="color:${sideCol}">${label}</span>` : "");
+  for (let i = 1; i <= 5; i++)
+    h += `<span class="dot" style="${i <= filled ? "background:" + col : ""}"></span>`;
+  h += `<span class="lbl">${rate == null ? "not rated" : rate.toFixed(1)}</span></div>`;
+  return h;
+}
+
+function dotsHtml(t) {
+  return t && t.lr ? dotsRow(t.rateL, "L") + dotsRow(t.rateR, "R") : dotsRow(t.rate, null);
+}
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+async function report(rowId, score, side) {
+  const t = tricks.find(x => x.rowId === rowId);
+  if (!t) return;
+  document.getElementById("modal").classList.add("busy");
+  const prev = { rate: t.rate, rateL: t.rateL, rateR: t.rateR, last: t.last, status: t.status };
+  const firstReport = !hasRate(t);
+  const blend = old => old == null ? score : Math.round((((1 - ALPHA) * old) + ALPHA * score) * 100) / 100;
+  if (t.lr && side === "L") t.rateL = blend(t.rateL);
+  else if (t.lr && side === "R") t.rateR = blend(t.rateR);
+  else t.rate = blend(t.rate);
+  t.last = todayStr();
+  t.status = (effRate(t) ?? 0) >= 4.5 ? "Complete" : "In Progress";
+  const desc = buildDesc(t);
+  const cells = [
+    { columnTitle: "Description", value: desc },
+    { columnTitle: "Status", value: t.status },
+    { columnTitle: "End Date", value: t.last + "T00:00:00Z" }
+  ];
+  if (firstReport) cells.push({ columnTitle: "Start Date", value: t.last + "T00:00:00Z" });
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TABLE_URL, rows: [{ rowId, cells }]
+    }));
+  } catch (e) {
+    Object.assign(t, prev);
+    toast("Could not save to Miro: " + e.message);
+  }
+  document.getElementById("modal").classList.remove("busy");
+  renderModal();
+  render();
+}
+
+async function saveAliases(rowId, raw) {
+  const t = tricks.find(x => x.rowId === rowId);
+  if (!t) return;
+  document.getElementById("modal").classList.add("busy");
+  const prev = t.aliases;
+  t.aliases = raw.split(/[;,]/).map(s => s.trim().replace(/\|/g, "")).filter(Boolean);
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TABLE_URL,
+      rows: [{ rowId, cells: [{ columnTitle: "Description", value: buildDesc(t) }] }]
+    }));
+  } catch (e) {
+    t.aliases = prev;
+    toast("Could not save to Miro: " + e.message);
+  }
+  document.getElementById("modal").classList.remove("busy");
+  renderModal();
+  render();
+}
+
+async function saveVideo(rowId, raw) {
+  const t = tricks.find(x => x.rowId === rowId);
+  if (!t) return;
+  const url = raw.trim().replace(/[|\s]/g, "");
+  if (url && !/^https?:\/\//.test(url)) { toast("Video link must start with http(s)://"); return; }
+  document.getElementById("modal").classList.add("busy");
+  const prev = t.video;
+  t.video = url || null;
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TABLE_URL,
+      rows: [{ rowId, cells: [{ columnTitle: "Description", value: buildDesc(t) }] }]
+    }));
+  } catch (e) {
+    t.video = prev;
+    toast("Could not save to Miro: " + e.message);
+  }
+  document.getElementById("modal").classList.remove("busy");
+  renderModal();
+  render();
+}
+
+async function resetProgress(rowId) {
+  const t = tricks.find(x => x.rowId === rowId);
+  if (!t) return;
+  document.getElementById("modal").classList.add("busy");
+  const prev = { rate: t.rate, rateL: t.rateL, rateR: t.rateR, last: t.last, status: t.status };
+  t.rate = null; t.rateL = null; t.rateR = null; t.last = null; t.status = "Not Started";
+  const desc = buildDesc(t);
+  try {
+    parseResult(await window.cowork.callMcpTool(SRV + "table_sync_rows", {
+      miro_url: TABLE_URL,
+      rows: [{ rowId, cells: [
+        { columnTitle: "Description", value: desc },
+        { columnTitle: "Status", value: "Not Started" }
+      ] }]
+    }));
+  } catch (e) {
+    Object.assign(t, prev);
+    toast("Could not save to Miro: " + e.message);
+  }
+  document.getElementById("modal").classList.remove("busy");
+  renderModal();
+  render();
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.style.display = "block";
+  setTimeout(() => el.style.display = "none", 4000);
+}
+
+/* ---------- Modal ---------- */
+function openModal(rowId) {
+  openRow = rowId;
+  document.getElementById("overlay").classList.add("open");
+  renderModal();
+}
+function closeModal() {
+  openRow = null;
+  document.getElementById("overlay").classList.remove("open");
+}
+function renderModal() {
+  const t = tricks.find(x => x.rowId === openRow);
+  if (!t) return;
+  const vu = videoUrl(t);
+  const btnsFor = side => [1, 2, 3, 4, 5].map(s =>
+    `<button class="rbtn${side === "L" ? " btn-l" : side === "R" ? " btn-r" : ""}" data-score="${s}"${side ? ` data-side="${side}"` : ""}>${s}<small>${SCORE_HINTS[s]}</small></button>`).join("");
+  const reportSection = t.lr
+    ? `<div class="report-title" style="color:${SIDE_L_COLOR}">Left foot leading — how was it today?</div>
+       <div class="rbtns">${btnsFor("L")}</div>
+       <div class="report-title" style="color:${SIDE_R_COLOR}">Right foot leading — how was it today?</div>
+       <div class="rbtns">${btnsFor("R")}</div>`
+    : `<div class="report-title">How was this trick today?</div>
+       <div class="rbtns">${btnsFor(null)}</div>`;
+  document.getElementById("modal").innerHTML = `
+    <button class="close" id="mclose">✕</button>
+    <h3>
+      <span id="fav-tog" title="Favorite" style="cursor:pointer;color:${t.fav ? "#ffd166" : "#565764"}">${t.fav ? "★" : "☆"}</span>
+      ${t.icon ? t.icon + " " : ""}${t.name}
+      <button class="pencil" id="app-tog" title="Edit appearance (emoji)">✎</button>
+    </h3>
+    <div class="sub">Tier ${t.tier} · ${TIER_NAMES[t.tier] || ""}</div>
+    <div class="aka" id="app-panel" style="display:none;margin-top:0;margin-bottom:10px">
+      <label>Trick emoji <small>(type or paste any emoji from your keyboard)</small></label>
+      <div class="aka-row">
+        <input type="text" id="emoji-input" maxlength="8" value="${t.icon || ""}" placeholder="e.g. 🛼">
+        <button id="emoji-save">Set</button>
+        <button id="emoji-clear" title="Remove emoji">✕</button>
+      </div>
+    </div>
+    <div class="drow"><span>Category</span><span>${t.category}</span></div>
+    <div class="drow"><span>Entry</span><span>${t.stIn}</span></div>
+    <div class="drow"><span>Exit</span><span>${t.stOut}</span></div>
+    <div class="drow"><span>Status</span><span>${t.status}</span></div>
+    <div class="drow"><span>Last practiced</span><span>${t.last || "never"}</span></div>
+    <div class="drow"><span>Leading foot</span>
+      <span><label style="cursor:pointer;user-select:none"><input type="checkbox" id="lr-toggle" ${t.lr ? "checked" : ""}> track <span class="lt">L</span> / <span class="rt">R</span> separately</label></span>
+    </div>
+    <div class="aka">
+      <label>Also known as <small>(separate with ; )</small></label>
+      <div class="aka-row">
+        <input type="text" id="aka-input" value="${t.aliases.join("; ").replace(/"/g, "&quot;")}" placeholder="e.g. Coffee Machine">
+        <button id="aka-save">Save</button>
+      </div>
+    </div>
+    <div class="aka">
+      <label>Tutorial video <small>(paste a YouTube link to pin one)</small></label>
+      <div class="aka-row">
+        <input type="text" id="vid-input" value="${(t.video || "").replace(/"/g, "&quot;")}" placeholder="https://youtube.com/watch?v=…">
+        <button id="vid-save">Save</button>
+      </div>
+      <a class="watch ${vu.concrete ? "concrete" : ""}" href="${vu.url}" target="_blank" rel="noopener">
+        ${vu.concrete ? "▶ Watch on YouTube" : "▶ Search tutorial on YouTube"}
+      </a>
+    </div>
+    <div class="aka">
+      <label>Tags <small>(separate with ; — e.g. toe; heel; all-wheels; jump; direction-change)</small></label>
+      <div class="aka-row">
+        <input type="text" id="tags-input" value="${t.tags.join("; ").replace(/"/g, "&quot;")}" placeholder="e.g. toe; jump">
+        <button id="tags-save">Save</button>
+      </div>
+    </div>
+    ${dotsHtml(t)}
+    ${reportSection}
+    ${hasRate(t) ? '<button class="reset" id="mreset">Reset progress</button>' : ""}`;
+  document.getElementById("mclose").addEventListener("click", closeModal);
+  document.querySelectorAll("#modal .rbtn").forEach(b =>
+    b.addEventListener("click", () => report(openRow, parseInt(b.dataset.score, 10), b.dataset.side || null)));
+  document.getElementById("lr-toggle").addEventListener("change", () => toggleLR(openRow));
+  document.getElementById("fav-tog").addEventListener("click", () => saveIconStyle(openRow, { fav: !t.fav }));
+  document.getElementById("app-tog").addEventListener("click", () => {
+    const pnl = document.getElementById("app-panel");
+    pnl.style.display = pnl.style.display === "none" ? "" : "none";
+  });
+  document.getElementById("emoji-save").addEventListener("click", () => {
+    const v = document.getElementById("emoji-input").value.trim().replace(/[|]/g, "");
+    if (v) saveIconStyle(openRow, { icon: v });
+  });
+  document.getElementById("emoji-clear").addEventListener("click", () => saveIconStyle(openRow, { icon: null }));
+  document.getElementById("tags-save").addEventListener("click", () =>
+    saveIconStyle(openRow, { tags: document.getElementById("tags-input").value.split(/[;,]/).map(s => s.trim().toLowerCase().replace(/\|/g, "")).filter(Boolean) }));
+  const vidSave = document.getElementById("vid-save");
+  vidSave.addEventListener("click", () => saveVideo(openRow, document.getElementById("vid-input").value));
+  document.getElementById("vid-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") vidSave.click();
+  });
+  const akaSave = document.getElementById("aka-save");
+  akaSave.addEventListener("click", () => saveAliases(openRow, document.getElementById("aka-input").value));
+  document.getElementById("aka-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") akaSave.click();
+  });
+  const rst = document.getElementById("mreset");
+  if (rst) rst.addEventListener("click", () => {
+    if (rst.classList.contains("confirm")) { resetProgress(openRow); return; }
+    rst.classList.add("confirm");
+    rst.textContent = "Click again to confirm reset";
+    setTimeout(() => { rst.classList.remove("confirm"); rst.textContent = "Reset progress"; }, 3000);
+  });
+}
+document.getElementById("overlay").addEventListener("click", e => {
+  if (e.target.id === "overlay") closeModal();
+});
+document.getElementById("soverlay").addEventListener("click", e => {
+  if (e.target.id === "soverlay") closeSeqPopup();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    closeModal();
+    closeSeqPopup();
+    hideBubble();
+    if (linkingFrom) stopLinking();
+    if (seqMode) { seqMode = null; if (page === "graph") renderGraph(); }
+  }
+});
+
+/* ---------- Rendering ---------- */
+function renderPageNav() {
+  const learningCount = tricks.filter(hasRate).length;
+  document.getElementById("pagenav").innerHTML =
+    `<div class="pbtn${page === "browse" ? " active" : ""}" data-page="browse">All Tricks <span class="n">${tricks.length}</span></div>` +
+    `<div class="pbtn${page === "learning" ? " active" : ""}" data-page="learning">★ Learning <span class="n">${learningCount}</span></div>` +
+    `<div class="pbtn${page === "graph" ? " active" : ""}" data-page="graph">Graph <span class="n">${edges.length}</span></div>` +
+    `<div class="pbtn${page === "sequences" ? " active" : ""}" data-page="sequences">Sequences <span class="n">${sequences.length}</span></div>`;
+  document.querySelectorAll(".pbtn").forEach(el => el.addEventListener("click", () => {
+    page = el.dataset.page;
+    localStorage.setItem("slalom_page", page);
+    render();
+  }));
+}
+
+function renderTabs() {
+  const tabsEl = document.getElementById("tabs");
+  if (page !== "browse") { tabsEl.style.display = "none"; return; }
+  tabsEl.style.display = "";
+  const counts = {};
+  tricks.forEach(t => counts[t.tier] = (counts[t.tier] || 0) + 1);
+  const tiers = Object.keys(counts).map(Number).sort((a, b) => a - b);
+  if (!tiers.includes(tier)) tier = tiers[0];
+  tabsEl.innerHTML = tiers.map(tr =>
+    `<div class="tab${tr === tier ? " active" : ""}" data-tier="${tr}">${TIER_NAMES[tr] || "Tier " + tr} <span class="n">${counts[tr]}</span></div>`).join("");
+  document.querySelectorAll(".tab").forEach(el => el.addEventListener("click", () => {
+    tier = parseInt(el.dataset.tier, 10);
+    localStorage.setItem("slalom_tier", tier);
+    render();
+  }));
+}
+
+function inCurrentTab(t) {
+  return page === "learning" ? hasRate(t) : t.tier === tier;
+}
+
+function renderFilters() {
+  const inTier = tricks.filter(inCurrentTab);
+  const counts = {};
+  inTier.forEach(t => counts[t.category] = (counts[t.category] || 0) + 1);
+  const cats = CAT_ORDER.filter(c => counts[c]).concat(Object.keys(counts).filter(c => !CAT_ORDER.includes(c)));
+  if (cat !== "all" && !cats.includes(cat)) cat = "all";
+  const chips = [`<span class="chip${cat === "all" ? " active" : ""}" data-cat="all">all ${inTier.length}</span>`]
+    .concat(cats.map(c => `<span class="chip${c === cat ? " active" : ""}" data-cat="${c}">${c} ${counts[c]}</span>`));
+  document.getElementById("filters").innerHTML = chips.join("");
+  document.querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => {
+    cat = ch.dataset.cat;
+    localStorage.setItem("slalom_cat2", cat);
+    render();
+  }));
+}
+
+const VIDEO_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>';
+
+function cardHtml(t) {
+  const vu = videoUrl(t);
+  return `
+    <div class="card" data-row="${t.rowId}">
+      <div class="name-row">
+        <div class="name">${t.fav ? '<span style="color:#ffd166">★</span> ' : ""}${t.icon ? `<span class="cico">${t.icon}</span>` : ""}${t.name}</div>
+        <a class="vic ${vu.concrete ? "concrete" : ""}" href="${vu.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${vu.concrete ? "Watch tutorial" : "Search tutorial on YouTube"}">${VIDEO_ICON}</a>
+      </div>
+      <div class="meta">${t.category}${query || page === "learning" ? " · " + (TIER_NAMES[t.tier] || "Tier " + t.tier) : ""}${t.aliases.length ? " · aka " + t.aliases.join(", ") : ""}${t.tags.length ? ' · <span style="color:#7a9bd6">' + t.tags.map(x => "#" + x).join(" ") + "</span>" : ""}</div>
+      ${dotsHtml(t)}
+    </div>`;
+}
+
+function renderSummary() {
+  const rated = tricks.filter(hasRate);
+  const excellent = tricks.filter(t => (effRate(t) ?? 0) >= 4.5).length;
+  const avg = rated.length ? (rated.reduce((s, t) => s + effRate(t), 0) / rated.length).toFixed(1) : "–";
+  document.getElementById("summary").innerHTML =
+    `<div class="stat"><b>${tricks.length}</b><span>tricks</span></div>` +
+    `<div class="stat"><b>${rated.length}</b><span>practiced</span></div>` +
+    `<div class="stat"><b style="color:#3fbf75">${excellent}</b><span>excellent (4.5+)</span></div>` +
+    `<div class="stat"><b>${avg}</b><span>avg rate</span></div>` +
+    (page === "graph" ? `<div class="stat"><b>${edges.length}</b><span>transitions</span></div>` : "");
+}
+
+function render() {
+  renderPageNav();
+  const special = page === "graph" || page === "sequences";
+  document.querySelector(".topbar").style.display = special ? "none" : "";
+  document.getElementById("filters").style.display = special ? "none" : "";
+  if (special) {
+    document.getElementById("tabs").style.display = "none";
+    renderSummary();
+    if (page === "graph") renderGraph(); else renderSequences();
+    return;
+  }
+  renderTabs();
+  renderFilters();
+  renderSummary();
+
+  let visible = query
+    ? tricks.filter(t => matches(t, query))
+    : tricks.filter(t => inCurrentTab(t) && (cat === "all" || t.category === cat));
+  const sortMode = localStorage.getItem("slalom_sort") || (page === "learning" ? "worst" : "");
+  const sortSel = document.getElementById("sort");
+  if (sortSel) sortSel.value = sortMode;
+  if (sortMode === "best")
+    visible = [...visible].sort((a, b) => (effRate(b) ?? 0) - (effRate(a) ?? 0) || a.name.localeCompare(b.name));
+  else if (sortMode === "worst")
+    visible = [...visible].sort((a, b) => (effRate(a) ?? 0) - (effRate(b) ?? 0) || a.name.localeCompare(b.name));
+  document.getElementById("content").innerHTML = visible.length
+    ? `<div class="grid">${visible.map(cardHtml).join("")}</div>`
+    : `<div class="msg">${page === "learning" && !query ? "Nothing here yet — report a trick from any tier and it appears on this page." : "No tricks here."}</div>`;
+  document.querySelectorAll(".card").forEach(c =>
+    c.addEventListener("click", () => openModal(c.dataset.row)));
+}
+
+/* ---------- Graph page ---------- */
+const NODE_R = 17;
+
+function graphNodes() {
+  const referenced = new Set();
+  edges.forEach(e => { referenced.add(e.from); referenced.add(e.to); });
+  return tricks.filter(t => hasRate(t) || referenced.has(t.name));
+}
+
+/* Portal-style leg colors */
+const SIDE_L_COLOR = "#ffb36b"; // light orange = left leg
+const SIDE_R_COLOR = "#7cc5ff"; // light blue = right leg
+const EDGE_NEUTRAL = "#cbb3e6"; // light lily = leg not specified
+function sideColor(s) { return s === "L" ? SIDE_L_COLOR : s === "R" ? SIDE_R_COLOR : EDGE_NEUTRAL; }
+
+function renderGraph() {
+  const content = document.getElementById("content");
+  const nodes = graphNodes();
+  if (!nodes.length) {
+    content.innerHTML = '<div class="msg">No tricks in progress yet — rate a trick on the All Tricks page and it appears here as a graph node.</div>';
+    return;
+  }
+  content.innerHTML = `
+    <div class="gwrap" id="gwrap">
+      <div class="ghint" id="ghint" style="display:none"></div>
+      <svg id="gsvg"></svg>
+      <div class="gctrl">
+        <button id="z-in" title="Zoom in">+</button>
+        <button id="z-out" title="Zoom out">−</button>
+        <button id="z-fit" title="Reset view">⌂</button>
+        <button id="z-seq" title="Create sequence: click tricks in order" ${seqMode ? 'class="on"' : ""}>⛓</button>
+      </div>
+      <div class="gbubble" id="gbubble" style="display:none"></div>
+    </div>
+    <div class="glegend">Click a node or an edge for details · drag nodes · drag background to pan · scroll to zoom</div>`;
+  const wrap = document.getElementById("gwrap");
+  const svg = document.getElementById("gsvg");
+  const w = Math.max(wrap.clientWidth, 320);
+  // fill all remaining viewport height (legend + page padding ≈ 44px)
+  const h = Math.max(400, window.innerHeight - wrap.getBoundingClientRect().top - 44);
+  svg.setAttribute("width", w); svg.setAttribute("height", h);
+
+  // pan & zoom via viewBox
+  let view = null;
+  try { view = JSON.parse(localStorage.getItem("slalom_view")); } catch (_) {}
+  if (!view || !view.w || !view.h) view = { x: 0, y: 0, w, h };
+  view.h = view.w * (h / w); // keep aspect
+  const applyView = () => {
+    svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.w} ${view.h}`);
+    localStorage.setItem("slalom_view", JSON.stringify(view));
+  };
+  applyView();
+  const scale = () => view.w / svg.clientWidth;
+  const toScreen = (sx, sy) => [(sx - view.x) / scale(), (sy - view.y) / scale()];
+  const zoomAt = (clientX, clientY, factor) => {
+    const r = svg.getBoundingClientRect();
+    const mx = view.x + (clientX - r.left) * scale();
+    const my = view.y + (clientY - r.top) * scale();
+    const nw = Math.min(Math.max(view.w * factor, w / 6), w * 5);
+    const f = nw / view.w;
+    view.x = mx - (mx - view.x) * f;
+    view.y = my - (my - view.y) * f;
+    view.w = nw; view.h = view.w * (h / w);
+    applyView();
+    hideBubble();
+  };
+  svg.addEventListener("wheel", ev => {
+    ev.preventDefault();
+    zoomAt(ev.clientX, ev.clientY, ev.deltaY > 0 ? 1.12 : 1 / 1.12);
+  }, { passive: false });
+  document.getElementById("z-in").addEventListener("click", () => {
+    const r = svg.getBoundingClientRect();
+    zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
+  });
+  document.getElementById("z-out").addEventListener("click", () => {
+    const r = svg.getBoundingClientRect();
+    zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25);
+  });
+  document.getElementById("z-fit").addEventListener("click", () => {
+    view = { x: 0, y: 0, w, h };
+    applyView();
+    hideBubble();
+  });
+  document.getElementById("z-seq").addEventListener("click", () => {
+    if (seqMode) { seqMode = null; } else { seqMode = { path: [] }; linkingFrom = null; }
+    hideBubble();
+    renderGraph();
+  });
+
+  // background panning
+  let pan = null;
+  svg.addEventListener("pointerdown", ev => {
+    if (ev.target !== svg) return;
+    pan = { sx: ev.clientX, sy: ev.clientY, ox: view.x, oy: view.y, moved: false };
+    svg.setPointerCapture(ev.pointerId);
+    svg.style.cursor = "grabbing";
+  });
+  svg.addEventListener("pointermove", ev => {
+    if (!pan) return;
+    const dx = (ev.clientX - pan.sx) * scale(), dy = (ev.clientY - pan.sy) * scale();
+    if (Math.hypot(ev.clientX - pan.sx, ev.clientY - pan.sy) > 4) pan.moved = true;
+    if (pan.moved) {
+      view.x = pan.ox - dx; view.y = pan.oy - dy;
+      applyView();
+      hideBubble();
+    }
+  });
+  svg.addEventListener("pointerup", ev => {
+    const wasPan = pan && pan.moved;
+    pan = null;
+    svg.style.cursor = "";
+    if (!wasPan && ev.target === svg) { hideBubble(); if (linkingFrom) stopLinking(); }
+  });
+
+  // positions: saved or circle layout
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 60;
+  nodes.forEach((t, i) => {
+    if (!nodePos[t.rowId]) {
+      const a = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
+      nodePos[t.rowId] = { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+    }
+  });
+  const byName = {};
+  nodes.forEach(t => byName[t.name] = t);
+
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+
+  // arrow markers per leg color
+  const defs = el("defs", {});
+  [["o", SIDE_L_COLOR], ["b", SIDE_R_COLOR], ["l", EDGE_NEUTRAL]].forEach(([id, col]) => {
+    const m = el("marker", { id: "arr-" + id, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 4.5, markerHeight: 4.5, orient: "auto-start-reverse" });
+    m.appendChild(el("path", { d: "M0,0 L10,5 L0,10 z", fill: col }));
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+  const markerFor = c => c === SIDE_L_COLOR ? "arr-o" : c === SIDE_R_COLOR ? "arr-b" : "arr-l";
+
+  // edges
+  const edgeLayer = el("g", {});
+  svg.appendChild(edgeLayer);
+  const edgeEls = [];
+  // parallel-edge bookkeeping: how many edges share a node pair (or a self-loop)
+  const groupCounts = {}, groupSeen = {};
+  const pairKey = e => {
+    const A = byName[e.from], B = byName[e.to];
+    return [A.rowId, B.rowId].sort().join("~");
+  };
+  edges.forEach(e => {
+    if (!byName[e.from] || !byName[e.to]) return;
+    const k = pairKey(e);
+    groupCounts[k] = (groupCounts[k] || 0) + 1;
+  });
+  const positionEdge = (parts) => {
+    const A = byName[parts.e.from], B = byName[parts.e.to];
+    const p1 = nodePos[A.rowId], p2 = nodePos[B.rowId];
+    let d, mid, g1, g2;
+    if (A === B) {
+      // self-loop (e.g. switching the leading leg within the same trick)
+      const size = 26 + parts.off;
+      const sx = p1.x - 9, sy = p1.y - NODE_R * 0.6;
+      const ex = p1.x + 9, ey = p1.y - NODE_R * 0.6;
+      d = `M ${sx} ${sy} C ${p1.x - size} ${p1.y - NODE_R - size} ${p1.x + size} ${p1.y - NODE_R - size} ${ex} ${ey}`;
+      mid = [p1.x, p1.y - NODE_R - size * 0.75];
+      g1 = [sx, sy]; g2 = [ex, ey];
+    } else {
+      // metro-map style: parallel straight lines, offset equally at both endpoints
+      const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const off = parts.off * (parts.flip ? -1 : 1);
+      const nx = -uy * off, ny = ux * off;
+      const x1 = p1.x + ux * (NODE_R + 2) + nx, y1 = p1.y + uy * (NODE_R + 2) + ny;
+      const x2 = p2.x - ux * (NODE_R + 6) + nx, y2 = p2.y - uy * (NODE_R + 6) + ny;
+      d = `M ${x1} ${y1} L ${x2} ${y2}`;
+      mid = [(x1 + x2) / 2, (y1 + y2) / 2];
+      g1 = [x1, y1]; g2 = [x2, y2];
+    }
+    parts.line.setAttribute("d", d);
+    parts.hit.setAttribute("d", d);
+    parts.glow.setAttribute("d", d);
+    if (parts.grad) {
+      parts.grad.setAttribute("x1", g1[0]); parts.grad.setAttribute("y1", g1[1]);
+      parts.grad.setAttribute("x2", g2[0]); parts.grad.setAttribute("y2", g2[1]);
+    }
+    return mid;
+  };
+  edges.forEach((e, idx) => {
+    const A = byName[e.from], B = byName[e.to];
+    if (!A || !B) return;
+    const k = pairKey(e);
+    const i = groupSeen[k] = (groupSeen[k] ?? -1) + 1;
+    const n = groupCounts[k];
+    const selfLoop = A === B;
+    const off = selfLoop ? i * 20 : (i - (n - 1) / 2) * 7;
+    const flip = A.rowId > B.rowId;
+    const c1 = sideColor(e.fromSide), c2 = sideColor(e.toSide);
+    let stroke = c1, grad = null;
+    if (c1 !== c2) {
+      grad = el("linearGradient", { id: "eg" + idx, gradientUnits: "userSpaceOnUse" });
+      grad.appendChild(el("stop", { offset: "0%", "stop-color": c1 }));
+      grad.appendChild(el("stop", { offset: "100%", "stop-color": c2 }));
+      defs.appendChild(grad);
+      stroke = `url(#eg${idx})`;
+    }
+    const glow = el("path", { class: "hl", fill: "none", stroke: "#ffffff", "stroke-opacity": .3, "stroke-width": 7, "stroke-linecap": "round", style: "display:none" });
+    const lineAttrs = { fill: "none", stroke, "stroke-width": 2, "marker-end": `url(#${markerFor(c2)})` };
+    if (e.bidi) lineAttrs["marker-start"] = `url(#${markerFor(c1)})`;
+    const line = el("path", lineAttrs);
+    const hit = el("path", { fill: "none", stroke: "transparent", "stroke-width": 9, cursor: "pointer" });
+    const parts = { e, line, hit, glow, grad, off, flip };
+    positionEdge(parts);
+    hit.addEventListener("click", ev => {
+      ev.stopPropagation();
+      const mid = positionEdge(parts);
+      hideBubble();
+      glow.style.display = "";
+      showEdgeBubble(e, ...toScreen(mid[0], mid[1]));
+    });
+    edgeLayer.appendChild(glow);
+    edgeLayer.appendChild(line);
+    edgeLayer.appendChild(hit);
+    edgeEls.push(parts);
+  });
+  const refreshEdges = () => edgeEls.forEach(positionEdge);
+
+  // nodes
+  nodes.forEach(t => {
+    const p = nodePos[t.rowId];
+    const g = el("g", { cursor: "pointer" });
+    const inSeq = seqMode && seqMode.path.includes(t.name);
+    const er = effRate(t);
+    const halo = el("circle", { class: "hl", r: NODE_R + 5, fill: "none", stroke: "#ffffff", "stroke-opacity": .45, "stroke-width": 3, style: "display:none" });
+    const bg = el("circle", { r: NODE_R, fill: inSeq ? "#2c3550" : "#1c1d24" });
+    const halfPath = side => {
+      const sweep = side === "R" ? 1 : 0;
+      return `M ${p.x} ${p.y - NODE_R} A ${NODE_R} ${NODE_R} 0 0 ${sweep} ${p.x} ${p.y + NODE_R}`;
+    };
+    let ringEls;
+    if (t.lr) {
+      const mkHalf = side => el("path", {
+        d: halfPath(side), fill: "none", "stroke-width": 3,
+        stroke: t["rate" + side] == null ? "#565764" : rateColor(t["rate" + side])
+      });
+      ringEls = { L: mkHalf("L"), R: mkHalf("R") };
+    } else {
+      ringEls = { C: el("circle", { cx: p.x, cy: p.y, r: NODE_R, fill: "none", "stroke-width": 3, stroke: er == null ? "#565764" : rateColor(er) }) };
+    }
+    if (linkingFrom && linkingFrom.rowId !== t.rowId)
+      Object.values(ringEls).forEach(r2 => r2.setAttribute("stroke-dasharray", "4 3"));
+    const lbl = el("text", { "text-anchor": "middle", "font-size": 10.5, fill: "#9a9aa6" });
+    lbl.textContent = t.name.length > 22 ? t.name.slice(0, 21) + "…" : t.name;
+    let ico = null;
+    if (t.icon) {
+      ico = el("text", { "text-anchor": "middle", "font-size": 14 });
+      ico.textContent = t.icon;
+    }
+    let lrEls = null;
+    if (t.lr) {
+      const mkSideLbl = (label, col) => {
+        const e2 = el("text", { "text-anchor": "middle", "font-size": 9, "font-weight": "bold", fill: col });
+        e2.textContent = label;
+        e2._dx = (label === "L" ? -1 : 1) * (NODE_R + 8);
+        return e2;
+      };
+      lrEls = [mkSideLbl("L", SIDE_L_COLOR), mkSideLbl("R", SIDE_R_COLOR)];
+    }
+    const reposition = () => {
+      halo.setAttribute("cx", p.x); halo.setAttribute("cy", p.y);
+      bg.setAttribute("cx", p.x); bg.setAttribute("cy", p.y);
+      if (ringEls.C) { ringEls.C.setAttribute("cx", p.x); ringEls.C.setAttribute("cy", p.y); }
+      else { ringEls.L.setAttribute("d", halfPath("L")); ringEls.R.setAttribute("d", halfPath("R")); }
+      if (ico) { ico.setAttribute("x", p.x); ico.setAttribute("y", p.y + 5); }
+      if (lrEls) lrEls.forEach(e2 => { e2.setAttribute("x", p.x + e2._dx); e2.setAttribute("y", p.y + 3); });
+      lbl.setAttribute("x", p.x); lbl.setAttribute("y", p.y + NODE_R + 13);
+    };
+    reposition();
+    g.appendChild(halo);
+    g.appendChild(bg);
+    Object.values(ringEls).forEach(r2 => g.appendChild(r2));
+    if (ico) g.appendChild(ico);
+    if (lrEls) lrEls.forEach(e2 => g.appendChild(e2));
+    g.appendChild(lbl);
+
+    // drag + click
+    let drag = null;
+    g.addEventListener("pointerdown", ev => {
+      drag = { sx: ev.clientX, sy: ev.clientY, ox: p.x, oy: p.y, moved: false };
+      g.setPointerCapture(ev.pointerId);
+    });
+    g.addEventListener("pointermove", ev => {
+      if (!drag) return;
+      const dx = ev.clientX - drag.sx, dy = ev.clientY - drag.sy;
+      if (Math.hypot(dx, dy) > 4) drag.moved = true;
+      if (drag.moved) {
+        p.x = drag.ox + dx * scale();
+        p.y = drag.oy + dy * scale();
+        hideBubble();
+        reposition();
+        refreshEdges();
+      }
+    });
+    g.addEventListener("pointerup", () => {
+      if (drag && drag.moved) {
+        localStorage.setItem("slalom_pos", JSON.stringify(nodePos));
+      } else if (seqMode) {
+        seqMode.path.push(t.name);
+        renderGraph();
+      } else if (linkingFrom) {
+        const fromTrick = tricks.find(x => x.rowId === linkingFrom.rowId);
+        const fromSide = linkingFrom.side || null;
+        if (linkingFrom.rowId === t.rowId && !t.lr) { stopLinking(); }
+        else if (!fromTrick) { stopLinking(); }
+        else if (t.lr) {
+          // also covers self-loops like Nelson (L) -> Nelson (R)
+          showToSideBubble(fromTrick, fromSide, t, ...toScreen(p.x, p.y));
+        } else {
+          stopLinking();
+          addEdge(fromTrick.name, t.name, fromSide, null);
+        }
+      } else {
+        hideBubble();
+        halo.style.display = "";
+        showNodeBubble(t, ...toScreen(p.x, p.y));
+      }
+      drag = null;
+    });
+    svg.appendChild(g);
+  });
+
+  updateHint();
+}
+
+function updateHint() {
+  const hint = document.getElementById("ghint");
+  if (!hint) return;
+  if (seqMode) {
+    const p = seqMode.path;
+    hint.innerHTML = (p.length ? `<b>${p.join(" → ")}</b>` : "Sequence mode — click tricks in order") +
+      (p.length >= 2 ? '<button class="bbtn" id="h-save">Save</button>' : "") +
+      (p.length ? '<button class="bbtn" id="h-undo">Undo</button>' : "") +
+      '<button class="bbtn" id="h-cancel">Cancel</button>';
+    hint.style.display = "";
+    const hs = document.getElementById("h-save");
+    if (hs) hs.addEventListener("click", () => openSeqPopup("save", seqMode.path));
+    const hu = document.getElementById("h-undo");
+    if (hu) hu.addEventListener("click", () => { seqMode.path.pop(); renderGraph(); });
+    document.getElementById("h-cancel").addEventListener("click", () => { seqMode = null; renderGraph(); });
+  } else if (linkingFrom) {
+    const t = tricks.find(x => x.rowId === linkingFrom.rowId);
+    const s = linkingFrom.side;
+    const side = s ? ` (<span class="${s === "L" ? "lt" : "rt"}">${s}</span> leading)` : "";
+    hint.innerHTML = `Linking from "<b>${t ? t.name : "?"}</b>"${side} — click a target trick (or empty space to cancel)`;
+    hint.style.display = "";
+  } else hint.style.display = "none";
+}
+
+function stopLinking() { linkingFrom = null; renderGraph(); }
+
+function bubbleAt(x, y) {
+  const b = document.getElementById("gbubble");
+  const wrap = document.getElementById("gwrap");
+  b.style.display = "";
+  const bw = 240;
+  b.style.left = Math.min(Math.max(x - bw / 2, 6), wrap.clientWidth - bw - 6) + "px";
+  b.style.top = Math.max(y + 24, 6) + "px";
+  return b;
+}
+
+function hideBubble() {
+  const b = document.getElementById("gbubble");
+  if (b) b.style.display = "none";
+  document.querySelectorAll(".hl").forEach(e => e.style.display = "none");
+}
+
+function showNodeBubble(t, x, y) {
+  const b = bubbleAt(x, y);
+  const linkBtns = t.lr
+    ? `<button class="bbtn blink btn-l" data-side="L">➕ from L</button>
+       <button class="bbtn blink btn-r" data-side="R">➕ from R</button>`
+    : `<button class="bbtn blink">➕ Transition</button>`;
+  b.innerHTML = `
+    <div class="bname">${t.name}</div>
+    <div class="bmeta">${TIER_NAMES[t.tier] || "Tier " + t.tier} · ${t.category}${t.last ? " · " + t.last : ""}</div>
+    ${dotsHtml(t)}
+    <div class="brow">
+      <button class="bbtn" id="b-details">Details</button>
+      ${linkBtns}
+    </div>`;
+  document.getElementById("b-details").addEventListener("click", () => { hideBubble(); openModal(t.rowId); });
+  b.querySelectorAll(".blink").forEach(btn => btn.addEventListener("click", () => {
+    hideBubble();
+    linkingFrom = { rowId: t.rowId, side: btn.dataset.side || null };
+    renderGraph();
+  }));
+}
+
+function showToSideBubble(fromTrick, fromSide, target, x, y) {
+  const b = bubbleAt(x, y);
+  b.innerHTML = `
+    <div class="bname">${fromTrick.name}${fromSide ? ` <span class="${fromSide === "L" ? "lt" : "rt"}">(${fromSide})</span>` : ""} → ${target.name}</div>
+    <div class="bmeta">Which leg does "${target.name}" start on?</div>
+    <div class="brow">
+      <button class="bbtn btn-l" data-ts="L">to L</button>
+      <button class="bbtn btn-r" data-ts="R">to R</button>
+    </div>`;
+  b.querySelectorAll("[data-ts]").forEach(btn => btn.addEventListener("click", () => {
+    hideBubble();
+    stopLinking();
+    addEdge(fromTrick.name, target.name, fromSide, btn.dataset.ts);
+  }));
+}
+
+function showEdgeBubble(e, x, y) {
+  const b = bubbleAt(x, y);
+  const btns = [1, 2, 3, 4, 5].map(s => `<button class="bbtn brate" data-s="${s}">${s}</button>`).join("");
+  b.innerHTML = `
+    <div class="bname">${e.from}${e.fromSide ? ` <span class="${e.fromSide === "L" ? "lt" : "rt"}">(${e.fromSide})</span>` : ""} ${e.bidi ? "⇄" : "→"} ${e.to}${e.toSide ? ` <span class="${e.toSide === "L" ? "lt" : "rt"}">(${e.toSide})</span>` : ""}</div>
+    <div class="bmeta">${e.bidi ? "two-way transition" : "transition"}${e.last ? " · " + e.last : " · never practiced"}</div>
+    ${dotsHtml(e)}
+    <div class="bmeta" style="margin-top:6px">How was it today?</div>
+    <div class="brow">${btns}</div>
+    <div class="brow">
+      <button class="bbtn" id="b-bidi">${e.bidi ? "→ Make one-way" : "⇄ Make two-way"}</button>
+      <button class="bbtn bdanger" id="b-remove">Remove</button>
+    </div>`;
+  b.querySelectorAll(".brate").forEach(btn =>
+    btn.addEventListener("click", () => { hideBubble(); reportEdge(e, parseInt(btn.dataset.s, 10)); }));
+  document.getElementById("b-bidi").addEventListener("click", () => { hideBubble(); toggleEdgeBidi(e); });
+  const rm = document.getElementById("b-remove");
+  rm.addEventListener("click", () => {
+    if (rm.classList.contains("confirm")) { hideBubble(); removeEdge(e); return; }
+    rm.classList.add("confirm");
+    rm.textContent = "Click again to confirm";
+    setTimeout(() => { rm.classList.remove("confirm"); rm.textContent = "Remove transition"; }, 3000);
+  });
+}
+
+document.getElementById("search").addEventListener("input", e => {
+  query = e.target.value.trim().toLowerCase();
+  render();
+});
+document.getElementById("sort").addEventListener("change", e => {
+  localStorage.setItem("slalom_sort", e.target.value);
+  render();
+});
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  if (page !== "graph") return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { hideBubble(); renderGraph(); }, 150);
+});
+
+(async () => {
+  try {
+    const [trickRows, edgeList, seqList] = await Promise.all([loadAll(), loadTransitions(), loadSequences()]);
+    tricks = trickRows.map(toTrick).sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name));
+    edges = edgeList;
+    sequences = seqList;
+    render();
+  } catch (e) {
+    document.getElementById("content").innerHTML = `<div class="error">Failed to load from Miro: ${e.message}. Use the Reload button to retry.</div>`;
+  }
+})();
+</script>
+</body>
+</html>
