@@ -65,7 +65,10 @@ function onFeedbackClose() {
 </script>
 
 <template>
-  <div class="flex flex-col h-svh">
+  <div
+    class="flex flex-col h-svh"
+    :style="{ paddingTop: 'env(safe-area-inset-top)' }"
+  >
     <header
       v-if="showHeader"
       class="shrink-0 flex justify-end items-center px-3 py-1 bg-card/60 border-b border-border"
