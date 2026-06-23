@@ -39,7 +39,7 @@ describe('catalog mappers exclude per-user fields', () => {
     expect(r.name).toBe('Heel-Toe');
   });
 
-  it('mapTransitionToServer drops rate/last_practiced', () => {
+  it('mapTransitionToServer includes rate/last_practiced (per-user row)', () => {
     const e: Transition = {
       id: 'e1',
       from: 't1',
@@ -51,11 +51,13 @@ describe('catalog mappers exclude per-user fields', () => {
       last: '2024-01-01',
     };
     const r = mapTransitionToServer(e) as unknown as Record<string, unknown>;
-    expect(r).not.toHaveProperty('rate');
-    expect(r).not.toHaveProperty('last_practiced');
+    expect(r.rate).toBe(3);
+    expect(r.last_practiced).toBe('2024-01-01');
+    expect(r.from_trick).toBe('t1');
+    expect(r.to_trick).toBe('t2');
   });
 
-  it('mapSequenceToServer drops rate/last_practiced', () => {
+  it('mapSequenceToServer includes rate/last_practiced (per-user row)', () => {
     const s: Sequence = {
       id: 's1',
       name: 'combo',
@@ -65,8 +67,9 @@ describe('catalog mappers exclude per-user fields', () => {
       steps: [],
     };
     const r = mapSequenceToServer(s) as unknown as Record<string, unknown>;
-    expect(r).not.toHaveProperty('rate');
-    expect(r).not.toHaveProperty('last_practiced');
+    expect(r.rate).toBe(4);
+    expect(r.last_practiced).toBe('2024-01-02');
+    expect(r.name).toBe('combo');
   });
 });
 

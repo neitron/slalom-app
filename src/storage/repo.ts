@@ -11,9 +11,7 @@ import type {
   Sequence,
   Transition,
   Trick,
-  UserSequenceProgress,
   UserTrickProgress,
-  UserTransitionProgress,
 } from '../domain/types';
 
 const newId = (): string => uuidv4();
@@ -149,29 +147,16 @@ export async function deleteTransition(id: string): Promise<void> {
 export async function reportTransition(id: string, score: number): Promise<Transition> {
   const today = isoToday();
   const uid = (await getCurrentUserId()) ?? null;
-  const { edge, log, progress } = await db.transaction(
+  const { edge, log } = await db.transaction(
     'rw',
     db.transitions,
     db.practice_log,
-    db.user_transition_progress,
     async () => {
       const e = await db.transitions.get(id);
       if (!e) throw new Error(`transition not found: ${id}`);
       applyEdgeReport(e, score, today);
-      await db.transitions.put(toPlain(e));
-
-      let progress: UserTransitionProgress | null = null;
-      if (uid) {
-        const next: UserTransitionProgress = {
-          userId: uid,
-          transitionId: id,
-          rate: e.rate,
-          last: e.last,
-          updatedAt: new Date().toISOString(),
-        };
-        await db.user_transition_progress.put(next);
-        progress = next;
-      }
+      const plain = toPlain(e);
+      await db.transitions.put(plain);
 
       const log: PracticeLog = {
         id: newId(),
@@ -183,16 +168,10 @@ export async function reportTransition(id: string, score: number): Promise<Trans
         userId: uid,
       };
       await db.practice_log.add(log);
-      return { edge: e, log, progress };
+      return { edge: plain, log };
     },
   );
-  if (progress) {
-    await enq(
-      'upsert',
-      'user_transition_progress',
-      toPlain(progress) as unknown as Record<string, unknown>,
-    );
-  }
+  await enq('upsert', 'transitions', edge as unknown as Record<string, unknown>);
   await enq('upsert', 'practice_log', toPlain(log) as unknown as Record<string, unknown>);
   return edge;
 }
@@ -218,30 +197,17 @@ export async function deleteSequence(id: string): Promise<void> {
 export async function reportSequence(id: string, score: number): Promise<Sequence> {
   const today = isoToday();
   const uid = (await getCurrentUserId()) ?? null;
-  const { seq, log, progress } = await db.transaction(
+  const { seq, log } = await db.transaction(
     'rw',
     db.sequences,
     db.practice_log,
-    db.user_sequence_progress,
     async () => {
       const s = await db.sequences.get(id);
       if (!s) throw new Error(`sequence not found: ${id}`);
       s.rate = blend(s.rate, score);
       s.last = today;
-      await db.sequences.put(toPlain(s));
-
-      let progress: UserSequenceProgress | null = null;
-      if (uid) {
-        const next: UserSequenceProgress = {
-          userId: uid,
-          sequenceId: id,
-          rate: s.rate,
-          last: s.last,
-          updatedAt: new Date().toISOString(),
-        };
-        await db.user_sequence_progress.put(next);
-        progress = next;
-      }
+      const plain = toPlain(s);
+      await db.sequences.put(plain);
 
       const log: PracticeLog = {
         id: newId(),
@@ -253,16 +219,10 @@ export async function reportSequence(id: string, score: number): Promise<Sequenc
         userId: uid,
       };
       await db.practice_log.add(log);
-      return { seq: s, log, progress };
+      return { seq: plain, log };
     },
   );
-  if (progress) {
-    await enq(
-      'upsert',
-      'user_sequence_progress',
-      toPlain(progress) as unknown as Record<string, unknown>,
-    );
-  }
+  await enq('upsert', 'sequences', seq as unknown as Record<string, unknown>);
   await enq('upsert', 'practice_log', toPlain(log) as unknown as Record<string, unknown>);
   return seq;
 }
@@ -270,24 +230,6 @@ export async function reportSequence(id: string, score: number): Promise<Sequenc
 export async function upsertOwnTrickProgress(p: UserTrickProgress): Promise<void> {
   await db.user_trick_progress.put(p);
   await enq('upsert', 'user_trick_progress', toPlain(p) as unknown as Record<string, unknown>);
-}
-
-export async function upsertOwnTransitionProgress(p: UserTransitionProgress): Promise<void> {
-  await db.user_transition_progress.put(p);
-  await enq(
-    'upsert',
-    'user_transition_progress',
-    toPlain(p) as unknown as Record<string, unknown>,
-  );
-}
-
-export async function upsertOwnSequenceProgress(p: UserSequenceProgress): Promise<void> {
-  await db.user_sequence_progress.put(p);
-  await enq(
-    'upsert',
-    'user_sequence_progress',
-    toPlain(p) as unknown as Record<string, unknown>,
-  );
 }
 
 export async function toggleOwnTrickFav(trickId: string, fav: boolean): Promise<void> {

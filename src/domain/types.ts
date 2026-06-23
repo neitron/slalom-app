@@ -127,22 +127,6 @@ export interface UserTrickProgress {
   updatedAt: string | null;
 }
 
-export interface UserTransitionProgress {
-  userId: string;
-  transitionId: string;
-  rate: number | null;
-  last: string | null;
-  updatedAt: string | null;
-}
-
-export interface UserSequenceProgress {
-  userId: string;
-  sequenceId: string;
-  rate: number | null;
-  last: string | null;
-  updatedAt: string | null;
-}
-
 export interface GenFilter {
   tier: number;
   exCats: string[];

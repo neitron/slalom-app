@@ -4,8 +4,6 @@ import {
   mapProfileFromServer,
   mapProfileToServer,
   mapUserBlockFromServer,
-  mapUserSequenceProgressFromServer,
-  mapUserTransitionProgressFromServer,
   mapUserTrickProgressFromServer,
   type FriendshipRow,
   type ProfileRow,
@@ -13,8 +11,6 @@ import {
   type TransitionRow,
   type TrickRow,
   type UserBlockRow,
-  type UserSequenceProgressRow,
-  type UserTransitionProgressRow,
   type UserTrickProgressRow,
 } from './fieldMap';
 import type {
@@ -24,8 +20,6 @@ import type {
   Transition,
   Trick,
   UserBlock,
-  UserSequenceProgress,
-  UserTransitionProgress,
   UserTrickProgress,
 } from '../domain/types';
 import { mapSequenceFromServer, mapTransitionFromServer, mapTrickFromServer } from './fieldMap';
@@ -249,25 +243,21 @@ export async function unblockUser(blockedId: string): Promise<void> {
 export interface ForeignProgressResult {
   profile: Profile;
   tricks: UserTrickProgress[];
-  transitions: UserTransitionProgress[];
-  sequences: UserSequenceProgress[];
+  transitions: Transition[];
+  sequences: Sequence[];
   missingTrickIds: string[];
-  missingTransitionIds: string[];
-  missingSequenceIds: string[];
 }
 
 export async function loadForeignProgress(
   userId: string,
   profile: Profile,
   knownTrickIds: Set<string>,
-  knownTransitionIds: Set<string>,
-  knownSequenceIds: Set<string>,
 ): Promise<ForeignProgressResult> {
   const sb = await client();
   const [tp, xp, sp] = await Promise.all([
     sb.from('user_trick_progress').select('*').eq('user_id', userId),
-    sb.from('user_transition_progress').select('*').eq('user_id', userId),
-    sb.from('user_sequence_progress').select('*').eq('user_id', userId),
+    sb.from('transitions').select('*').eq('user_id', userId),
+    sb.from('sequences').select('*').eq('user_id', userId),
   ]);
   for (const r of [tp, xp, sp]) {
     if (r.error) {
@@ -278,27 +268,15 @@ export async function loadForeignProgress(
   const tricks = (tp.data ?? []).map((r) =>
     mapUserTrickProgressFromServer(r as UserTrickProgressRow),
   );
-  const transitions = (xp.data ?? []).map((r) =>
-    mapUserTransitionProgressFromServer(r as UserTransitionProgressRow),
-  );
-  const sequences = (sp.data ?? []).map((r) =>
-    mapUserSequenceProgressFromServer(r as UserSequenceProgressRow),
-  );
+  const transitions = (xp.data ?? []).map((r) => mapTransitionFromServer(r as TransitionRow));
+  const sequences = (sp.data ?? []).map((r) => mapSequenceFromServer(r as SequenceRow));
   const missingTrickIds = tricks.map((t) => t.trickId).filter((id) => !knownTrickIds.has(id));
-  const missingTransitionIds = transitions
-    .map((t) => t.transitionId)
-    .filter((id) => !knownTransitionIds.has(id));
-  const missingSequenceIds = sequences
-    .map((s) => s.sequenceId)
-    .filter((id) => !knownSequenceIds.has(id));
   return {
     profile,
     tricks,
     transitions,
     sequences,
     missingTrickIds,
-    missingTransitionIds,
-    missingSequenceIds,
   };
 }
 
@@ -317,28 +295,3 @@ export async function fetchCatalogTricksByIds(ids: string[]): Promise<Trick[]> {
   return out;
 }
 
-export async function fetchCatalogTransitionsByIds(ids: string[]): Promise<Transition[]> {
-  if (!ids.length) return [];
-  const sb = await client();
-  const out: Transition[] = [];
-  for (let i = 0; i < ids.length; i += IN_CHUNK) {
-    const chunk = ids.slice(i, i + IN_CHUNK);
-    const { data, error } = await sb.from('transitions').select('*').in('id', chunk);
-    if (error) throw new Error(`fetchCatalogTransitionsByIds: ${error.message}`);
-    for (const r of (data ?? []) as TransitionRow[]) out.push(mapTransitionFromServer(r));
-  }
-  return out;
-}
-
-export async function fetchCatalogSequencesByIds(ids: string[]): Promise<Sequence[]> {
-  if (!ids.length) return [];
-  const sb = await client();
-  const out: Sequence[] = [];
-  for (let i = 0; i < ids.length; i += IN_CHUNK) {
-    const chunk = ids.slice(i, i + IN_CHUNK);
-    const { data, error } = await sb.from('sequences').select('*').in('id', chunk);
-    if (error) throw new Error(`fetchCatalogSequencesByIds: ${error.message}`);
-    for (const r of (data ?? []) as SequenceRow[]) out.push(mapSequenceFromServer(r));
-  }
-  return out;
-}

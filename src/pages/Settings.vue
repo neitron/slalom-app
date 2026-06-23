@@ -28,7 +28,7 @@ const nicknameInput = ref('')
 const displayNameInput = ref('')
 const bioInput = ref('')
 const emojiInput = ref('')
-const visibilityInput = ref<ProfileVisibility>('friends')
+const visibilityInput = ref<ProfileVisibility>('private')
 const profileMsg = ref<string>('')
 
 function syncProfileInputs() {
@@ -37,7 +37,7 @@ function syncProfileInputs() {
   displayNameInput.value = p?.displayName ?? ''
   bioInput.value = p?.bio ?? ''
   emojiInput.value = p?.avatarEmoji ?? ''
-  visibilityInput.value = p?.visibility ?? 'friends'
+  visibilityInput.value = p?.visibility ?? 'private'
 }
 
 const nicknameValidationMsg = computed<string | null>(() => {
@@ -62,10 +62,19 @@ async function onSaveProfile() {
     if (displayNameInput.value.trim() !== (p?.displayName ?? '')) patch.displayName = displayNameInput.value.trim() || null
     if (bioInput.value !== (p?.bio ?? '')) patch.bio = bioInput.value.trim() || null
     if (emojiInput.value !== (p?.avatarEmoji ?? '')) patch.avatarEmoji = emojiInput.value.trim().slice(0, 4) || null
-    if (visibilityInput.value !== (p?.visibility ?? 'friends')) patch.visibility = visibilityInput.value
-    if (!Object.keys(patch).length) { profileMsg.value = 'No changes.'; return }
+
+    const effectiveNickname = nick ?? p?.nickname ?? null
+    let visibility = visibilityInput.value
+    if (!effectiveNickname && visibility !== 'private') {
+      visibility = 'private'
+      visibilityInput.value = 'private'
+      profileMsg.value = 'Pick a nickname first to share with friends or publicly. Saved as Private.'
+    }
+    if (visibility !== (p?.visibility ?? 'private')) patch.visibility = visibility
+
+    if (!Object.keys(patch).length) { if (!profileMsg.value) profileMsg.value = 'No changes.'; return }
     await profileStore.updateField(patch)
-    profileMsg.value = 'Saved.'
+    if (!profileMsg.value) profileMsg.value = 'Saved.'
     syncProfileInputs()
   } catch (e) {
     profileMsg.value = profileStore.error || (e as Error).message

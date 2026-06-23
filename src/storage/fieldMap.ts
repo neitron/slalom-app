@@ -13,9 +13,7 @@ import type {
   Trick,
   TrickStatus,
   UserBlock,
-  UserSequenceProgress,
   UserTrickProgress,
-  UserTransitionProgress,
   Category,
   Tier,
 } from '../domain/types';
@@ -39,19 +37,25 @@ export interface TrickRow {
 
 export interface TransitionRow {
   id?: string;
+  user_id?: string;
   from_trick: string;
   to_trick: string;
   from_side: Side;
   to_side: Side;
   bidi: boolean;
+  rate: number | null;
+  last_practiced: string | null;
 }
 
 export interface SequenceRow {
   id?: string;
+  user_id?: string;
   name: string;
   steps: SequenceStep[];
   created: string;
   created_by?: string | null;
+  rate: number | null;
+  last_practiced: string | null;
 }
 
 export interface PracticeLogRow {
@@ -101,22 +105,6 @@ export interface UserTrickProgressRow {
   status: TrickStatus;
   fav: boolean;
   lr_enabled: boolean;
-  updated_at?: string | null;
-}
-
-export interface UserTransitionProgressRow {
-  user_id: string;
-  transition_id: string;
-  rate: number | null;
-  last_practiced: string | null;
-  updated_at?: string | null;
-}
-
-export interface UserSequenceProgressRow {
-  user_id: string;
-  sequence_id: string;
-  rate: number | null;
-  last_practiced: string | null;
   updated_at?: string | null;
 }
 
@@ -172,14 +160,17 @@ export function mapTrickFromServer(r: TrickRow): Trick {
   };
 }
 
-export function mapTransitionToServer(t: Transition): TransitionRow {
+export function mapTransitionToServer(t: Transition & { userId?: string }): TransitionRow {
   return stripUndefined({
     id: t.id,
+    user_id: t.userId,
     from_trick: t.from,
     to_trick: t.to,
     from_side: t.fromSide,
     to_side: t.toSide,
     bidi: t.bidi,
+    rate: t.rate,
+    last_practiced: t.last,
   });
 }
 
@@ -191,17 +182,20 @@ export function mapTransitionFromServer(r: TransitionRow): Transition {
     fromSide: r.from_side,
     toSide: r.to_side,
     bidi: r.bidi,
-    rate: null,
-    last: null,
+    rate: r.rate ?? null,
+    last: r.last_practiced ?? null,
   };
 }
 
-export function mapSequenceToServer(s: Sequence): SequenceRow {
+export function mapSequenceToServer(s: Sequence & { userId?: string }): SequenceRow {
   return stripUndefined({
     id: s.id,
+    user_id: s.userId,
     name: s.name,
     steps: s.steps,
     created: s.created,
+    rate: s.rate,
+    last_practiced: s.last,
   });
 }
 
@@ -210,8 +204,8 @@ export function mapSequenceFromServer(r: SequenceRow): Sequence {
     id: r.id,
     name: r.name,
     created: r.created,
-    rate: null,
-    last: null,
+    rate: r.rate ?? null,
+    last: r.last_practiced ?? null,
     steps: Array.isArray(r.steps) ? r.steps : [],
   };
 }
@@ -315,40 +309,3 @@ export function mapUserTrickProgressFromServer(r: UserTrickProgressRow): UserTri
   };
 }
 
-export function mapUserTransitionProgressToServer(p: UserTransitionProgress): UserTransitionProgressRow {
-  return stripUndefined({
-    user_id: p.userId,
-    transition_id: p.transitionId,
-    rate: p.rate,
-    last_practiced: p.last,
-  });
-}
-
-export function mapUserTransitionProgressFromServer(r: UserTransitionProgressRow): UserTransitionProgress {
-  return {
-    userId: r.user_id,
-    transitionId: r.transition_id,
-    rate: r.rate,
-    last: r.last_practiced,
-    updatedAt: r.updated_at ?? null,
-  };
-}
-
-export function mapUserSequenceProgressToServer(p: UserSequenceProgress): UserSequenceProgressRow {
-  return stripUndefined({
-    user_id: p.userId,
-    sequence_id: p.sequenceId,
-    rate: p.rate,
-    last_practiced: p.last,
-  });
-}
-
-export function mapUserSequenceProgressFromServer(r: UserSequenceProgressRow): UserSequenceProgress {
-  return {
-    userId: r.user_id,
-    sequenceId: r.sequence_id,
-    rate: r.rate,
-    last: r.last_practiced,
-    updatedAt: r.updated_at ?? null,
-  };
-}

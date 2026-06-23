@@ -1,11 +1,4 @@
-import type {
-  Sequence,
-  Transition,
-  Trick,
-  UserSequenceProgress,
-  UserTransitionProgress,
-  UserTrickProgress,
-} from '../domain/types';
+import type { Trick, UserTrickProgress } from '../domain/types';
 
 export function mergeTrick(catalog: Trick, progress: UserTrickProgress | null | undefined): Trick {
   if (!progress) {
@@ -29,27 +22,5 @@ export function mergeTrick(catalog: Trick, progress: UserTrickProgress | null | 
     last: progress.last,
     status: progress.status,
     fav: progress.fav,
-  };
-}
-
-export function mergeTransition(
-  catalog: Transition,
-  progress: UserTransitionProgress | null | undefined,
-): Transition {
-  return {
-    ...catalog,
-    rate: progress?.rate ?? null,
-    last: progress?.last ?? null,
-  };
-}
-
-export function mergeSequence(
-  catalog: Sequence,
-  progress: UserSequenceProgress | null | undefined,
-): Sequence {
-  return {
-    ...catalog,
-    rate: progress?.rate ?? null,
-    last: progress?.last ?? null,
   };
 }

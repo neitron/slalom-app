@@ -8,8 +8,6 @@ export type OutboxTable =
   | 'sequences'
   | 'practice_log'
   | 'user_trick_progress'
-  | 'user_transition_progress'
-  | 'user_sequence_progress'
   | 'profiles'
   | 'friendships'
   | 'user_blocks';

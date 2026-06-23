@@ -13,30 +13,22 @@ import {
   mapPracticeLogToServer,
   mapPracticeLogFromServer,
   mapUserTrickProgressFromServer,
-  mapUserTransitionProgressFromServer,
-  mapUserSequenceProgressFromServer,
   mapUserTrickProgressToServer,
-  mapUserTransitionProgressToServer,
-  mapUserSequenceProgressToServer,
   mapProfileToServer,
   type TrickRow,
   type TransitionRow,
   type SequenceRow,
   type PracticeLogRow,
   type UserTrickProgressRow,
-  type UserTransitionProgressRow,
-  type UserSequenceProgressRow,
 } from './fieldMap';
-import { mergeSequence, mergeTransition, mergeTrick } from './progressMap';
+import { mergeTrick } from './progressMap';
 import type {
   PracticeLog,
   Profile,
   Sequence,
   Transition,
   Trick,
-  UserSequenceProgress,
   UserTrickProgress,
-  UserTransitionProgress,
 } from '../domain/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -63,8 +55,6 @@ interface PendingIds {
   sequences: Set<string>;
   practice_log: Set<string>;
   user_trick_progress: Set<string>;
-  user_transition_progress: Set<string>;
-  user_sequence_progress: Set<string>;
 }
 
 async function collectPendingIds(): Promise<PendingIds> {
@@ -75,23 +65,11 @@ async function collectPendingIds(): Promise<PendingIds> {
     sequences: new Set(),
     practice_log: new Set(),
     user_trick_progress: new Set(),
-    user_transition_progress: new Set(),
-    user_sequence_progress: new Set(),
   };
   for (const r of rows) {
     if (r.table === 'user_trick_progress') {
       const k = (r.payload.trickId as string) ?? (r.payload.trick_id as string);
       if (k) out.user_trick_progress.add(k);
-      continue;
-    }
-    if (r.table === 'user_transition_progress') {
-      const k = (r.payload.transitionId as string) ?? (r.payload.transition_id as string);
-      if (k) out.user_transition_progress.add(k);
-      continue;
-    }
-    if (r.table === 'user_sequence_progress') {
-      const k = (r.payload.sequenceId as string) ?? (r.payload.sequence_id as string);
-      if (k) out.user_sequence_progress.add(k);
       continue;
     }
     const id = typeof r.payload.id === 'string' ? r.payload.id : null;
@@ -158,25 +136,13 @@ export async function pullAll(): Promise<{
   const pending = await collectPendingIds();
 
   let trickProgressRows: UserTrickProgressRow[] = [];
-  let transitionProgressRows: UserTransitionProgressRow[] = [];
-  let sequenceProgressRows: UserSequenceProgressRow[] = [];
   let progressTablesMissing = false;
 
   try {
-    [trickProgressRows, transitionProgressRows, sequenceProgressRows] = await Promise.all([
-      fetchAll<UserTrickProgressRow>(sb, 'user_trick_progress', {
-        column: 'user_id',
-        value: uid,
-      }),
-      fetchAll<UserTransitionProgressRow>(sb, 'user_transition_progress', {
-        column: 'user_id',
-        value: uid,
-      }),
-      fetchAll<UserSequenceProgressRow>(sb, 'user_sequence_progress', {
-        column: 'user_id',
-        value: uid,
-      }),
-    ]);
+    trickProgressRows = await fetchAll<UserTrickProgressRow>(sb, 'user_trick_progress', {
+      column: 'user_id',
+      value: uid,
+    });
   } catch (e) {
     const msg = (e as Error).message;
     if (isMissingTable(msg)) {
@@ -189,8 +155,8 @@ export async function pullAll(): Promise<{
 
   const [trickRows, transitionRows, sequenceRows, logRows] = await Promise.all([
     fetchAll<TrickRow>(sb, 'tricks'),
-    fetchAll<TransitionRow>(sb, 'transitions'),
-    fetchAll<SequenceRow>(sb, 'sequences'),
+    fetchAll<TransitionRow>(sb, 'transitions', { column: 'user_id', value: uid }),
+    fetchAll<SequenceRow>(sb, 'sequences', { column: 'user_id', value: uid }),
     fetchAll<PracticeLogRow>(sb, 'practice_log'),
   ]);
 
@@ -199,30 +165,18 @@ export async function pullAll(): Promise<{
     const p = mapUserTrickProgressFromServer(r);
     trickProgressByTrickId.set(p.trickId, p);
   }
-  const transitionProgressById = new Map<string, UserTransitionProgress>();
-  for (const r of transitionProgressRows) {
-    const p = mapUserTransitionProgressFromServer(r);
-    transitionProgressById.set(p.transitionId, p);
-  }
-  const sequenceProgressById = new Map<string, UserSequenceProgress>();
-  for (const r of sequenceProgressRows) {
-    const p = mapUserSequenceProgressFromServer(r);
-    sequenceProgressById.set(p.sequenceId, p);
-  }
 
   const catalogTricks = trickRows.map(mapTrickFromServer);
   const tricks: Trick[] = catalogTricks
     .map((t) => mergeTrick(t, t.id ? trickProgressByTrickId.get(t.id) : null))
     .filter((t) => t.id && !pending.tricks.has(t.id));
 
-  const catalogTransitions = transitionRows.map(mapTransitionFromServer);
-  const transitions: Transition[] = catalogTransitions
-    .map((e) => mergeTransition(e, e.id ? transitionProgressById.get(e.id) : null))
+  const transitions: Transition[] = transitionRows
+    .map(mapTransitionFromServer)
     .filter((t) => t.id && !pending.transitions.has(t.id));
 
-  const catalogSequences = sequenceRows.map(mapSequenceFromServer);
-  const sequences: Sequence[] = catalogSequences
-    .map((s) => mergeSequence(s, s.id ? sequenceProgressById.get(s.id) : null))
+  const sequences: Sequence[] = sequenceRows
+    .map(mapSequenceFromServer)
     .filter((s) => s.id && !pending.sequences.has(s.id));
 
   const logs: PracticeLog[] = logRows
@@ -232,15 +186,7 @@ export async function pullAll(): Promise<{
   await withoutOutbox(async () => {
     await db.transaction(
       'rw',
-      [
-        db.tricks,
-        db.transitions,
-        db.sequences,
-        db.practice_log,
-        db.user_trick_progress,
-        db.user_transition_progress,
-        db.user_sequence_progress,
-      ],
+      [db.tricks, db.transitions, db.sequences, db.practice_log, db.user_trick_progress],
       async () => {
         if (tricks.length) await db.tricks.bulkPut(tricks);
         if (transitions.length) await db.transitions.bulkPut(transitions);
@@ -253,20 +199,6 @@ export async function pullAll(): Promise<{
             if (!pending.user_trick_progress.has(p.trickId)) progressTricks.push(p);
           }
           if (progressTricks.length) await db.user_trick_progress.bulkPut(progressTricks);
-
-          const progressTransitions: UserTransitionProgress[] = [];
-          for (const p of transitionProgressById.values()) {
-            if (!pending.user_transition_progress.has(p.transitionId)) progressTransitions.push(p);
-          }
-          if (progressTransitions.length)
-            await db.user_transition_progress.bulkPut(progressTransitions);
-
-          const progressSequences: UserSequenceProgress[] = [];
-          for (const p of sequenceProgressById.values()) {
-            if (!pending.user_sequence_progress.has(p.sequenceId)) progressSequences.push(p);
-          }
-          if (progressSequences.length)
-            await db.user_sequence_progress.bulkPut(progressSequences);
         }
       },
     );
@@ -307,14 +239,6 @@ function mapPayloadToServer(
       return mapUserTrickProgressToServer(
         payload as unknown as UserTrickProgress,
       ) as unknown as Record<string, unknown>;
-    case 'user_transition_progress':
-      return mapUserTransitionProgressToServer(
-        payload as unknown as UserTransitionProgress,
-      ) as unknown as Record<string, unknown>;
-    case 'user_sequence_progress':
-      return mapUserSequenceProgressToServer(
-        payload as unknown as UserSequenceProgress,
-      ) as unknown as Record<string, unknown>;
     case 'profiles':
       return mapProfileToServer(
         payload as unknown as Profile,
@@ -334,10 +258,6 @@ function progressConflict(table: OutboxTable): string {
   switch (table) {
     case 'user_trick_progress':
       return 'user_id,trick_id';
-    case 'user_transition_progress':
-      return 'user_id,transition_id';
-    case 'user_sequence_progress':
-      return 'user_id,sequence_id';
     default:
       return 'id';
   }
@@ -369,12 +289,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
           break;
         }
       } else {
-        if (
-          row.table === 'user_trick_progress' ||
-          row.table === 'user_transition_progress' ||
-          row.table === 'user_sequence_progress' ||
-          row.table === 'user_blocks'
-        ) {
+        if (row.table === 'user_trick_progress' || row.table === 'user_blocks') {
           await removeOutbox(row.id);
           continue;
         }
@@ -459,11 +374,7 @@ export async function pushOwnProgressFromCatalog(): Promise<void> {
   const uid = await currentUserId();
   if (!uid) return;
 
-  const [tricks, transitions, sequences] = await Promise.all([
-    db.tricks.toArray(),
-    db.transitions.toArray(),
-    db.sequences.toArray(),
-  ]);
+  const tricks = await db.tricks.toArray();
 
   const trickProgress: UserTrickProgress[] = tricks
     .filter((t) => t.id && (t.rate != null || t.rateL != null || t.rateR != null || t.last != null || t.fav))
@@ -480,26 +391,6 @@ export async function pushOwnProgressFromCatalog(): Promise<void> {
       updatedAt: new Date().toISOString(),
     }));
 
-  const transitionProgress: UserTransitionProgress[] = transitions
-    .filter((e) => e.id && (e.rate != null || e.last != null))
-    .map((e) => ({
-      userId: uid,
-      transitionId: e.id!,
-      rate: e.rate,
-      last: e.last,
-      updatedAt: new Date().toISOString(),
-    }));
-
-  const sequenceProgress: UserSequenceProgress[] = sequences
-    .filter((s) => s.id && (s.rate != null || s.last != null))
-    .map((s) => ({
-      userId: uid,
-      sequenceId: s.id!,
-      rate: s.rate,
-      last: s.last,
-      updatedAt: new Date().toISOString(),
-    }));
-
   try {
     await bulkUpsert(
       sb,
@@ -508,34 +399,10 @@ export async function pushOwnProgressFromCatalog(): Promise<void> {
       (p) => mapUserTrickProgressToServer(p) as unknown as Record<string, unknown>,
       'user_id,trick_id',
     );
-    await bulkUpsert(
-      sb,
-      'user_transition_progress',
-      transitionProgress,
-      (p) => mapUserTransitionProgressToServer(p) as unknown as Record<string, unknown>,
-      'user_id,transition_id',
-    );
-    await bulkUpsert(
-      sb,
-      'user_sequence_progress',
-      sequenceProgress,
-      (p) => mapUserSequenceProgressToServer(p) as unknown as Record<string, unknown>,
-      'user_id,sequence_id',
-    );
     await withoutOutbox(async () => {
-      await db.transaction(
-        'rw',
-        db.user_trick_progress,
-        db.user_transition_progress,
-        db.user_sequence_progress,
-        async () => {
-          if (trickProgress.length) await db.user_trick_progress.bulkPut(trickProgress);
-          if (transitionProgress.length)
-            await db.user_transition_progress.bulkPut(transitionProgress);
-          if (sequenceProgress.length)
-            await db.user_sequence_progress.bulkPut(sequenceProgress);
-        },
-      );
+      await db.transaction('rw', db.user_trick_progress, async () => {
+        if (trickProgress.length) await db.user_trick_progress.bulkPut(trickProgress);
+      });
     });
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(`slalom.progressPushed.${uid}`, '1');
@@ -646,17 +513,17 @@ export async function startRealtime(): Promise<void> {
   if (!uid) return;
 
   const c1 = sb.channel('slalom-catalog');
-  for (const table of ['tricks', 'transitions', 'sequences'] as const) {
-    c1.on('postgres_changes', { event: '*', schema: 'public', table }, () => schedulePull());
-  }
+  c1.on('postgres_changes', { event: '*', schema: 'public', table: 'tricks' }, () =>
+    schedulePull(),
+  );
   c1.subscribe();
   channels.push(c1);
 
   const c2 = sb.channel('slalom-own');
   for (const table of [
+    'transitions',
+    'sequences',
     'user_trick_progress',
-    'user_transition_progress',
-    'user_sequence_progress',
     'practice_log',
   ] as const) {
     c2.on(
