@@ -8,8 +8,17 @@ const platform = ref(detectPlatform())
 const install = useInstallPrompt()
 const status = ref<string>('')
 const promptAvailable = ref(install.available())
+const iconSrc = `${import.meta.env.BASE_URL}icon-192.png`
 
 onMounted(() => {
+  // iOS uses the displayed URL (including hash) as the launch URL when the
+  // user taps Add to Home Screen. Strip the hash so the installed icon
+  // opens the app, not this install page. Page contents are unaffected —
+  // this is a URL-bar swap only.
+  if (!platform.value.isStandalone && typeof window !== 'undefined') {
+    const base = import.meta.env.BASE_URL || '/'
+    window.history.replaceState(null, '', base)
+  }
   const tick = () => { promptAvailable.value = install.available() }
   const t = window.setInterval(tick, 500)
   setTimeout(() => window.clearInterval(t), 10000)
@@ -43,7 +52,7 @@ const guide = computed(() => {
   <div class="min-h-full flex flex-col p-4 gap-4 max-w-md mx-auto">
     <header class="flex flex-col items-center gap-2 mt-2 text-center">
       <img
-        :src="`${$router.options.history.base}icon-192.png`"
+        :src="iconSrc"
         alt="Slalom Tricks"
         class="w-20 h-20 rounded-2xl shadow-lg"
       >
