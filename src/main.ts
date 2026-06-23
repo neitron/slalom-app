@@ -4,9 +4,12 @@ import App from './App.vue'
 import { router, prefetchRoutes } from './router'
 import { supabaseConfigured } from './storage/supabase'
 import { migrateNonUuidIds } from './storage/migrateIds'
+import { setupInstallPromptCapture } from './utils/installPrompt'
 import './style.css'
 
 async function bootstrap(): Promise<void> {
+  setupInstallPromptCapture()
+
   const app = createApp(App)
   app.use(createPinia())
   app.use(router)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import TabBar from './components/TabBar.vue'
 import RateFeedback, { type Report as RateFeedbackReport } from './components/RateFeedback.vue'
 import TrickSheet from './components/TrickSheet.vue'
@@ -12,10 +13,13 @@ import { useTransitionsStore } from './stores/transitions'
 import { useSequencesStore } from './stores/sequences'
 import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
 
+const route = useRoute()
 const uiStore = useUiStore()
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
+
+const showTabs = computed(() => !route.meta.hideTabs)
 
 async function reloadStoresFromDexie() {
   const [tricks, edges, sequences] = await Promise.all([
@@ -61,7 +65,7 @@ function onFeedbackClose() {
     <main class="flex-1 min-h-0 overflow-y-auto">
       <RouterView />
     </main>
-    <TabBar />
+    <TabBar v-if="showTabs" />
     <SequenceSheet />
     <TransitionSheet />
     <TrickSheet />

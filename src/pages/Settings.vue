@@ -374,6 +374,10 @@ function armImport() {
 
     <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
       <h2 class="text-xs uppercase tracking-wide text-muted">App</h2>
+      <RouterLink
+        to="/install"
+        class="w-full py-2 rounded-lg border border-border-2 text-fg text-sm hover:bg-border/40 text-center"
+      >Install on this device</RouterLink>
       <button
         type="button"
         class="w-full py-2 rounded-lg border border-border-2 text-fg text-sm hover:bg-border/40"

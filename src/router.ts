@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/transitions', name: 'transitions', component: () => import('./pages/Transitions.vue') },
   { path: '/sequences', name: 'sequences', component: () => import('./pages/Sequences.vue') },
   { path: '/settings', name: 'settings', component: () => import('./pages/Settings.vue') },
+  { path: '/install', name: 'install', component: () => import('./pages/Install.vue'), meta: { hideTabs: true } },
 ]
 
 export const router = createRouter({
