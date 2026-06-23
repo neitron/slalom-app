@@ -75,6 +75,25 @@ export const useAuthStore = defineStore('auth', {
         this.sending = false;
       }
     },
+    async signInWithGoogle(redirectTo: string): Promise<void> {
+      if (!sb) {
+        this.error = 'Supabase not configured';
+        return;
+      }
+      this.sending = true;
+      this.error = null;
+      try {
+        const { error } = await sb.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo },
+        });
+        if (error) this.error = error.message;
+      } catch (e) {
+        this.error = e instanceof Error ? e.message : 'Google sign-in failed';
+      } finally {
+        this.sending = false;
+      }
+    },
     async signOut(): Promise<void> {
       if (!sb) return;
       await sb.auth.signOut();
