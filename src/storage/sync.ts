@@ -290,6 +290,16 @@ export async function runStartupSync(): Promise<void> {
 
 // ---- auto-flush wiring (idempotent across HMR) ----
 let autoWired = false;
+let flushTimer: number | null = null;
+
+function scheduleFlush(delayMs = 600): void {
+  if (typeof window === 'undefined') return;
+  if (flushTimer != null) window.clearTimeout(flushTimer);
+  flushTimer = window.setTimeout(() => {
+    flushTimer = null;
+    void flushOutbox().catch((e) => console.warn('[sync] auto flush failed', e));
+  }, delayMs);
+}
 
 export function setupAutoFlush(): void {
   if (!sb) return;
@@ -306,5 +316,6 @@ export function setupAutoFlush(): void {
     window.addEventListener('online', () => {
       void flushOutbox().catch((e) => console.warn('[sync] online flush failed', e));
     });
+    window.addEventListener('slalom:outbox-changed', () => scheduleFlush());
   }
 }

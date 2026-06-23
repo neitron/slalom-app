@@ -27,6 +27,9 @@ export async function enqueue(
     ts: Date.now(),
   };
   await db.outbox.put(row);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('slalom:outbox-changed'));
+  }
 }
 
 export async function listOutbox(): Promise<OutboxRow[]> {
