@@ -341,6 +341,16 @@ async function startRealtime(): Promise<void> {
   realtimeChannel.subscribe();
 }
 
+async function ensureRealtimeHealthy(): Promise<void> {
+  if (!sb) return;
+  if (!(await isSignedIn())) return;
+  const state = realtimeChannel?.state;
+  if (!realtimeChannel || state === 'closed' || state === 'errored') {
+    await teardownRealtime();
+    await startRealtime();
+  }
+}
+
 export function setupAutoFlush(): void {
   if (!sb) return;
   if (autoWired) return;
@@ -360,14 +370,21 @@ export function setupAutoFlush(): void {
   void isSignedIn().then((ok) => { if (ok) void startRealtime(); });
 
   if (typeof window !== 'undefined') {
+    const onResume = () => {
+      scheduleFlush(50);
+      schedulePull(50);
+      void ensureRealtimeHealthy();
+    };
     window.addEventListener('online', () => {
       void flushOutbox().catch((e) => console.warn('[sync] online flush failed', e));
+      schedulePull(50);
+      void ensureRealtimeHealthy();
     });
     window.addEventListener('slalom:outbox-changed', () => scheduleFlush(400));
-    window.addEventListener('focus', () => scheduleFlush(50));
+    window.addEventListener('focus', onResume);
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') scheduleFlush(50);
+        if (document.visibilityState === 'visible') onResume();
       });
     }
   }
