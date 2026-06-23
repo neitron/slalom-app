@@ -98,8 +98,8 @@
       "icon": "🤪",
       "tags": [],
       "fav": false,
-      "node_x": -248,
-      "node_y": 356
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Fake",
@@ -198,8 +198,8 @@
       "icon": "🐟",
       "tags": [],
       "fav": false,
-      "node_x": 624,
-      "node_y": 29
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Shifted Cross",
@@ -258,8 +258,8 @@
       "icon": "🦶🏻",
       "tags": [],
       "fav": false,
-      "node_x": 211,
-      "node_y": 51
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Heel Wheeling",
@@ -658,8 +658,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 523,
-      "node_y": -78
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Stroll",
@@ -680,8 +680,8 @@
       "icon": "✂️",
       "tags": [],
       "fav": false,
-      "node_x": -21,
-      "node_y": 467
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Swan",
@@ -742,8 +742,8 @@
       "icon": "🐍",
       "tags": [],
       "fav": false,
-      "node_x": -51,
-      "node_y": 134
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Nelson Transfer Back (X-Back)",
@@ -922,8 +922,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 602,
-      "node_y": 366
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Heel-Heel Fish",
@@ -1022,8 +1022,8 @@
       "icon": "🎱",
       "tags": [],
       "fav": false,
-      "node_x": 201,
-      "node_y": 467
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Toe-Toe Snake",
@@ -1122,8 +1122,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 239,
-      "node_y": -103
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Shifted Cross",
@@ -1162,8 +1162,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 276,
-      "node_y": -191
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Toe-Toe Double Cross",
@@ -1204,8 +1204,8 @@
       "icon": "🛒",
       "tags": [],
       "fav": false,
-      "node_x": 270,
-      "node_y": 684
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Snake",
@@ -1224,8 +1224,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 23,
-      "node_y": 43
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "One Toe Special",
@@ -1644,8 +1644,8 @@
       "icon": "❌",
       "tags": [],
       "fav": false,
-      "node_x": 408,
-      "node_y": -108
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Heel-Toe Snake",
@@ -1824,8 +1824,8 @@
       "icon": "⚔️",
       "tags": [],
       "fav": false,
-      "node_x": 409,
-      "node_y": -27
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Crazy One Cone",
@@ -1886,8 +1886,8 @@
       "icon": "👊🏻",
       "tags": [],
       "fav": false,
-      "node_x": -52,
-      "node_y": 270
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Deckchair (Corvo)",
@@ -2046,8 +2046,8 @@
       "icon": "🇲🇽",
       "tags": [],
       "fav": false,
-      "node_x": 399,
-      "node_y": 267
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "One Foot",
@@ -2068,8 +2068,8 @@
         "1f"
       ],
       "fav": false,
-      "node_x": 149,
-      "node_y": 135
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Christie",
@@ -2148,8 +2148,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 521,
-      "node_y": -138
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Fan Volt",
@@ -2208,8 +2208,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 606,
-      "node_y": 438
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Toe Seven",
@@ -2448,8 +2448,8 @@
       "icon": "8️⃣",
       "tags": [],
       "fav": false,
-      "node_x": 145,
-      "node_y": 272
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Small Car",
@@ -2568,8 +2568,8 @@
       "icon": "🇮🇹",
       "tags": [],
       "fav": false,
-      "node_x": 498,
-      "node_y": 209
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Heel-Heel Snake",
@@ -2650,8 +2650,8 @@
       "icon": "👣",
       "tags": [],
       "fav": false,
-      "node_x": 369,
-      "node_y": 497
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Korean Volt One Cone",
@@ -2730,8 +2730,8 @@
       "icon": null,
       "tags": [],
       "fav": false,
-      "node_x": 50,
-      "node_y": 352
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Nelson",
@@ -2750,8 +2750,8 @@
       "icon": "🛒",
       "tags": [],
       "fav": false,
-      "node_x": 286,
-      "node_y": 177
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Sitting Cobra",
@@ -2910,8 +2910,8 @@
       "icon": "🌞",
       "tags": [],
       "fav": false,
-      "node_x": -136,
-      "node_y": 354
+      "node_x": null,
+      "node_y": null
     },
     {
       "name": "Backwards Double Crazy",
@@ -3050,245 +3050,10 @@
       "icon": "🪓",
       "tags": [],
       "fav": false,
-      "node_x": 284,
-      "node_y": 322
+      "node_x": null,
+      "node_y": null
     }
   ],
-  "transitions": [
-    {
-      "from": "Mabrouk",
-      "to": "Mexican",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": false,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "X",
-      "to": "X",
-      "fromSide": "R",
-      "toSide": "L",
-      "bidi": false,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Stroll",
-      "to": "Volt",
-      "fromSide": null,
-      "toSide": "R",
-      "bidi": false,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Crazy Sun",
-      "to": "Stroll",
-      "fromSide": null,
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Crazy Sun",
-      "to": "Backwards Stroll",
-      "fromSide": null,
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Criss-Cross",
-      "to": "Double Cross",
-      "fromSide": "L",
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Mexican",
-      "to": "Italian",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": false,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Stroll",
-      "to": "Eight",
-      "fromSide": null,
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Crazy Leg",
-      "to": "Backwards Eight",
-      "fromSide": null,
-      "toSide": "L",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Mabrouk",
-      "to": "Backwards Eight",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Backwards Criss-Cross",
-      "to": "Backwards Double Cross",
-      "fromSide": "L",
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Crazy Sun",
-      "to": "Crazy",
-      "fromSide": null,
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Nelson",
-      "to": "Eight",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Crazy Leg",
-      "to": "Backwards Eight",
-      "fromSide": null,
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Volt",
-      "to": "Backwards Stroll",
-      "fromSide": "R",
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Backwards One Foot",
-      "to": "Backwards Snake",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": false,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Mabrouk",
-      "to": "Eight",
-      "fromSide": "R",
-      "toSide": "L",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Backwards Nelson",
-      "to": "Backwards Eight",
-      "fromSide": "L",
-      "toSide": "L",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Criss-Cross",
-      "to": "Double Cross",
-      "fromSide": "R",
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Backwards Criss-Cross",
-      "to": "Backwards Double Cross",
-      "fromSide": "R",
-      "toSide": null,
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Stroll",
-      "to": "Eight",
-      "fromSide": null,
-      "toSide": "L",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Backwards Stroll",
-      "to": "Backwards Eight",
-      "fromSide": null,
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Volt",
-      "to": "Eight",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": false,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "Backwards Stroll",
-      "to": "Backwards Eight",
-      "fromSide": null,
-      "toSide": "L",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "One Foot",
-      "to": "Snake",
-      "fromSide": "R",
-      "toSide": "R",
-      "bidi": true,
-      "rate": null,
-      "last": null
-    },
-    {
-      "from": "One Foot",
-      "to": "Stroll",
-      "fromSide": "R",
-      "toSide": null,
-      "bidi": false,
-      "rate": null,
-      "last": null
-    }
-  ],
+  "transitions": [],
   "sequences": []
 }
