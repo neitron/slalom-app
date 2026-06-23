@@ -7,7 +7,12 @@ import { useTricksStore } from '../stores/tricks'
 import { useTransitionsStore } from '../stores/transitions'
 import { useSequencesStore } from '../stores/sequences'
 import { useAuthStore } from '../stores/auth'
+import { useProfileStore } from '../stores/profile'
+import AvatarBadge from '../components/AvatarBadge.vue'
+import ShareProfile from '../components/ShareProfile.vue'
 import { supabaseConfigured } from '../storage/supabase'
+import { nicknameErrorMessage, validateNickname } from '../domain/nickname'
+import type { ProfileVisibility } from '../domain/types'
 import { listOutbox } from '../storage/outbox'
 import { flushOutbox, pullAll, pushLocalAll, runStartupSync } from '../storage/sync'
 import { clearPositions } from '../utils/graphView'
@@ -17,6 +22,55 @@ const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
 const auth = useAuthStore()
+const profileStore = useProfileStore()
+
+const nicknameInput = ref('')
+const displayNameInput = ref('')
+const bioInput = ref('')
+const emojiInput = ref('')
+const visibilityInput = ref<ProfileVisibility>('friends')
+const profileMsg = ref<string>('')
+
+function syncProfileInputs() {
+  const p = profileStore.profile
+  nicknameInput.value = p?.nickname ?? ''
+  displayNameInput.value = p?.displayName ?? ''
+  bioInput.value = p?.bio ?? ''
+  emojiInput.value = p?.avatarEmoji ?? ''
+  visibilityInput.value = p?.visibility ?? 'friends'
+}
+
+const nicknameValidationMsg = computed<string | null>(() => {
+  if (!nicknameInput.value.trim()) return null
+  const err = validateNickname(nicknameInput.value.trim())
+  return err ? nicknameErrorMessage(err) : null
+})
+
+async function onSaveProfile() {
+  profileMsg.value = ''
+  try {
+    const patch: Record<string, unknown> = {}
+    const p = profileStore.profile
+    const nick = nicknameInput.value.trim() || null
+    if (nick !== (p?.nickname ?? null)) {
+      if (nick) {
+        const err = validateNickname(nick)
+        if (err) { profileMsg.value = nicknameErrorMessage(err); return }
+      }
+      patch.nickname = nick
+    }
+    if (displayNameInput.value.trim() !== (p?.displayName ?? '')) patch.displayName = displayNameInput.value.trim() || null
+    if (bioInput.value !== (p?.bio ?? '')) patch.bio = bioInput.value.trim() || null
+    if (emojiInput.value !== (p?.avatarEmoji ?? '')) patch.avatarEmoji = emojiInput.value.trim().slice(0, 4) || null
+    if (visibilityInput.value !== (p?.visibility ?? 'friends')) patch.visibility = visibilityInput.value
+    if (!Object.keys(patch).length) { profileMsg.value = 'No changes.'; return }
+    await profileStore.updateField(patch)
+    profileMsg.value = 'Saved.'
+    syncProfileInputs()
+  } catch (e) {
+    profileMsg.value = profileStore.error || (e as Error).message
+  }
+}
 
 const cloudConfigured = supabaseConfigured()
 const email = ref('')
@@ -45,8 +99,12 @@ async function refreshQueue(): Promise<void> {
   queueLen.value = (await listOutbox()).length
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (cloudConfigured) void refreshQueue()
+  if (auth.isSignedIn) {
+    if (!profileStore.profile) await profileStore.load()
+    syncProfileInputs()
+  }
 })
 
 const lastSyncLabel = computed<string>(() => {
@@ -259,6 +317,85 @@ function armImport() {
 <template>
   <div class="p-4 flex flex-col gap-4">
     <h1 class="text-xl font-semibold">Settings</h1>
+
+    <section
+      v-if="auth.isSignedIn"
+      class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3"
+    >
+      <h2 class="text-xs uppercase tracking-wide text-muted">Profile</h2>
+      <div class="flex items-center gap-3">
+        <AvatarBadge :profile="profileStore.profile" size="lg" />
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium truncate">{{ profileStore.profile?.displayName || profileStore.profile?.nickname || 'No nickname yet' }}</div>
+          <div v-if="profileStore.profile?.nickname" class="text-[11px] text-muted truncate">@{{ profileStore.profile.nickname }}</div>
+          <RouterLink
+            v-else
+            to="/onboarding/nickname"
+            class="text-[11px] text-accent underline"
+          >Pick a nickname</RouterLink>
+        </div>
+      </div>
+
+      <label class="text-[11px] text-muted">Nickname</label>
+      <input
+        v-model="nicknameInput"
+        type="text"
+        autocomplete="off"
+        placeholder="your_nickname"
+        class="w-full px-3 py-2 rounded-lg bg-bg border border-border-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-accent"
+      >
+      <p v-if="nicknameValidationMsg" class="text-[11px] text-rate-bad">{{ nicknameValidationMsg }}</p>
+
+      <label class="text-[11px] text-muted">Display name</label>
+      <input
+        v-model="displayNameInput"
+        type="text"
+        autocomplete="off"
+        class="w-full px-3 py-2 rounded-lg bg-bg border border-border-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-accent"
+      >
+
+      <label class="text-[11px] text-muted">Avatar emoji</label>
+      <input
+        v-model="emojiInput"
+        type="text"
+        maxlength="4"
+        class="w-full px-3 py-2 rounded-lg bg-bg border border-border-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-accent"
+      >
+
+      <label class="text-[11px] text-muted">Bio</label>
+      <textarea
+        v-model="bioInput"
+        rows="2"
+        class="w-full px-3 py-2 rounded-lg bg-bg border border-border-2 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-accent"
+      />
+
+      <fieldset class="flex flex-col gap-1">
+        <legend class="text-[11px] text-muted">Visibility</legend>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="radio" value="public" v-model="visibilityInput" :disabled="!profileStore.profile?.nickname && !nicknameInput.trim()" />
+          Public
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="radio" value="friends" v-model="visibilityInput" :disabled="!profileStore.profile?.nickname && !nicknameInput.trim()" />
+          Friends only
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="radio" value="private" v-model="visibilityInput" />
+          Private
+        </label>
+        <p v-if="!profileStore.profile?.nickname && !nicknameInput.trim()" class="text-[10.5px] text-muted">Public/Friends require a nickname.</p>
+      </fieldset>
+
+      <button
+        type="button"
+        class="w-full py-2 rounded-lg bg-accent text-bg text-sm font-semibold disabled:opacity-50"
+        :disabled="profileStore.saving"
+        @click="onSaveProfile"
+      >{{ profileStore.saving ? 'Saving…' : 'Save profile' }}</button>
+      <p v-if="profileMsg" class="text-[11px] text-muted">{{ profileMsg }}</p>
+
+      <ShareProfile />
+    </section>
 
     <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
       <div class="flex items-center justify-between">

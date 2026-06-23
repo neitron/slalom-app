@@ -1,5 +1,5 @@
 import { getSb, reportSyncError } from './supabase';
-import { db } from './dexie';
+import { db, clearAllUserProgress, clearCatalogRateFields } from './dexie';
 import { listOutbox, removeOutbox, type OutboxTable } from './outbox';
 import { withoutOutbox } from './repo';
 import { useAuthStore } from '../stores/auth';
@@ -12,12 +12,32 @@ import {
   mapSequenceFromServer,
   mapPracticeLogToServer,
   mapPracticeLogFromServer,
+  mapUserTrickProgressFromServer,
+  mapUserTransitionProgressFromServer,
+  mapUserSequenceProgressFromServer,
+  mapUserTrickProgressToServer,
+  mapUserTransitionProgressToServer,
+  mapUserSequenceProgressToServer,
+  mapProfileToServer,
   type TrickRow,
   type TransitionRow,
   type SequenceRow,
   type PracticeLogRow,
+  type UserTrickProgressRow,
+  type UserTransitionProgressRow,
+  type UserSequenceProgressRow,
 } from './fieldMap';
-import type { PracticeLog, Sequence, Transition, Trick } from '../domain/types';
+import { mergeSequence, mergeTransition, mergeTrick } from './progressMap';
+import type {
+  PracticeLog,
+  Profile,
+  Sequence,
+  Transition,
+  Trick,
+  UserSequenceProgress,
+  UserTrickProgress,
+  UserTransitionProgress,
+} from '../domain/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const PAGE = 1000;
@@ -30,12 +50,21 @@ async function signedInClient(): Promise<SupabaseClient | null> {
   return data.session ? sb : null;
 }
 
-// ---- pending id sets (so pullAll skips entities with queued local ops) ----
+async function currentUserId(): Promise<string | null> {
+  const sb = await getSb();
+  if (!sb) return null;
+  const { data } = await sb.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 interface PendingIds {
   tricks: Set<string>;
   transitions: Set<string>;
   sequences: Set<string>;
   practice_log: Set<string>;
+  user_trick_progress: Set<string>;
+  user_transition_progress: Set<string>;
+  user_sequence_progress: Set<string>;
 }
 
 async function collectPendingIds(): Promise<PendingIds> {
@@ -45,23 +74,52 @@ async function collectPendingIds(): Promise<PendingIds> {
     transitions: new Set(),
     sequences: new Set(),
     practice_log: new Set(),
+    user_trick_progress: new Set(),
+    user_transition_progress: new Set(),
+    user_sequence_progress: new Set(),
   };
   for (const r of rows) {
+    if (r.table === 'user_trick_progress') {
+      const k = (r.payload.trickId as string) ?? (r.payload.trick_id as string);
+      if (k) out.user_trick_progress.add(k);
+      continue;
+    }
+    if (r.table === 'user_transition_progress') {
+      const k = (r.payload.transitionId as string) ?? (r.payload.transition_id as string);
+      if (k) out.user_transition_progress.add(k);
+      continue;
+    }
+    if (r.table === 'user_sequence_progress') {
+      const k = (r.payload.sequenceId as string) ?? (r.payload.sequence_id as string);
+      if (k) out.user_sequence_progress.add(k);
+      continue;
+    }
     const id = typeof r.payload.id === 'string' ? r.payload.id : null;
     if (!id) continue;
-    out[r.table].add(id);
+    if (
+      r.table === 'tricks' ||
+      r.table === 'transitions' ||
+      r.table === 'sequences' ||
+      r.table === 'practice_log'
+    ) {
+      out[r.table].add(id);
+    }
   }
   return out;
 }
 
-// ---- paginated full-table fetch ----
-async function fetchAll<T>(sb: SupabaseClient, table: OutboxTable): Promise<T[]> {
+async function fetchAll<T>(
+  sb: SupabaseClient,
+  table: string,
+  filter?: { column: string; value: string },
+): Promise<T[]> {
   const acc: T[] = [];
   let from = 0;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const to = from + PAGE - 1;
-    const { data, error } = await sb.from(table).select('*').range(from, to);
+    let q = sb.from(table).select('*').range(from, to);
+    if (filter) q = q.eq(filter.column, filter.value);
+    const { data, error } = await q;
     if (error) throw new Error(`pull ${table}: ${error.message}`);
     const rows = (data ?? []) as T[];
     acc.push(...rows);
@@ -69,6 +127,17 @@ async function fetchAll<T>(sb: SupabaseClient, table: OutboxTable): Promise<T[]>
     from += PAGE;
   }
   return acc;
+}
+
+function isMissingTable(message: string | undefined): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  return (
+    m.includes('does not exist') ||
+    m.includes('schema cache') ||
+    (m.includes('relation') && m.includes('not found')) ||
+    m.includes('not find the table')
+  );
 }
 
 export async function pullAll(): Promise<{
@@ -81,8 +150,42 @@ export async function pullAll(): Promise<{
   if (!sb) {
     return { tricks: 0, transitions: 0, sequences: 0, practice_log: 0 };
   }
+  const uid = await currentUserId();
+  if (!uid) {
+    return { tricks: 0, transitions: 0, sequences: 0, practice_log: 0 };
+  }
 
   const pending = await collectPendingIds();
+
+  let trickProgressRows: UserTrickProgressRow[] = [];
+  let transitionProgressRows: UserTransitionProgressRow[] = [];
+  let sequenceProgressRows: UserSequenceProgressRow[] = [];
+  let progressTablesMissing = false;
+
+  try {
+    [trickProgressRows, transitionProgressRows, sequenceProgressRows] = await Promise.all([
+      fetchAll<UserTrickProgressRow>(sb, 'user_trick_progress', {
+        column: 'user_id',
+        value: uid,
+      }),
+      fetchAll<UserTransitionProgressRow>(sb, 'user_transition_progress', {
+        column: 'user_id',
+        value: uid,
+      }),
+      fetchAll<UserSequenceProgressRow>(sb, 'user_sequence_progress', {
+        column: 'user_id',
+        value: uid,
+      }),
+    ]);
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (isMissingTable(msg)) {
+      progressTablesMissing = true;
+      reportSyncError('Progress tables missing — run M3.5 migration in Supabase.');
+    } else {
+      throw e;
+    }
+  }
 
   const [trickRows, transitionRows, sequenceRows, logRows] = await Promise.all([
     fetchAll<TrickRow>(sb, 'tricks'),
@@ -91,15 +194,37 @@ export async function pullAll(): Promise<{
     fetchAll<PracticeLogRow>(sb, 'practice_log'),
   ]);
 
-  const tricks: Trick[] = trickRows
-    .map(mapTrickFromServer)
+  const trickProgressByTrickId = new Map<string, UserTrickProgress>();
+  for (const r of trickProgressRows) {
+    const p = mapUserTrickProgressFromServer(r);
+    trickProgressByTrickId.set(p.trickId, p);
+  }
+  const transitionProgressById = new Map<string, UserTransitionProgress>();
+  for (const r of transitionProgressRows) {
+    const p = mapUserTransitionProgressFromServer(r);
+    transitionProgressById.set(p.transitionId, p);
+  }
+  const sequenceProgressById = new Map<string, UserSequenceProgress>();
+  for (const r of sequenceProgressRows) {
+    const p = mapUserSequenceProgressFromServer(r);
+    sequenceProgressById.set(p.sequenceId, p);
+  }
+
+  const catalogTricks = trickRows.map(mapTrickFromServer);
+  const tricks: Trick[] = catalogTricks
+    .map((t) => mergeTrick(t, t.id ? trickProgressByTrickId.get(t.id) : null))
     .filter((t) => t.id && !pending.tricks.has(t.id));
-  const transitions: Transition[] = transitionRows
-    .map(mapTransitionFromServer)
+
+  const catalogTransitions = transitionRows.map(mapTransitionFromServer);
+  const transitions: Transition[] = catalogTransitions
+    .map((e) => mergeTransition(e, e.id ? transitionProgressById.get(e.id) : null))
     .filter((t) => t.id && !pending.transitions.has(t.id));
-  const sequences: Sequence[] = sequenceRows
-    .map(mapSequenceFromServer)
+
+  const catalogSequences = sequenceRows.map(mapSequenceFromServer);
+  const sequences: Sequence[] = catalogSequences
+    .map((s) => mergeSequence(s, s.id ? sequenceProgressById.get(s.id) : null))
     .filter((s) => s.id && !pending.sequences.has(s.id));
+
   const logs: PracticeLog[] = logRows
     .map(mapPracticeLogFromServer)
     .filter((p) => p.id && !pending.practice_log.has(p.id));
@@ -107,39 +232,42 @@ export async function pullAll(): Promise<{
   await withoutOutbox(async () => {
     await db.transaction(
       'rw',
-      db.tricks,
-      db.transitions,
-      db.sequences,
-      db.practice_log,
+      [
+        db.tricks,
+        db.transitions,
+        db.sequences,
+        db.practice_log,
+        db.user_trick_progress,
+        db.user_transition_progress,
+        db.user_sequence_progress,
+      ],
       async () => {
-        if (tricks.length) {
-          // Reconcile by natural key (name) — local seed assigns its own UUIDs.
-          // Server is authoritative: delete any local trick whose name matches
-          // a server trick with a different id, then bulkPut server rows.
-          const incomingNames = new Set(tricks.map((t) => t.name));
-          const incomingIds = new Set(tricks.map((t) => t.id!));
-          const localByName = await db.tricks.where('name').anyOf([...incomingNames]).toArray();
-          const toDelete = localByName
-            .map((t) => t.id)
-            .filter((id): id is string => !!id && !incomingIds.has(id));
-          if (toDelete.length) await db.tricks.bulkDelete(toDelete);
-          await db.tricks.bulkPut(tricks);
-        }
-        if (transitions.length) {
-          // Reconcile by natural key (from+to+fromSide+toSide).
-          const incomingIds = new Set(transitions.map((t) => t.id!));
-          const key = (e: { from: string; to: string; fromSide: string | null; toSide: string | null }): string =>
-            `${e.from}|${e.to}|${e.fromSide ?? ''}|${e.toSide ?? ''}`;
-          const incomingKeys = new Set(transitions.map(key));
-          const localEdges = await db.transitions.toArray();
-          const toDelete = localEdges
-            .filter((e) => e.id && !incomingIds.has(e.id) && incomingKeys.has(key(e)))
-            .map((e) => e.id as string);
-          if (toDelete.length) await db.transitions.bulkDelete(toDelete);
-          await db.transitions.bulkPut(transitions);
-        }
+        if (tricks.length) await db.tricks.bulkPut(tricks);
+        if (transitions.length) await db.transitions.bulkPut(transitions);
         if (sequences.length) await db.sequences.bulkPut(sequences);
         if (logs.length) await db.practice_log.bulkPut(logs);
+
+        if (!progressTablesMissing) {
+          const progressTricks: UserTrickProgress[] = [];
+          for (const p of trickProgressByTrickId.values()) {
+            if (!pending.user_trick_progress.has(p.trickId)) progressTricks.push(p);
+          }
+          if (progressTricks.length) await db.user_trick_progress.bulkPut(progressTricks);
+
+          const progressTransitions: UserTransitionProgress[] = [];
+          for (const p of transitionProgressById.values()) {
+            if (!pending.user_transition_progress.has(p.transitionId)) progressTransitions.push(p);
+          }
+          if (progressTransitions.length)
+            await db.user_transition_progress.bulkPut(progressTransitions);
+
+          const progressSequences: UserSequenceProgress[] = [];
+          for (const p of sequenceProgressById.values()) {
+            if (!pending.user_sequence_progress.has(p.sequenceId)) progressSequences.push(p);
+          }
+          if (progressSequences.length)
+            await db.user_sequence_progress.bulkPut(progressSequences);
+        }
       },
     );
   });
@@ -175,6 +303,43 @@ function mapPayloadToServer(
       return mapPracticeLogToServer(
         payload as unknown as PracticeLog,
       ) as unknown as Record<string, unknown>;
+    case 'user_trick_progress':
+      return mapUserTrickProgressToServer(
+        payload as unknown as UserTrickProgress,
+      ) as unknown as Record<string, unknown>;
+    case 'user_transition_progress':
+      return mapUserTransitionProgressToServer(
+        payload as unknown as UserTransitionProgress,
+      ) as unknown as Record<string, unknown>;
+    case 'user_sequence_progress':
+      return mapUserSequenceProgressToServer(
+        payload as unknown as UserSequenceProgress,
+      ) as unknown as Record<string, unknown>;
+    case 'profiles':
+      return mapProfileToServer(
+        payload as unknown as Profile,
+      ) as unknown as Record<string, unknown>;
+    case 'friendships':
+    case 'user_blocks':
+      return payload;
+    default: {
+      const _exhaustive: never = table;
+      void _exhaustive;
+      return payload;
+    }
+  }
+}
+
+function progressConflict(table: OutboxTable): string {
+  switch (table) {
+    case 'user_trick_progress':
+      return 'user_id,trick_id';
+    case 'user_transition_progress':
+      return 'user_id,transition_id';
+    case 'user_sequence_progress':
+      return 'user_id,sequence_id';
+    default:
+      return 'id';
   }
 }
 
@@ -190,14 +355,29 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
     try {
       if (row.op === 'upsert') {
         const serverRow = mapPayloadToServer(row.table, row.payload);
-        const { error } = await sb.from(row.table).upsert(serverRow, { onConflict: 'id' });
+        const { error } = await sb
+          .from(row.table)
+          .upsert(serverRow, { onConflict: progressConflict(row.table) });
         if (error) {
           console.warn('[sync] upsert failed', row.table, error.message);
-          reportSyncError(`Push ${row.table}: ${error.message}`);
+          if (isMissingTable(error.message)) {
+            reportSyncError(`${row.table} not migrated yet — run M3.5 SQL.`);
+          } else {
+            reportSyncError(`Push ${row.table}: ${error.message}`);
+          }
           failed++;
           break;
         }
       } else {
+        if (
+          row.table === 'user_trick_progress' ||
+          row.table === 'user_transition_progress' ||
+          row.table === 'user_sequence_progress' ||
+          row.table === 'user_blocks'
+        ) {
+          await removeOutbox(row.id);
+          continue;
+        }
         const id = typeof row.payload.id === 'string' ? row.payload.id : null;
         if (!id) {
           await removeOutbox(row.id);
@@ -229,12 +409,13 @@ async function bulkUpsert<T>(
   table: OutboxTable,
   rows: T[],
   map: (row: T) => Record<string, unknown>,
+  onConflict = 'id',
 ): Promise<number> {
   if (rows.length === 0) return 0;
   let pushed = 0;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK).map(map);
-    const { error } = await sb.from(table).upsert(chunk, { onConflict: 'id' });
+    const { error } = await sb.from(table).upsert(chunk, { onConflict });
     if (error) throw new Error(`push ${table}: ${error.message}`);
     pushed += chunk.length;
   }
@@ -255,7 +436,9 @@ export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }
   ]);
 
   const pushed: Record<string, number> = {
-    tricks: await bulkUpsert(sb, 'tricks', tricks, (t) => mapTrickToServer(t) as unknown as Record<string, unknown>),
+    tricks: await bulkUpsert(sb, 'tricks', tricks, (t) =>
+      mapTrickToServer(t) as unknown as Record<string, unknown>,
+    ),
     transitions: await bulkUpsert(sb, 'transitions', transitions, (t) =>
       mapTransitionToServer(t) as unknown as Record<string, unknown>,
     ),
@@ -270,6 +453,98 @@ export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }
   return { pushed };
 }
 
+export async function pushOwnProgressFromCatalog(): Promise<void> {
+  const sb = await signedInClient();
+  if (!sb) return;
+  const uid = await currentUserId();
+  if (!uid) return;
+
+  const [tricks, transitions, sequences] = await Promise.all([
+    db.tricks.toArray(),
+    db.transitions.toArray(),
+    db.sequences.toArray(),
+  ]);
+
+  const trickProgress: UserTrickProgress[] = tricks
+    .filter((t) => t.id && (t.rate != null || t.rateL != null || t.rateR != null || t.last != null || t.fav))
+    .map((t) => ({
+      userId: uid,
+      trickId: t.id!,
+      rate: t.lr ? null : t.rate,
+      rateL: t.lr ? t.rateL : null,
+      rateR: t.lr ? t.rateR : null,
+      last: t.last,
+      status: t.status,
+      fav: t.fav,
+      lrEnabled: !!t.lr,
+      updatedAt: new Date().toISOString(),
+    }));
+
+  const transitionProgress: UserTransitionProgress[] = transitions
+    .filter((e) => e.id && (e.rate != null || e.last != null))
+    .map((e) => ({
+      userId: uid,
+      transitionId: e.id!,
+      rate: e.rate,
+      last: e.last,
+      updatedAt: new Date().toISOString(),
+    }));
+
+  const sequenceProgress: UserSequenceProgress[] = sequences
+    .filter((s) => s.id && (s.rate != null || s.last != null))
+    .map((s) => ({
+      userId: uid,
+      sequenceId: s.id!,
+      rate: s.rate,
+      last: s.last,
+      updatedAt: new Date().toISOString(),
+    }));
+
+  try {
+    await bulkUpsert(
+      sb,
+      'user_trick_progress',
+      trickProgress,
+      (p) => mapUserTrickProgressToServer(p) as unknown as Record<string, unknown>,
+      'user_id,trick_id',
+    );
+    await bulkUpsert(
+      sb,
+      'user_transition_progress',
+      transitionProgress,
+      (p) => mapUserTransitionProgressToServer(p) as unknown as Record<string, unknown>,
+      'user_id,transition_id',
+    );
+    await bulkUpsert(
+      sb,
+      'user_sequence_progress',
+      sequenceProgress,
+      (p) => mapUserSequenceProgressToServer(p) as unknown as Record<string, unknown>,
+      'user_id,sequence_id',
+    );
+    await withoutOutbox(async () => {
+      await db.transaction(
+        'rw',
+        db.user_trick_progress,
+        db.user_transition_progress,
+        db.user_sequence_progress,
+        async () => {
+          if (trickProgress.length) await db.user_trick_progress.bulkPut(trickProgress);
+          if (transitionProgress.length)
+            await db.user_transition_progress.bulkPut(transitionProgress);
+          if (sequenceProgress.length)
+            await db.user_sequence_progress.bulkPut(sequenceProgress);
+        },
+      );
+    });
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`slalom.progressPushed.${uid}`, '1');
+    }
+  } catch (e) {
+    console.warn('[sync] pushOwnProgressFromCatalog failed', e);
+  }
+}
+
 export async function isServerEmpty(): Promise<boolean> {
   const sb = await getSb();
   if (!sb) return false;
@@ -280,6 +555,11 @@ export async function isServerEmpty(): Promise<boolean> {
   return (count ?? 0) === 0;
 }
 
+function shouldPushOwnProgress(uid: string): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return !localStorage.getItem(`slalom.progressPushed.${uid}`);
+}
+
 export async function runStartupSync(): Promise<void> {
   const sb = await signedInClient();
   if (!sb) return;
@@ -287,6 +567,10 @@ export async function runStartupSync(): Promise<void> {
   const auth = useAuthStore();
   auth.markSyncStart();
   try {
+    const uid = await currentUserId();
+    if (uid && shouldPushOwnProgress(uid)) {
+      await pushOwnProgressFromCatalog();
+    }
     const empty = await isServerEmpty();
     if (empty) {
       await pushLocalAll();
@@ -302,7 +586,6 @@ export async function runStartupSync(): Promise<void> {
   }
 }
 
-// ---- auto-flush wiring (idempotent across HMR) ----
 let autoWired = false;
 let flushTimer: number | null = null;
 let pullTimer: number | null = null;
@@ -331,41 +614,120 @@ function schedulePull(delayMs = 400): void {
   }, delayMs);
 }
 
-// ---- realtime subscription (one channel per signed-in session) ----
 type Channel = ReturnType<SupabaseClient['channel']>;
-let realtimeChannel: Channel | null = null;
+const channels: Channel[] = [];
 
-async function teardownRealtime(): Promise<void> {
+export async function teardownRealtime(): Promise<void> {
   const sb = await getSb();
-  if (realtimeChannel && sb) {
-    await sb.removeChannel(realtimeChannel);
+  if (!sb) {
+    channels.length = 0;
+    return;
   }
-  realtimeChannel = null;
+  for (const c of channels) {
+    try {
+      await sb.removeChannel(c);
+    } catch {
+      /* ignore */
+    }
+  }
+  channels.length = 0;
 }
 
-async function startRealtime(): Promise<void> {
-  const sb = await getSb();
+function dispatchMetaRefresh(kind: 'profile' | 'friendship' | 'block'): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('slalom:social-changed', { detail: { kind } }));
+}
+
+export async function startRealtime(): Promise<void> {
+  const sb = await signedInClient();
   if (!sb) return;
-  if (realtimeChannel) return;
-  realtimeChannel = sb.channel('slalom-changes');
-  for (const table of ['tricks', 'transitions', 'sequences', 'practice_log'] as const) {
-    realtimeChannel.on(
+  if (channels.length) return;
+  const uid = await currentUserId();
+  if (!uid) return;
+
+  const c1 = sb.channel('slalom-catalog');
+  for (const table of ['tricks', 'transitions', 'sequences'] as const) {
+    c1.on('postgres_changes', { event: '*', schema: 'public', table }, () => schedulePull());
+  }
+  c1.subscribe();
+  channels.push(c1);
+
+  const c2 = sb.channel('slalom-own');
+  for (const table of [
+    'user_trick_progress',
+    'user_transition_progress',
+    'user_sequence_progress',
+    'practice_log',
+  ] as const) {
+    c2.on(
       'postgres_changes',
-      { event: '*', schema: 'public', table },
+      { event: '*', schema: 'public', table, filter: `user_id=eq.${uid}` },
       () => schedulePull(),
     );
   }
-  realtimeChannel.subscribe();
+  c2.subscribe();
+  channels.push(c2);
+
+  const c3 = sb.channel('slalom-profile');
+  c3.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${uid}` },
+    () => dispatchMetaRefresh('profile'),
+  );
+  c3.subscribe();
+  channels.push(c3);
+
+  const c4 = sb.channel('slalom-friendship-req');
+  c4.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'friendships', filter: `requester_id=eq.${uid}` },
+    () => dispatchMetaRefresh('friendship'),
+  );
+  c4.subscribe();
+  channels.push(c4);
+
+  const c5 = sb.channel('slalom-friendship-addr');
+  c5.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${uid}` },
+    () => dispatchMetaRefresh('friendship'),
+  );
+  c5.subscribe();
+  channels.push(c5);
+
+  const c6 = sb.channel('slalom-blocks-er');
+  c6.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'user_blocks', filter: `blocker_id=eq.${uid}` },
+    () => dispatchMetaRefresh('block'),
+  );
+  c6.subscribe();
+  channels.push(c6);
+
+  const c7 = sb.channel('slalom-blocks-ed');
+  c7.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'user_blocks', filter: `blocked_id=eq.${uid}` },
+    () => dispatchMetaRefresh('block'),
+  );
+  c7.subscribe();
+  channels.push(c7);
 }
 
 async function ensureRealtimeHealthy(): Promise<void> {
   const sb = await signedInClient();
   if (!sb) return;
-  const state = realtimeChannel?.state;
-  if (!realtimeChannel || state === 'closed' || state === 'errored') {
+  const dead = channels.find((c) => c.state === 'closed' || c.state === 'errored');
+  if (!channels.length || dead) {
     await teardownRealtime();
     await startRealtime();
   }
+}
+
+export async function onSignedOutCleanup(): Promise<void> {
+  await teardownRealtime();
+  await clearAllUserProgress();
+  await clearCatalogRateFields();
 }
 
 export async function setupAutoFlush(): Promise<void> {
@@ -383,12 +745,13 @@ export async function setupAutoFlush(): Promise<void> {
       void startRealtime().catch((e) => console.warn('[sync] realtime start failed', e));
     }
     if (event === 'SIGNED_OUT') {
-      void teardownRealtime();
+      void onSignedOutCleanup();
     }
   });
 
-  // If already signed in at boot (refresh), kick realtime on.
-  void signedInClient().then((ok) => { if (ok) void startRealtime(); });
+  void signedInClient().then((ok) => {
+    if (ok) void startRealtime();
+  });
 
   if (typeof window !== 'undefined') {
     const onResume = () => {

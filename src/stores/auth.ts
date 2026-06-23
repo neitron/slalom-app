@@ -16,6 +16,36 @@ let authSub: Subscription | null = null;
 let onlineHandler: (() => void) | null = null;
 let offlineHandler: (() => void) | null = null;
 
+async function dispatchSignedIn(): Promise<void> {
+  try {
+    const [{ useProfileStore }, { useFriendsStore }] = await Promise.all([
+      import('./profile'),
+      import('./friends'),
+    ]);
+    void useProfileStore().load();
+    void useFriendsStore().loadAll();
+  } catch (e) {
+    console.warn('[auth] signed-in side-effects failed', e);
+  }
+}
+
+async function dispatchSignedOut(): Promise<void> {
+  try {
+    const [{ onSignedOutCleanup }, { useProfileStore }, { useFriendsStore }, { useForeignProgressStore }] = await Promise.all([
+      import('../storage/sync'),
+      import('./profile'),
+      import('./friends'),
+      import('./foreignProgress'),
+    ]);
+    await onSignedOutCleanup();
+    useProfileStore().$reset();
+    useFriendsStore().$reset();
+    useForeignProgressStore().$reset();
+  } catch (e) {
+    console.warn('[auth] signed-out cleanup failed', e);
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     session: null,
@@ -28,6 +58,7 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isSignedIn: (s): boolean => !!s.session,
+    currentUserId: (s): string | null => s.session?.user.id ?? null,
   },
   actions: {
     async init(): Promise<void> {
@@ -36,11 +67,20 @@ export const useAuthStore = defineStore('auth', {
       const { data } = await sb.auth.getSession();
       this.session = data.session;
       this.email = data.session?.user.email ?? null;
+      if (this.session) void dispatchSignedIn();
 
       if (authSub) authSub.unsubscribe();
-      const { data: subData } = sb.auth.onAuthStateChange((_event, session) => {
+      const { data: subData } = sb.auth.onAuthStateChange((event, session) => {
+        const prevId = this.session?.user.id ?? null;
         this.session = session;
         this.email = session?.user.email ?? null;
+        const nextId = session?.user.id ?? null;
+        if (event === 'SIGNED_IN' || (nextId && nextId !== prevId)) {
+          void dispatchSignedIn();
+        }
+        if (event === 'SIGNED_OUT' || (!nextId && prevId)) {
+          void dispatchSignedOut();
+        }
       });
       authSub = subData.subscription;
 

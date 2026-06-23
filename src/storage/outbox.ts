@@ -2,7 +2,17 @@ import { db } from './dexie';
 import { uuidv4 } from './uuid';
 
 export type OutboxOp = 'upsert' | 'delete';
-export type OutboxTable = 'tricks' | 'transitions' | 'sequences' | 'practice_log';
+export type OutboxTable =
+  | 'tricks'
+  | 'transitions'
+  | 'sequences'
+  | 'practice_log'
+  | 'user_trick_progress'
+  | 'user_transition_progress'
+  | 'user_sequence_progress'
+  | 'profiles'
+  | 'friendships'
+  | 'user_blocks';
 
 export interface OutboxRow {
   id: string;

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import TabBar from './components/TabBar.vue'
+import HeaderProfileMenu from './components/HeaderProfileMenu.vue'
 import RateFeedback, { type Report as RateFeedbackReport } from './components/RateFeedback.vue'
 import TrickSheet from './components/TrickSheet.vue'
 import TransitionSheet from './components/TransitionSheet.vue'
@@ -11,6 +12,7 @@ import { useUiStore } from './stores/ui'
 import { useTricksStore } from './stores/tricks'
 import { useTransitionsStore } from './stores/transitions'
 import { useSequencesStore } from './stores/sequences'
+import { useAuthStore } from './stores/auth'
 import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
 
 const route = useRoute()
@@ -18,8 +20,10 @@ const uiStore = useUiStore()
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
+const auth = useAuthStore()
 
 const showTabs = computed(() => !route.meta.hideTabs)
+const showHeader = computed(() => !route.meta.hideTabs && auth.isSignedIn)
 
 async function reloadStoresFromDexie() {
   const [tricks, edges, sequences] = await Promise.all([
@@ -62,6 +66,12 @@ function onFeedbackClose() {
 
 <template>
   <div class="flex flex-col h-svh">
+    <header
+      v-if="showHeader"
+      class="shrink-0 flex justify-end items-center px-3 py-1 bg-card/60 border-b border-border"
+    >
+      <HeaderProfileMenu />
+    </header>
     <main class="flex-1 min-h-0 overflow-y-auto">
       <RouterView />
     </main>

@@ -1,13 +1,23 @@
 import { db } from './dexie';
-import { applyReport, blend, isoToday } from '../domain/rating';
+import { applyReport, blend, isoToday, statusOf } from '../domain/rating';
 import { applyEdgeReport } from '../domain/edges';
-import { enqueue } from './outbox';
+import { enqueue, type OutboxTable } from './outbox';
 import { uuidv4 } from './uuid';
-import type { PracticeEntityType, PracticeLog, Side, Sequence, Transition, Trick } from '../domain/types';
+import { getCurrentUserId } from './social';
+import type {
+  PracticeEntityType,
+  PracticeLog,
+  Side,
+  Sequence,
+  Transition,
+  Trick,
+  UserSequenceProgress,
+  UserTrickProgress,
+  UserTransitionProgress,
+} from '../domain/types';
 
 const newId = (): string => uuidv4();
 
-// ---- outbox guard ----
 let skipOutbox = false;
 
 export async function withoutOutbox<T>(fn: () => Promise<T>): Promise<T> {
@@ -22,7 +32,7 @@ export async function withoutOutbox<T>(fn: () => Promise<T>): Promise<T> {
 
 async function enq(
   op: 'upsert' | 'delete',
-  table: 'tricks' | 'transitions' | 'sequences' | 'practice_log',
+  table: OutboxTable,
   payload: Record<string, unknown>,
 ): Promise<void> {
   if (skipOutbox) return;
@@ -49,25 +59,61 @@ export async function upsertTrick(t: Trick): Promise<string> {
   return t.id;
 }
 
+async function loadTrickProgress(userId: string, trickId: string): Promise<UserTrickProgress | null> {
+  const row = await db.user_trick_progress.get([userId, trickId]);
+  return row ?? null;
+}
+
 export async function reportTrick(id: string, side: Side, score: number): Promise<Trick> {
   const today = isoToday();
-  const { trick, log } = await db.transaction('rw', db.tricks, db.practice_log, async () => {
-    const t = await db.tricks.get(id);
-    if (!t) throw new Error(`trick not found: ${id}`);
-    applyReport(t, score, side, today);
-    await db.tricks.put(t);
-    const log: PracticeLog = {
-      id: newId(),
-      entityType: 'trick',
-      entityId: id,
-      side,
-      score,
-      at: new Date().toISOString(),
-    };
-    await db.practice_log.add(log);
-    return { trick: t, log };
-  });
-  await enq('upsert', 'tricks', toPlain(trick) as unknown as Record<string, unknown>);
+  const uid = (await getCurrentUserId()) ?? null;
+  const { trick, log, progress } = await db.transaction(
+    'rw',
+    db.tricks,
+    db.practice_log,
+    db.user_trick_progress,
+    async () => {
+      const t = await db.tricks.get(id);
+      if (!t) throw new Error(`trick not found: ${id}`);
+      applyReport(t, score, side, today);
+      await db.tricks.put(t);
+
+      let progress: UserTrickProgress | null = null;
+      if (uid) {
+        const existing = await db.user_trick_progress.get([uid, id]);
+        const lrEnabled = !!t.lr;
+        const next: UserTrickProgress = {
+          userId: uid,
+          trickId: id,
+          rate: lrEnabled ? null : t.rate,
+          rateL: lrEnabled ? t.rateL : null,
+          rateR: lrEnabled ? t.rateR : null,
+          last: t.last,
+          status: t.status,
+          fav: existing?.fav ?? t.fav,
+          lrEnabled,
+          updatedAt: new Date().toISOString(),
+        };
+        await db.user_trick_progress.put(next);
+        progress = next;
+      }
+
+      const log: PracticeLog = {
+        id: newId(),
+        entityType: 'trick',
+        entityId: id,
+        side,
+        score,
+        at: new Date().toISOString(),
+        userId: uid,
+      };
+      await db.practice_log.add(log);
+      return { trick: t, log, progress };
+    },
+  );
+  if (progress) {
+    await enq('upsert', 'user_trick_progress', toPlain(progress) as unknown as Record<string, unknown>);
+  }
   await enq('upsert', 'practice_log', toPlain(log) as unknown as Record<string, unknown>);
   return trick;
 }
@@ -102,23 +148,51 @@ export async function deleteTransition(id: string): Promise<void> {
 
 export async function reportTransition(id: string, score: number): Promise<Transition> {
   const today = isoToday();
-  const { edge, log } = await db.transaction('rw', db.transitions, db.practice_log, async () => {
-    const e = await db.transitions.get(id);
-    if (!e) throw new Error(`transition not found: ${id}`);
-    applyEdgeReport(e, score, today);
-    await db.transitions.put(toPlain(e));
-    const log: PracticeLog = {
-      id: newId(),
-      entityType: 'transition',
-      entityId: id,
-      side: null,
-      score,
-      at: new Date().toISOString(),
-    };
-    await db.practice_log.add(log);
-    return { edge: e, log };
-  });
-  await enq('upsert', 'transitions', toPlain(edge) as unknown as Record<string, unknown>);
+  const uid = (await getCurrentUserId()) ?? null;
+  const { edge, log, progress } = await db.transaction(
+    'rw',
+    db.transitions,
+    db.practice_log,
+    db.user_transition_progress,
+    async () => {
+      const e = await db.transitions.get(id);
+      if (!e) throw new Error(`transition not found: ${id}`);
+      applyEdgeReport(e, score, today);
+      await db.transitions.put(toPlain(e));
+
+      let progress: UserTransitionProgress | null = null;
+      if (uid) {
+        const next: UserTransitionProgress = {
+          userId: uid,
+          transitionId: id,
+          rate: e.rate,
+          last: e.last,
+          updatedAt: new Date().toISOString(),
+        };
+        await db.user_transition_progress.put(next);
+        progress = next;
+      }
+
+      const log: PracticeLog = {
+        id: newId(),
+        entityType: 'transition',
+        entityId: id,
+        side: null,
+        score,
+        at: new Date().toISOString(),
+        userId: uid,
+      };
+      await db.practice_log.add(log);
+      return { edge: e, log, progress };
+    },
+  );
+  if (progress) {
+    await enq(
+      'upsert',
+      'user_transition_progress',
+      toPlain(progress) as unknown as Record<string, unknown>,
+    );
+  }
   await enq('upsert', 'practice_log', toPlain(log) as unknown as Record<string, unknown>);
   return edge;
 }
@@ -143,26 +217,160 @@ export async function deleteSequence(id: string): Promise<void> {
 
 export async function reportSequence(id: string, score: number): Promise<Sequence> {
   const today = isoToday();
-  const { seq, log } = await db.transaction('rw', db.sequences, db.practice_log, async () => {
-    const s = await db.sequences.get(id);
-    if (!s) throw new Error(`sequence not found: ${id}`);
-    s.rate = blend(s.rate, score);
-    s.last = today;
-    await db.sequences.put(toPlain(s));
-    const log: PracticeLog = {
-      id: newId(),
-      entityType: 'sequence',
-      entityId: id,
-      side: null,
-      score,
-      at: new Date().toISOString(),
-    };
-    await db.practice_log.add(log);
-    return { seq: s, log };
-  });
-  await enq('upsert', 'sequences', toPlain(seq) as unknown as Record<string, unknown>);
+  const uid = (await getCurrentUserId()) ?? null;
+  const { seq, log, progress } = await db.transaction(
+    'rw',
+    db.sequences,
+    db.practice_log,
+    db.user_sequence_progress,
+    async () => {
+      const s = await db.sequences.get(id);
+      if (!s) throw new Error(`sequence not found: ${id}`);
+      s.rate = blend(s.rate, score);
+      s.last = today;
+      await db.sequences.put(toPlain(s));
+
+      let progress: UserSequenceProgress | null = null;
+      if (uid) {
+        const next: UserSequenceProgress = {
+          userId: uid,
+          sequenceId: id,
+          rate: s.rate,
+          last: s.last,
+          updatedAt: new Date().toISOString(),
+        };
+        await db.user_sequence_progress.put(next);
+        progress = next;
+      }
+
+      const log: PracticeLog = {
+        id: newId(),
+        entityType: 'sequence',
+        entityId: id,
+        side: null,
+        score,
+        at: new Date().toISOString(),
+        userId: uid,
+      };
+      await db.practice_log.add(log);
+      return { seq: s, log, progress };
+    },
+  );
+  if (progress) {
+    await enq(
+      'upsert',
+      'user_sequence_progress',
+      toPlain(progress) as unknown as Record<string, unknown>,
+    );
+  }
   await enq('upsert', 'practice_log', toPlain(log) as unknown as Record<string, unknown>);
   return seq;
+}
+
+export async function upsertOwnTrickProgress(p: UserTrickProgress): Promise<void> {
+  await db.user_trick_progress.put(p);
+  await enq('upsert', 'user_trick_progress', toPlain(p) as unknown as Record<string, unknown>);
+}
+
+export async function upsertOwnTransitionProgress(p: UserTransitionProgress): Promise<void> {
+  await db.user_transition_progress.put(p);
+  await enq(
+    'upsert',
+    'user_transition_progress',
+    toPlain(p) as unknown as Record<string, unknown>,
+  );
+}
+
+export async function upsertOwnSequenceProgress(p: UserSequenceProgress): Promise<void> {
+  await db.user_sequence_progress.put(p);
+  await enq(
+    'upsert',
+    'user_sequence_progress',
+    toPlain(p) as unknown as Record<string, unknown>,
+  );
+}
+
+export async function toggleOwnTrickFav(trickId: string, fav: boolean): Promise<void> {
+  const uid = await getCurrentUserId();
+  if (!uid) {
+    const t = await db.tricks.get(trickId);
+    if (t) {
+      t.fav = fav;
+      await db.tricks.put(t);
+    }
+    return;
+  }
+  const existing = await loadTrickProgress(uid, trickId);
+  const t = await db.tricks.get(trickId);
+  const next: UserTrickProgress = existing
+    ? { ...existing, fav, updatedAt: new Date().toISOString() }
+    : {
+        userId: uid,
+        trickId,
+        rate: t?.lr ? null : t?.rate ?? null,
+        rateL: t?.lr ? t?.rateL ?? null : null,
+        rateR: t?.lr ? t?.rateR ?? null : null,
+        last: t?.last ?? null,
+        status: t ? statusOf(t) : 'Not Started',
+        fav,
+        lrEnabled: !!t?.lr,
+        updatedAt: new Date().toISOString(),
+      };
+  if (t) {
+    t.fav = fav;
+    await db.tricks.put(t);
+  }
+  await upsertOwnTrickProgress(next);
+}
+
+export async function setOwnTrickLrEnabled(trickId: string, lrEnabled: boolean): Promise<void> {
+  const uid = await getCurrentUserId();
+  if (!uid) return;
+  const existing = await loadTrickProgress(uid, trickId);
+  const t = await db.tricks.get(trickId);
+  const next: UserTrickProgress = existing
+    ? { ...existing, lrEnabled, updatedAt: new Date().toISOString() }
+    : {
+        userId: uid,
+        trickId,
+        rate: lrEnabled ? null : t?.rate ?? null,
+        rateL: lrEnabled ? t?.rateL ?? null : null,
+        rateR: lrEnabled ? t?.rateR ?? null : null,
+        last: t?.last ?? null,
+        status: t ? statusOf(t) : 'Not Started',
+        fav: t?.fav ?? false,
+        lrEnabled,
+        updatedAt: new Date().toISOString(),
+      };
+  await upsertOwnTrickProgress(next);
+}
+
+export async function resetOwnTrickProgress(trickId: string): Promise<void> {
+  const uid = await getCurrentUserId();
+  const t = await db.tricks.get(trickId);
+  if (t) {
+    t.rate = null;
+    t.rateL = null;
+    t.rateR = null;
+    t.last = null;
+    t.status = 'Not Started';
+    await db.tricks.put(t);
+  }
+  if (!uid) return;
+  const existing = await loadTrickProgress(uid, trickId);
+  const next: UserTrickProgress = {
+    userId: uid,
+    trickId,
+    rate: null,
+    rateL: null,
+    rateR: null,
+    last: null,
+    status: 'Not Started',
+    fav: existing?.fav ?? false,
+    lrEnabled: existing?.lrEnabled ?? !!t?.lr,
+    updatedAt: new Date().toISOString(),
+  };
+  await upsertOwnTrickProgress(next);
 }
 
 export interface ExportPayload {

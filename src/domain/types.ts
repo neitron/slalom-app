@@ -80,6 +80,67 @@ export interface PracticeLog {
   side: Side;
   score: number;
   at: string;
+  userId?: string | null;
+}
+
+export type ProfileVisibility = 'public' | 'friends' | 'private';
+
+export interface Profile {
+  id: string;
+  nickname: string | null;
+  displayName: string | null;
+  avatarEmoji: string | null;
+  bio: string | null;
+  visibility: ProfileVisibility;
+  nicknameChangedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type FriendshipStatus = 'pending' | 'accepted';
+
+export interface Friendship {
+  id: string;
+  requesterId: string;
+  addresseeId: string;
+  status: FriendshipStatus;
+  createdAt: string | null;
+  respondedAt: string | null;
+}
+
+export interface UserBlock {
+  blockerId: string;
+  blockedId: string;
+  createdAt: string | null;
+}
+
+export interface UserTrickProgress {
+  userId: string;
+  trickId: string;
+  rate: number | null;
+  rateL: number | null;
+  rateR: number | null;
+  last: string | null;
+  status: TrickStatus;
+  fav: boolean;
+  lrEnabled: boolean;
+  updatedAt: string | null;
+}
+
+export interface UserTransitionProgress {
+  userId: string;
+  transitionId: string;
+  rate: number | null;
+  last: string | null;
+  updatedAt: string | null;
+}
+
+export interface UserSequenceProgress {
+  userId: string;
+  sequenceId: string;
+  rate: number | null;
+  last: string | null;
+  updatedAt: string | null;
 }
 
 export interface GenFilter {
