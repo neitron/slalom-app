@@ -1,13 +1,33 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import RateFeedback, { type Report as RateFeedbackReport } from './components/RateFeedback.vue'
 import TrickSheet from './components/TrickSheet.vue'
 import TransitionSheet from './components/TransitionSheet.vue'
 import SequenceSheet from './components/SequenceSheet.vue'
 import { useUiStore } from './stores/ui'
+import { useTricksStore } from './stores/tricks'
+import { useTransitionsStore } from './stores/transitions'
+import { useSequencesStore } from './stores/sequences'
 
 const uiStore = useUiStore()
+const tricksStore = useTricksStore()
+const transitionsStore = useTransitionsStore()
+const sequencesStore = useSequencesStore()
+
+async function reloadStoresFromDexie() {
+  tricksStore.tricks = []
+  tricksStore.loaded = false
+  transitionsStore.edges = []
+  transitionsStore.loaded = false
+  sequencesStore.sequences = []
+  sequencesStore.loaded = false
+  await Promise.all([tricksStore.load(), transitionsStore.load(), sequencesStore.load()])
+}
+
+const onPulled = () => { void reloadStoresFromDexie() }
+onMounted(() => { window.addEventListener('slalom:pulled', onPulled) })
+onBeforeUnmount(() => { window.removeEventListener('slalom:pulled', onPulled) })
 
 const feedbackReport = computed<RateFeedbackReport | null>(() => {
   const f = uiStore.feedback

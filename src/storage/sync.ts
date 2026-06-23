@@ -142,6 +142,10 @@ export async function pullAll(): Promise<{
     );
   });
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('slalom:pulled'));
+  }
+
   return {
     tricks: tricks.length,
     transitions: transitions.length,
@@ -291,6 +295,7 @@ export async function runStartupSync(): Promise<void> {
 // ---- auto-flush wiring (idempotent across HMR) ----
 let autoWired = false;
 let flushTimer: number | null = null;
+let pullTimer: number | null = null;
 
 function scheduleFlush(delayMs = 600): void {
   if (typeof window === 'undefined') return;
@@ -301,6 +306,41 @@ function scheduleFlush(delayMs = 600): void {
   }, delayMs);
 }
 
+function schedulePull(delayMs = 400): void {
+  if (typeof window === 'undefined') return;
+  if (pullTimer != null) window.clearTimeout(pullTimer);
+  pullTimer = window.setTimeout(() => {
+    pullTimer = null;
+    void pullAll().catch((e) => console.warn('[sync] auto pull failed', e));
+  }, delayMs);
+}
+
+// ---- realtime subscription (one channel per signed-in session) ----
+type Channel = ReturnType<NonNullable<typeof sb>['channel']>;
+let realtimeChannel: Channel | null = null;
+
+async function teardownRealtime(): Promise<void> {
+  if (realtimeChannel && sb) {
+    await sb.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = null;
+}
+
+async function startRealtime(): Promise<void> {
+  if (!sb) return;
+  if (realtimeChannel) return;
+  realtimeChannel = sb.channel('slalom-changes');
+  for (const table of ['tricks', 'transitions', 'sequences', 'practice_log'] as const) {
+    realtimeChannel.on(
+      // @ts-expect-error supabase-js types narrow event to literal unions; '*' is supported at runtime
+      'postgres_changes',
+      { event: '*', schema: 'public', table },
+      () => schedulePull(),
+    );
+  }
+  realtimeChannel.subscribe();
+}
+
 export function setupAutoFlush(): void {
   if (!sb) return;
   if (autoWired) return;
@@ -309,8 +349,15 @@ export function setupAutoFlush(): void {
   sb.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session) {
       void runStartupSync().catch((e) => console.warn('[sync] auto startup sync failed', e));
+      void startRealtime().catch((e) => console.warn('[sync] realtime start failed', e));
+    }
+    if (event === 'SIGNED_OUT') {
+      void teardownRealtime();
     }
   });
+
+  // If already signed in at boot (refresh), kick realtime on.
+  void isSignedIn().then((ok) => { if (ok) void startRealtime(); });
 
   if (typeof window !== 'undefined') {
     window.addEventListener('online', () => {
