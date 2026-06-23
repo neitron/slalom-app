@@ -61,13 +61,13 @@ const lastSyncLabel = computed<string>(() => {
 async function onSendMagicLink() {
   if (!email.value.trim()) return
   magicSent.value = false
-  await auth.sendMagicLink(email.value.trim(), window.location.origin)
+  await auth.sendMagicLink(email.value.trim(), window.location.origin + import.meta.env.BASE_URL)
   if (!auth.error) magicSent.value = true
 }
 
 async function onSignInGoogle() {
   magicSent.value = false
-  await auth.signInWithGoogle(window.location.origin)
+  await auth.signInWithGoogle(window.location.origin + import.meta.env.BASE_URL)
 }
 
 async function onSyncNow() {
