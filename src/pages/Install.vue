@@ -9,12 +9,19 @@ const install = useInstallPrompt()
 const status = ref<string>('')
 const promptAvailable = ref(install.available())
 const iconSrc = `${import.meta.env.BASE_URL}icon-192.png`
+const copied = ref(false)
+
+const appUrl = computed(() => {
+  if (typeof window === 'undefined') return ''
+  const { origin } = window.location
+  const base = import.meta.env.BASE_URL || '/'
+  return origin + base
+})
 
 onMounted(() => {
-  // iOS uses the displayed URL (including hash) as the launch URL when the
+  // iOS records the displayed URL (incl. hash) as the launch URL when the
   // user taps Add to Home Screen. Strip the hash so the installed icon
-  // opens the app, not this install page. Page contents are unaffected —
-  // this is a URL-bar swap only.
+  // opens the app, not this install page. Page content is unaffected.
   if (!platform.value.isStandalone && typeof window !== 'undefined') {
     const base = import.meta.env.BASE_URL || '/'
     window.history.replaceState(null, '', base)
@@ -24,27 +31,53 @@ onMounted(() => {
   setTimeout(() => window.clearInterval(t), 10000)
 })
 
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(appUrl.value)
+    copied.value = true
+    window.setTimeout(() => { copied.value = false }, 2000)
+  } catch {
+    status.value = 'Copy failed — long-press the link below instead.'
+  }
+}
+
 async function onInstallClick() {
   status.value = ''
   const outcome = await install.prompt()
   if (outcome === 'accepted') status.value = 'Installing…'
   else if (outcome === 'dismissed') status.value = 'Install cancelled.'
-  else status.value = 'Install not offered by this browser.'
+  else status.value = 'Install not offered by this browser yet — try again in a moment.'
 }
 
 function openApp() {
   router.replace('/')
 }
 
-const guide = computed(() => {
+type Guide =
+  | 'installed'
+  | 'in-app-ios' | 'in-app-android'
+  | 'ios-safari' | 'ios-chromium-modern'
+  | 'android-chrome' | 'android-other'
+  | 'desktop-chrome' | 'desktop-other'
+
+const guide = computed<Guide>(() => {
   const p = platform.value
   if (p.isStandalone) return 'installed'
+  if (p.isInAppBrowser) return p.isIOS ? 'in-app-ios' : 'in-app-android'
   if (p.isIOS && p.isSafari) return 'ios-safari'
-  if (p.isIOS) return 'ios-other'
+  if (p.isIOS) return 'ios-chromium-modern'
   if (p.isAndroid && p.isChromium) return 'android-chrome'
   if (p.isAndroid) return 'android-other'
   if (p.isChromium) return 'desktop-chrome'
   return 'desktop-other'
+})
+
+const iosBrowserName = computed(() => {
+  const p = platform.value
+  if (p.isIOSChrome) return 'Chrome'
+  if (p.isIOSFirefox) return 'Firefox'
+  if (p.isIOSEdge) return 'Edge'
+  return 'this browser'
 })
 </script>
 
@@ -60,6 +93,18 @@ const guide = computed(() => {
       <p class="text-sm text-muted">Add to your home screen for a full-screen, offline-capable app.</p>
     </header>
 
+    <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <span class="flex-1 text-xs text-muted truncate" :title="appUrl">{{ appUrl }}</span>
+        <button
+          type="button"
+          class="shrink-0 px-2.5 py-1.5 rounded-md border border-border-2 bg-card-2 text-fg text-xs"
+          @click="copyLink"
+        >{{ copied ? '✓ Copied' : 'Copy link' }}</button>
+      </div>
+      <p class="text-[10.5px] text-muted">Use this if you need to open the page in a different browser.</p>
+    </section>
+
     <section
       v-if="guide === 'installed'"
       class="bg-card border border-rate-good/40 rounded-xl p-4 flex flex-col gap-3 text-center"
@@ -71,6 +116,35 @@ const guide = computed(() => {
         class="py-2 px-4 rounded-lg bg-accent text-bg font-semibold text-sm"
         @click="openApp"
       >Open Slalom</button>
+    </section>
+
+    <section
+      v-else-if="guide === 'in-app-ios'"
+      class="bg-card border border-rate-mid/40 rounded-xl p-4 flex flex-col gap-3"
+    >
+      <h2 class="text-sm font-semibold text-rate-mid">
+        Opened inside {{ platform.inAppName }}{{ platform.inAppName === 'In-app browser' ? '' : '' }}
+      </h2>
+      <p class="text-sm">In-app browsers can't add to your home screen. Open this page in <span class="font-semibold">Safari</span> or <span class="font-semibold">Chrome</span> first:</p>
+      <ol class="text-sm flex flex-col gap-2 list-decimal pl-5">
+        <li>Tap the menu in {{ platform.inAppName }} (usually the <span class="font-semibold">⋯</span> or three-dot icon).</li>
+        <li>Choose <span class="font-semibold">Open in browser</span> / <span class="font-semibold">Open in Safari</span>.</li>
+        <li>You'll land back on this install page — follow the steps for your browser.</li>
+      </ol>
+      <p class="text-xs text-muted">Or use <span class="font-semibold">Copy link</span> above and paste it into Safari's address bar.</p>
+    </section>
+
+    <section
+      v-else-if="guide === 'in-app-android'"
+      class="bg-card border border-rate-mid/40 rounded-xl p-4 flex flex-col gap-3"
+    >
+      <h2 class="text-sm font-semibold text-rate-mid">Opened inside {{ platform.inAppName }}</h2>
+      <p class="text-sm">Install isn't available from in-app browsers. Open this page in <span class="font-semibold">Chrome</span>:</p>
+      <ol class="text-sm flex flex-col gap-2 list-decimal pl-5">
+        <li>Tap the menu (<span class="font-semibold">⋯</span> or three dots).</li>
+        <li>Choose <span class="font-semibold">Open in Chrome</span> / <span class="font-semibold">Open in browser</span>.</li>
+        <li>You'll land back on this install page in Chrome — tap <span class="font-semibold">Install app</span>.</li>
+      </ol>
     </section>
 
     <section
@@ -93,15 +167,21 @@ const guide = computed(() => {
         <li>Scroll the share sheet down and tap <span class="font-semibold">Add to Home Screen</span>.</li>
         <li>Tap <span class="font-semibold">Add</span> in the top right.</li>
       </ol>
-      <p class="text-xs text-muted">Then open the new Slalom icon on your home screen. It runs full-screen, works offline, and updates itself.</p>
     </section>
 
     <section
-      v-else-if="guide === 'ios-other'"
-      class="bg-card border border-rate-mid/40 rounded-xl p-4 flex flex-col gap-3"
+      v-else-if="guide === 'ios-chromium-modern'"
+      class="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
     >
-      <h2 class="text-sm font-semibold text-rate-mid">Open this page in Safari</h2>
-      <p class="text-sm">Apple only allows installing web apps from Safari. Tap the menu in this browser and choose <span class="font-semibold">Open in Safari</span>, then come back to this page.</p>
+      <h2 class="text-sm font-semibold">iPhone / iPad · {{ iosBrowserName }}</h2>
+      <p class="text-sm">iOS lets {{ iosBrowserName }} add this app to your home screen since iOS 16.4:</p>
+      <ol class="text-sm flex flex-col gap-2.5 list-decimal pl-5 text-fg/90">
+        <li>Tap the <span class="font-semibold">⋯</span> menu (bottom-right in Chrome, top-right in others).</li>
+        <li>Tap <span class="font-semibold">Share</span>.</li>
+        <li>Scroll the share sheet and tap <span class="font-semibold">Add to Home Screen</span>.</li>
+        <li>Tap <span class="font-semibold">Add</span> in the top right.</li>
+      </ol>
+      <p class="text-xs text-muted">If you don't see <span class="font-semibold">Add to Home Screen</span>, your iOS is older than 16.4 — copy the link above and open it in Safari instead.</p>
     </section>
 
     <section
@@ -118,7 +198,7 @@ const guide = computed(() => {
       <div v-else class="text-sm flex flex-col gap-2">
         <p>If the install button doesn't appear automatically:</p>
         <ol class="list-decimal pl-5 flex flex-col gap-1.5">
-          <li>Tap the browser menu (⋮ in the top corner).</li>
+          <li>Tap the browser menu (<span class="font-semibold">⋮</span>).</li>
           <li>Choose <span class="font-semibold">Install app</span> or <span class="font-semibold">Add to Home screen</span>.</li>
         </ol>
       </div>
@@ -133,7 +213,7 @@ const guide = computed(() => {
       class="bg-card border border-rate-mid/40 rounded-xl p-4 flex flex-col gap-3"
     >
       <h2 class="text-sm font-semibold text-rate-mid">Open this page in Chrome</h2>
-      <p class="text-sm">Install support is best in Chrome on Android. Tap your browser menu and choose <span class="font-semibold">Open in Chrome</span>.</p>
+      <p class="text-sm">Install support is best in Chrome on Android. Use <span class="font-semibold">Copy link</span> above and paste into Chrome.</p>
     </section>
 
     <section
