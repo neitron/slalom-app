@@ -113,6 +113,34 @@ export async function getProfileByNickname(nickname: string): Promise<Profile | 
   return data ? mapProfileFromServer(data as ProfileRow) : null;
 }
 
+export async function getProfileById(id: string): Promise<Profile | null> {
+  const sb = await client();
+  const { data, error } = await sb.from('profiles').select('*').eq('id', id).maybeSingle();
+  if (error) {
+    if (isMissingTable(error.message)) throw new SocialUnavailableError();
+    throw new Error(`getProfileById: ${error.message}`);
+  }
+  return data ? mapProfileFromServer(data as ProfileRow) : null;
+}
+
+const PROFILES_IN_CHUNK = 200;
+
+export async function fetchProfilesByIds(ids: string[]): Promise<Profile[]> {
+  if (!ids.length) return [];
+  const sb = await client();
+  const out: Profile[] = [];
+  for (let i = 0; i < ids.length; i += PROFILES_IN_CHUNK) {
+    const chunk = ids.slice(i, i + PROFILES_IN_CHUNK);
+    const { data, error } = await sb.from('profiles').select('*').in('id', chunk);
+    if (error) {
+      if (isMissingTable(error.message)) throw new SocialUnavailableError();
+      throw new Error(`fetchProfilesByIds: ${error.message}`);
+    }
+    for (const r of (data ?? []) as ProfileRow[]) out.push(mapProfileFromServer(r));
+  }
+  return out;
+}
+
 export async function searchProfiles(prefix: string, limit = 20): Promise<Profile[]> {
   const sb = await client();
   const q = prefix.replace(/[%_]/g, '');

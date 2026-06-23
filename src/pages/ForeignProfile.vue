@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getProfileByNickname } from '../storage/social'
+import { getProfileById, getProfileByNickname } from '../storage/social'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 import { useForeignProgressStore } from '../stores/foreignProgress'
 import { useAuthStore } from '../stores/auth'
 import { useFriendsStore } from '../stores/friends'
@@ -32,7 +34,9 @@ async function resolve(nickname: string) {
   notFound.value = false
   loadError.value = null
   try {
-    const p = await getProfileByNickname(nickname)
+    const p = UUID_RE.test(nickname)
+      ? await getProfileById(nickname)
+      : await getProfileByNickname(nickname)
     if (!p) {
       notFound.value = true
       resolved.value = null

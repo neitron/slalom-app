@@ -8,7 +8,7 @@ import ProfileSearchResult from '../components/ProfileSearchResult.vue'
 import AvatarBadge from '../components/AvatarBadge.vue'
 import ShareProfile from '../components/ShareProfile.vue'
 import { nicknameDisplay } from '../domain/display'
-import { getProfileByNickname } from '../storage/social'
+import { fetchProfilesByIds, getProfileByNickname } from '../storage/social'
 import type { Profile } from '../domain/types'
 
 const friends = useFriendsStore()
@@ -25,20 +25,23 @@ let searchTimer: number | null = null
 const profilesById = ref<Record<string, Profile>>({})
 
 async function hydrateMissingProfiles(ids: string[]) {
-  for (const id of ids) {
-    if (profilesById.value[id]) continue
-    // Can't lookup by id directly without a separate endpoint; we keep them as nickname-less placeholders.
-    profilesById.value[id] = {
-      id,
-      nickname: null,
-      displayName: null,
-      avatarEmoji: null,
-      bio: null,
-      visibility: 'private',
-      nicknameChangedAt: null,
-      createdAt: null,
-      updatedAt: null,
+  const missing = ids.filter((id) => !profilesById.value[id])
+  if (!missing.length) return
+  try {
+    const fetched = await fetchProfilesByIds(missing)
+    const byId: Record<string, Profile> = { ...profilesById.value }
+    for (const p of fetched) byId[p.id] = p
+    for (const id of missing) {
+      if (!byId[id]) {
+        byId[id] = {
+          id, nickname: null, displayName: null, avatarEmoji: null, bio: null,
+          visibility: 'private', nicknameChangedAt: null, createdAt: null, updatedAt: null,
+        }
+      }
     }
+    profilesById.value = byId
+  } catch (e) {
+    ui.showError(`Couldn't load profiles: ${(e as Error).message}`)
   }
 }
 
