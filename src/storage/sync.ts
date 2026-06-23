@@ -332,7 +332,6 @@ async function startRealtime(): Promise<void> {
   realtimeChannel = sb.channel('slalom-changes');
   for (const table of ['tricks', 'transitions', 'sequences', 'practice_log'] as const) {
     realtimeChannel.on(
-      // @ts-expect-error supabase-js types narrow event to literal unions; '*' is supported at runtime
       'postgres_changes',
       { event: '*', schema: 'public', table },
       () => schedulePull(),
