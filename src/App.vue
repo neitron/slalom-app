@@ -9,6 +9,7 @@ import { useUiStore } from './stores/ui'
 import { useTricksStore } from './stores/tricks'
 import { useTransitionsStore } from './stores/transitions'
 import { useSequencesStore } from './stores/sequences'
+import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
 
 const uiStore = useUiStore()
 const tricksStore = useTricksStore()
@@ -16,13 +17,17 @@ const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
 
 async function reloadStoresFromDexie() {
-  tricksStore.tricks = []
-  tricksStore.loaded = false
-  transitionsStore.edges = []
-  transitionsStore.loaded = false
-  sequencesStore.sequences = []
-  sequencesStore.loaded = false
-  await Promise.all([tricksStore.load(), transitionsStore.load(), sequencesStore.load()])
+  const [tricks, edges, sequences] = await Promise.all([
+    getAllTricks(),
+    getAllTransitions(),
+    getAllSequences(),
+  ])
+  tricksStore.tricks = tricks
+  tricksStore.loaded = true
+  transitionsStore.edges = edges
+  transitionsStore.loaded = true
+  sequencesStore.sequences = sequences
+  sequencesStore.loaded = true
 }
 
 const onPulled = () => { void reloadStoresFromDexie() }
