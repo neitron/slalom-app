@@ -23,7 +23,7 @@ const sequencesStore = useSequencesStore()
 const auth = useAuthStore()
 
 const showTabs = computed(() => !route.meta.hideTabs)
-const showHeader = computed(() => !route.meta.hideTabs && auth.isSignedIn)
+const showHeader = computed(() => !route.meta.hideTabs)
 
 async function reloadStoresFromDexie() {
   const [tricks, edges, sequences] = await Promise.all([
