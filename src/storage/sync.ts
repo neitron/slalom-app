@@ -183,17 +183,53 @@ export async function pullAll(): Promise<{
     .map(mapPracticeLogFromServer)
     .filter((p) => p.id && !pending.practice_log.has(p.id));
 
+  const serverTransitionIds = new Set(transitions.map((t) => t.id!));
+  const serverSequenceIds = new Set(sequences.map((s) => s.id!));
+  const serverLogIds = new Set(logs.map((l) => l.id!));
+  const serverTrickProgressIds = new Set(
+    [...trickProgressByTrickId.values()].map((p) => p.trickId),
+  );
+
   await withoutOutbox(async () => {
     await db.transaction(
       'rw',
       [db.tricks, db.transitions, db.sequences, db.practice_log, db.user_trick_progress],
       async () => {
         if (tricks.length) await db.tricks.bulkPut(tricks);
+
+        const localTransitionIds = await db.transitions.toCollection().primaryKeys();
+        const transitionsToDrop = (localTransitionIds as string[]).filter(
+          (id) => !serverTransitionIds.has(id) && !pending.transitions.has(id),
+        );
+        if (transitionsToDrop.length) await db.transitions.bulkDelete(transitionsToDrop);
         if (transitions.length) await db.transitions.bulkPut(transitions);
+
+        const localSequenceIds = await db.sequences.toCollection().primaryKeys();
+        const sequencesToDrop = (localSequenceIds as string[]).filter(
+          (id) => !serverSequenceIds.has(id) && !pending.sequences.has(id),
+        );
+        if (sequencesToDrop.length) await db.sequences.bulkDelete(sequencesToDrop);
         if (sequences.length) await db.sequences.bulkPut(sequences);
+
+        const localLogIds = await db.practice_log.toCollection().primaryKeys();
+        const logsToDrop = (localLogIds as string[]).filter(
+          (id) => !serverLogIds.has(id) && !pending.practice_log.has(id),
+        );
+        if (logsToDrop.length) await db.practice_log.bulkDelete(logsToDrop);
         if (logs.length) await db.practice_log.bulkPut(logs);
 
         if (!progressTablesMissing) {
+          const localProgressKeys = (await db.user_trick_progress
+            .toCollection()
+            .primaryKeys()) as Array<[string, string]>;
+          const progressToDrop = localProgressKeys.filter(
+            ([userId, trickId]) =>
+              userId !== uid ||
+              (!serverTrickProgressIds.has(trickId) &&
+                !pending.user_trick_progress.has(trickId)),
+          );
+          if (progressToDrop.length) await db.user_trick_progress.bulkDelete(progressToDrop);
+
           const progressTricks: UserTrickProgress[] = [];
           for (const p of trickProgressByTrickId.values()) {
             if (!pending.user_trick_progress.has(p.trickId)) progressTricks.push(p);
