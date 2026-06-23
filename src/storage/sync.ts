@@ -316,6 +316,12 @@ export function setupAutoFlush(): void {
     window.addEventListener('online', () => {
       void flushOutbox().catch((e) => console.warn('[sync] online flush failed', e));
     });
-    window.addEventListener('slalom:outbox-changed', () => scheduleFlush());
+    window.addEventListener('slalom:outbox-changed', () => scheduleFlush(400));
+    window.addEventListener('focus', () => scheduleFlush(50));
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') scheduleFlush(50);
+      });
+    }
   }
 }
