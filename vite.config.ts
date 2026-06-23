@@ -30,8 +30,11 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.endsWith('/seed-data.json'),
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'seed-data' },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'seed-data',
+              networkTimeoutSeconds: 5,
+            },
           },
         ],
       },
