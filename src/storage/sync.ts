@@ -110,8 +110,32 @@ export async function pullAll(): Promise<{
       db.sequences,
       db.practice_log,
       async () => {
-        if (tricks.length) await db.tricks.bulkPut(tricks);
-        if (transitions.length) await db.transitions.bulkPut(transitions);
+        if (tricks.length) {
+          // Reconcile by natural key (name) — local seed assigns its own UUIDs.
+          // Server is authoritative: delete any local trick whose name matches
+          // a server trick with a different id, then bulkPut server rows.
+          const incomingNames = new Set(tricks.map((t) => t.name));
+          const incomingIds = new Set(tricks.map((t) => t.id!));
+          const localByName = await db.tricks.where('name').anyOf([...incomingNames]).toArray();
+          const toDelete = localByName
+            .map((t) => t.id)
+            .filter((id): id is string => !!id && !incomingIds.has(id));
+          if (toDelete.length) await db.tricks.bulkDelete(toDelete);
+          await db.tricks.bulkPut(tricks);
+        }
+        if (transitions.length) {
+          // Reconcile by natural key (from+to+fromSide+toSide).
+          const incomingIds = new Set(transitions.map((t) => t.id!));
+          const key = (e: { from: string; to: string; fromSide: string | null; toSide: string | null }): string =>
+            `${e.from}|${e.to}|${e.fromSide ?? ''}|${e.toSide ?? ''}`;
+          const incomingKeys = new Set(transitions.map(key));
+          const localEdges = await db.transitions.toArray();
+          const toDelete = localEdges
+            .filter((e) => e.id && !incomingIds.has(e.id) && incomingKeys.has(key(e)))
+            .map((e) => e.id as string);
+          if (toDelete.length) await db.transitions.bulkDelete(toDelete);
+          await db.transitions.bulkPut(transitions);
+        }
         if (sequences.length) await db.sequences.bulkPut(sequences);
         if (logs.length) await db.practice_log.bulkPut(logs);
       },
