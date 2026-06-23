@@ -11,6 +11,7 @@ import { supabaseConfigured } from '../storage/supabase'
 import { listOutbox } from '../storage/outbox'
 import { flushOutbox, pullAll, pushLocalAll, runStartupSync } from '../storage/sync'
 import { clearPositions } from '../utils/graphView'
+import { BUILD_SHA, buildLabel } from '../utils/buildInfo'
 
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
@@ -454,5 +455,14 @@ function armImport() {
       v-if="status"
       class="text-xs text-muted"
     >{{ status }}</p>
+
+    <p class="text-center text-[10.5px] text-muted/70 font-mono pt-1">
+      <a
+        :href="`https://github.com/neitron/slalom-app/commit/${BUILD_SHA}`"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-muted"
+      >build {{ buildLabel() }}</a>
+    </p>
   </div>
 </template>

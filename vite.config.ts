@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import { execSync } from 'node:child_process'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -8,8 +9,26 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const base = process.env.GITHUB_ACTIONS ? '/slalom-app/' : '/'
 
+function gitShortSha(): string {
+  const envSha = process.env.GITHUB_SHA
+  if (envSha) return envSha.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim()
+  } catch {
+    return 'dev'
+  }
+}
+
+const buildSha = gitShortSha()
+const buildTime = new Date().toISOString()
+
 export default defineConfig({
   base,
+  define: {
+    __BUILD_SHA__: JSON.stringify(buildSha),
+    __BUILD_TIME__: JSON.stringify(buildTime),
+  },
   plugins: [
     vue(),
     tailwindcss(),
