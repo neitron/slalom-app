@@ -113,9 +113,13 @@ async function tryNavSearch() {
 
     <div
       v-if="!auth.isSignedIn"
-      class="bg-card border border-border rounded-xl p-4 text-sm text-muted"
+      class="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
     >
-      Sign in from Settings to find friends.
+      <p class="text-sm text-muted">Sign in to find friends and share your progress.</p>
+      <RouterLink
+        to="/settings"
+        class="min-h-[44px] grid place-items-center rounded-lg bg-accent text-bg text-sm font-semibold"
+      >Go to Settings to sign in</RouterLink>
     </div>
 
     <template v-else>

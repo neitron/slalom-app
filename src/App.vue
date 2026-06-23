@@ -12,7 +12,6 @@ import { useUiStore } from './stores/ui'
 import { useTricksStore } from './stores/tricks'
 import { useTransitionsStore } from './stores/transitions'
 import { useSequencesStore } from './stores/sequences'
-import { useAuthStore } from './stores/auth'
 import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
 
 const route = useRoute()
@@ -20,7 +19,6 @@ const uiStore = useUiStore()
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
-const auth = useAuthStore()
 
 const showTabs = computed(() => !route.meta.hideTabs)
 const showHeader = computed(() => !route.meta.hideTabs)
