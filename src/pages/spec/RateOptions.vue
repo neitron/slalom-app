@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { gw } from '../../design/tokens'
 
-type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
   { id: 'D', title: 'Hero numeral', desc: 'Rate as a bold number in a leg-tinted glass pill. Number is the brand.' },
   { id: 'E', title: 'Apple-Watch radial arc', desc: 'A small ring fills around the circle. Kinetic, iOS-native.' },
   { id: 'F', title: 'Tally / slash marks', desc: '1–5 diagonal slashes in leg color. Skate-tag energy.' },
   { id: 'G', title: 'Dots filled with leg color', desc: '5 dots, count = rate, fill = leg hue. No separate rate-hue.' },
+  { id: 'H', title: 'Bare leg dots (no border)', desc: 'Like F coloring, in dots. Rated = bright leg color; unrated = same color at 0.30 opacity.' },
+  { id: 'I', title: 'Blurred ghost dots', desc: 'Same as H but unrated dots are heavily blurred — "ghost" steps you haven\'t reached.' },
   { id: 'A', title: '(rejected) 5-dot strip, leg ring + density fill', desc: 'Original Option A — for reference.' },
   { id: 'B', title: '(rejected) Single ordinal chip', desc: 'Original Option B — for reference.' },
   { id: 'C', title: '(rejected) Weighted vertical bars', desc: 'Original Option C — for reference.' },
@@ -178,6 +180,41 @@ function arcDashOffset(rate: number | null): number {
                       border: `1.5px solid ${leg.tint}`,
                       opacity: r != null && i <= Math.round(r) ? 1 : 0.35,
                       boxSizing: 'border-box',
+                    }"
+                  />
+                </div>
+              </template>
+
+              <!-- Option H: Bare leg dots, no border -->
+              <template v-else-if="v.id === 'H'">
+                <div class="flex" style="gap: 4px;">
+                  <span
+                    v-for="i in 5"
+                    :key="i"
+                    :style="{
+                      width: '9px',
+                      height: '9px',
+                      borderRadius: '50%',
+                      background: leg.tint,
+                      opacity: r != null && i <= Math.round(r) ? 1 : 0.30,
+                    }"
+                  />
+                </div>
+              </template>
+
+              <!-- Option I: Blurred ghost dots -->
+              <template v-else-if="v.id === 'I'">
+                <div class="flex" style="gap: 4px;">
+                  <span
+                    v-for="i in 5"
+                    :key="i"
+                    :style="{
+                      width: '9px',
+                      height: '9px',
+                      borderRadius: '50%',
+                      background: leg.tint,
+                      opacity: r != null && i <= Math.round(r) ? 1 : 0.45,
+                      filter: r != null && i <= Math.round(r) ? 'none' : 'blur(2px)',
                     }"
                   />
                 </div>
