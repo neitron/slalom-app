@@ -73,7 +73,12 @@ function onFeedbackClose() {
     <header
       v-if="showHeader"
       class="sticky top-0 z-30 flex justify-end items-center px-3 py-1 bg-card/95 backdrop-blur border-b border-border"
-      :style="{ marginTop: 'calc(env(safe-area-inset-top) * -1)', paddingTop: 'env(safe-area-inset-top)' }"
+      :style="{
+        marginTop: 'calc(env(safe-area-inset-top) * -1)',
+        paddingTop: 'env(safe-area-inset-top)',
+        transform: 'translateY(var(--vv-drift, 0px))',
+        willChange: 'transform',
+      }"
     >
       <HeaderProfileMenu />
     </header>
