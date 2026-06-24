@@ -39,3 +39,27 @@ describe('contrastRatio', () => {
     expect(contrastRatio('#0E0D12', '#e6e6ec')).toBeGreaterThan(4.5)
   })
 })
+
+import { deltaE } from './color'
+
+describe('deltaE', () => {
+  it('returns 0 for identical colors', () => {
+    expect(deltaE('#7cc5ff', '#7cc5ff')).toBeCloseTo(0, 2)
+  })
+
+  it('is symmetric', () => {
+    const a = deltaE('#ffb36b', '#7cc5ff')
+    const b = deltaE('#7cc5ff', '#ffb36b')
+    expect(a).toBeCloseTo(b, 2)
+  })
+
+  it('returns a large distance for highly different colors', () => {
+    // orange vs cyan — wildly different hues, similar luminance
+    expect(deltaE('#ffb36b', '#7cc5ff')).toBeGreaterThan(30)
+  })
+
+  it('returns a small distance for near-identical colors', () => {
+    // two adjacent oranges
+    expect(deltaE('#ffb36b', '#ffb578')).toBeLessThan(5)
+  })
+})
