@@ -18,7 +18,7 @@ Roadmap: `spec/2026-06-24-redesign-glasswork-roadmap.md`
 | Route | Page | In tab bar? | New? | Notes |
 |---|---|---|---|---|
 | `/` | Home | Yes | NEW | Replaces today's `/` |
-| `/tricks` | AllTricks | Yes | Renamed | Today's `/` |
+| `/tricks` | AllTricks | Yes | Yes | AllTricks page, moved here from `/` |
 | `/graph` | Graph | Yes | No | — |
 | `/sequences` | Sequences | Yes | No | — |
 | `/learning` | Learning | No | No | Reachable via Home |
@@ -41,14 +41,14 @@ Roadmap: `spec/2026-06-24-redesign-glasswork-roadmap.md`
 - "Working on" — list of tricks with status "Working" or recent rate edits; tap-to-cycle here.
 - "Recent activity" — last 7 days of rate changes / sequence runs.
 - Quick-jump button: "Open Graph."
-- Quick-jump button: "Current Sequence" (if user has any sequence rated in the last N days).
+- Quick-jump button: "Current Sequence" (if user has any sequence rated in the last 14 days).
 
 That is the entire v1 scope of Home. Anything else is deferred.
 
 ## Decisions log
 
 - DECIDED: 4 bottom tabs (Home / Tricks / Graph / Sequences).
-- DECIDED: Settings splits at this phase; the implementation of the split happens in Phase 4h.
+- DECIDED: Settings splits into `/settings` + `/diagnostics`. Implementation deferred (see Implications).
 - DECIDED: People moves to the avatar menu, not a tab.
 - DECIDED: Transitions and Learning are subsumed; no separate tabs.
 - DEFERRED: Whether Home has a session-timer / practice-log feature (M4 territory).
