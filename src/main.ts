@@ -5,7 +5,6 @@ import { router, prefetchRoutes } from './router'
 import { supabaseConfigured } from './storage/supabase'
 import { migrateNonUuidIds } from './storage/migrateIds'
 import { setupInstallPromptCapture } from './utils/installPrompt'
-import { setupIosKeyboardReset } from './composables/useIosKeyboardReset'
 import './style.css'
 
 async function bootstrap(): Promise<void> {
@@ -24,8 +23,6 @@ async function bootstrap(): Promise<void> {
   }
 
   app.mount('#app')
-
-  setupIosKeyboardReset()
 
   const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback
   const schedule = (cb: () => void): void => {
