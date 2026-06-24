@@ -63,13 +63,7 @@ function onFeedbackClose() {
 </script>
 
 <template>
-  <div
-    class="flex flex-col"
-    :style="{
-      height: 'var(--app-h, 100svh)',
-      paddingTop: 'env(safe-area-inset-top)',
-    }"
-  >
+  <div class="app-shell flex flex-col">
     <header
       v-if="showHeader"
       class="shrink-0 flex justify-end items-center px-3 py-1 bg-card/60 border-b border-border"

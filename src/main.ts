@@ -7,21 +7,7 @@ import { migrateNonUuidIds } from './storage/migrateIds'
 import { setupInstallPromptCapture } from './utils/installPrompt'
 import './style.css'
 
-function setupAppHeight(): void {
-  if (typeof window === 'undefined') return
-  const update = (): void => {
-    document.documentElement.style.setProperty('--app-h', `${window.innerHeight}px`)
-  }
-  update()
-  window.addEventListener('resize', update)
-  window.addEventListener('orientationchange', update)
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', update)
-  }
-}
-
 async function bootstrap(): Promise<void> {
-  setupAppHeight()
   setupInstallPromptCapture()
 
   const app = createApp(App)

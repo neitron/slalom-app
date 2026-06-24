@@ -19,8 +19,7 @@ const incomingCount = computed<number>(() => friends.incomingCount)
 
 <template>
   <nav
-    class="shrink-0 grid grid-cols-6 gap-0.5 bg-card border-t border-border pt-1 px-1"
-    :style="{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }"
+    class="shrink-0 grid grid-cols-6 gap-0.5 bg-card border-t border-border pt-1 pb-1 px-1"
   >
     <RouterLink
       v-for="t in tabs"
