@@ -524,7 +524,8 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         <div class="absolute inset-0 bg-black/60" @click="showSaveSheet = false" />
         <div
           ref="saveSheetPanelRef"
-          class="sheet-panel relative w-full bg-card border-t border-border rounded-t-xl p-4"
+          class="sheet-panel relative w-full gw-glass-strong p-4"
+          :style="{ borderTopLeftRadius: 'var(--radius-g-panel)', borderTopRightRadius: 'var(--radius-g-panel)' }"
         >
         <div class="flex justify-center pb-2 -mt-1">
           <div class="w-10 h-1 rounded-full bg-border-2" />
