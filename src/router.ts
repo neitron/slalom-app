@@ -12,6 +12,16 @@ const routes: RouteRecordRaw[] = [
   { path: '/onboarding/nickname', name: 'nickname-onboarding', component: () => import('./pages/NicknameOnboarding.vue'), meta: { hideTabs: true } },
   { path: '/settings', name: 'settings', component: () => import('./pages/Settings.vue') },
   { path: '/install', name: 'install', component: () => import('./pages/Install.vue'), meta: { hideTabs: true } },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/spec/tokens',
+          name: 'spec-tokens',
+          component: () => import('./pages/spec/Tokens.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
+      ]
+    : []),
 ]
 
 export const router = createRouter({
