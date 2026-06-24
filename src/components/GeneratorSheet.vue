@@ -184,7 +184,8 @@ function toggleArr(list: string[], v: string): string[] {
 
       <div
         ref="panelRef"
-        class="sheet-panel relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border"
+        class="sheet-panel relative w-full gw-glass-strong p-4 pt-2 max-h-[90dvh] overflow-y-auto"
+        :style="{ borderTopLeftRadius: 'var(--radius-g-panel)', borderTopRightRadius: 'var(--radius-g-panel)' }"
       >
       <div class="flex justify-center pb-2 -mt-1">
         <div class="w-10 h-1 rounded-full bg-border-2" />
