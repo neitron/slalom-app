@@ -21,7 +21,7 @@ export const gw = {
   leg: {
     l: '#FF9C7C',          // warm coral — perceptually distant from brand
     r: '#5FD8C9',          // cool teal
-    both: '#F0E2C0',       // cream / warm sand
+    both: '#EBE5D5',       // cream / neutral sand (cooled to maintain ΔE≥25 vs coral leg.l)
     none: '#7A7682',       // neutral
   },
 
@@ -35,7 +35,7 @@ export const gw = {
   },
 
   // Signals
-  danger: '#E05A5A',       // destructive only
+  danger: '#C83030',       // destructive only — purer red to maintain ΔE≥25 vs coral leg.l
 
   // Surfaces (alpha + blur — declared here as recipes for the CSS layer)
   surface: {
