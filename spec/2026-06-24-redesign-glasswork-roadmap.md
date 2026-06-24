@@ -330,7 +330,7 @@ Phases are strictly ordered. Within Phase 4, sub-screens (4a–4i) can ship inde
 
 | Phase | Plan doc | Status | Shipped |
 |---|---|---|---|
-| 1 — IA + tokens | `docs/superpowers/plans/2026-06-24-glasswork-phase-1-ia-and-tokens.md` | Plan written | — |
+| 1 — IA + tokens | `docs/superpowers/plans/2026-06-24-glasswork-phase-1-ia-and-tokens.md` | Shipped | 2026-06-24 |
 | 2 — Nav/shell | (not yet written) | — | — |
 | 3 — Core components | (not yet written) | — | — |
 | 4 — Screen-by-screen | (not yet written) | — | — |
