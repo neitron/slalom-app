@@ -5,7 +5,6 @@
 @layer base {
   :root {
     --tabbar-h: 4rem;
-    --header-h: 60px;
   }
   html {
     height: 100%;
