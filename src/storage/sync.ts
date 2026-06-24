@@ -190,12 +190,27 @@ export async function pullAll(): Promise<{
     [...trickProgressByTrickId.values()].map((p) => p.trickId),
   );
 
+  const serverTrickIds = new Set(tricks.map((t) => t.id!));
+  const serverTrickNamesLc = new Set(tricks.map((t) => t.name.toLowerCase()));
+
   await withoutOutbox(async () => {
     await db.transaction(
       'rw',
       [db.tricks, db.transitions, db.sequences, db.practice_log, db.user_trick_progress],
       async () => {
-        if (tricks.length) await db.tricks.bulkPut(tricks);
+        if (tricks.length) {
+          const localTricks = await db.tricks.toArray();
+          const tricksToDrop = localTricks
+            .filter((t) => t.id && !pending.tricks.has(t.id))
+            .filter(
+              (t) =>
+                !serverTrickIds.has(t.id!) &&
+                serverTrickNamesLc.has(t.name.toLowerCase()),
+            )
+            .map((t) => t.id!);
+          if (tricksToDrop.length) await db.tricks.bulkDelete(tricksToDrop);
+          await db.tricks.bulkPut(tricks);
+        }
 
         const localTransitionIds = await db.transitions.toCollection().primaryKeys();
         const transitionsToDrop = (localTransitionIds as string[]).filter(
