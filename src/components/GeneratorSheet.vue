@@ -11,10 +11,14 @@ import {
 } from '../domain'
 import type { Sequence, SequenceStep, Tier } from '../domain/types'
 import SequenceChain from './SequenceChain.vue'
+import { useSheetViewport } from '../composables/useSheetViewport'
 
 type Mode = 'graph' | 'known' | 'random'
 
 const props = defineProps<{ visible: boolean }>()
+const visibleRef = computed(() => props.visible)
+const panelRef = ref<HTMLElement | null>(null)
+useSheetViewport(panelRef, visibleRef)
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -168,19 +172,20 @@ function toggleArr(list: string[], v: string): string[] {
 </script>
 
 <template>
-  <div
-    v-if="visible"
-    class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100dvh"
-    role="dialog"
-    aria-modal="true"
-  >
-    <div class="absolute inset-0 bg-black/60" @click="close" />
-
+  <Teleport to="body">
     <div
-      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border"
-      :style="{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }"
+      v-if="visible"
+      class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
+      style="height: 100dvh"
+      role="dialog"
+      aria-modal="true"
     >
+      <div class="absolute inset-0 bg-black/60" @click="close" />
+
+      <div
+        ref="panelRef"
+        class="sheet-panel relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border"
+      >
       <div class="flex justify-center pb-2 -mt-1">
         <div class="w-10 h-1 rounded-full bg-border-2" />
       </div>
@@ -337,6 +342,7 @@ function toggleArr(list: string[], v: string): string[] {
           @click="save"
         >Save</button>
       </div>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>

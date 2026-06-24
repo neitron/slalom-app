@@ -15,6 +15,9 @@ import GraphBubble from '../components/GraphBubble.vue'
 import EdgeBubble from '../components/EdgeBubble.vue'
 import LegChooser from '../components/LegChooser.vue'
 import SequenceChain from '../components/SequenceChain.vue'
+import { useSheetViewport } from '../composables/useSheetViewport'
+
+const saveSheetPanelRef = ref<HTMLElement | null>(null)
 
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
@@ -44,6 +47,8 @@ const sequenceMode = ref(false)
 const sequenceSteps = ref<ChainStep[]>([])
 const showSaveSheet = ref(false)
 const saveName = ref('')
+
+useSheetViewport(saveSheetPanelRef, showSaveSheet)
 
 let viewDebounce: number | null = null
 
@@ -374,7 +379,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
 <template>
   <div
     class="flex flex-col min-h-0"
-    :style="{ height: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 3.25rem)' }"
+    :style="{ height: 'calc(100dvh - env(safe-area-inset-top) - var(--tabbar-h, 4rem))' }"
   >
     <div class="flex items-center gap-2 px-3 pt-2 pb-2 shrink-0">
       <h1 class="text-lg font-semibold flex-1">Graph</h1>
@@ -476,7 +481,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
     <div
       v-if="sequenceMode"
       class="fixed left-0 right-0 z-40 bg-card border-t border-border px-3 py-2"
-      :style="{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4.5rem)' }"
+      :style="{ bottom: 'calc(var(--tabbar-h, 4rem) + 0.5rem)' }"
     >
       <div class="mb-2 min-h-[1.5rem]">
         <SequenceChain
@@ -509,17 +514,18 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       </div>
     </div>
 
-    <div
-      v-if="showSaveSheet"
-      class="fixed inset-0 z-[60] flex items-end"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div class="absolute inset-0 bg-black/60" @click="showSaveSheet = false" />
+    <Teleport to="body">
       <div
-        class="relative w-full bg-card border-t border-border rounded-t-xl p-4"
-        :style="{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }"
+        v-if="showSaveSheet"
+        class="fixed inset-0 z-[60] flex items-end"
+        role="dialog"
+        aria-modal="true"
       >
+        <div class="absolute inset-0 bg-black/60" @click="showSaveSheet = false" />
+        <div
+          ref="saveSheetPanelRef"
+          class="sheet-panel relative w-full bg-card border-t border-border rounded-t-xl p-4"
+        >
         <div class="flex justify-center pb-2 -mt-1">
           <div class="w-10 h-1 rounded-full bg-border-2" />
         </div>
@@ -544,6 +550,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
           >Save</button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
   </div>
 </template>

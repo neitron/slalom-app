@@ -8,6 +8,7 @@ import { displayName } from '../domain/display'
 import type { Side, Transition, Trick } from '../domain/types'
 import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
+import { useSheetViewport } from '../composables/useSheetViewport'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -62,6 +63,8 @@ const toTrick = computed<Trick | undefined>(() =>
 )
 
 const isOpen = computed(() => !!edge.value && !!fromTrick.value && !!toTrick.value)
+
+useSheetViewport(panelRef, isOpen)
 
 const removeArmed = ref(false)
 let removeTimer: number | null = null
@@ -190,31 +193,31 @@ function sideChipBg(active: boolean, s: Side): string {
 </script>
 
 <template>
-  <div
-    v-if="isOpen && edge && fromTrick && toTrick"
-    class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="inset: 0; height: auto"
-    role="dialog"
-    aria-modal="true"
-  >
+  <Teleport to="body">
     <div
-      class="absolute inset-0 bg-black/60"
-      @click="close"
-    />
-
-    <div
-      ref="panelRef"
-      class="relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90svh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
-      :style="{
-        transform: `translateY(${dragY}px)`,
-        transition: dragging ? 'none' : 'transform 0.2s ease-out',
-        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
-      }"
-      @touchstart.passive="onTouchStart"
-      @touchmove.passive="onTouchMove"
-      @touchend="onTouchEnd"
-      @touchcancel="onTouchEnd"
+      v-if="isOpen && edge && fromTrick && toTrick"
+      class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
+      style="inset: 0; height: auto"
+      role="dialog"
+      aria-modal="true"
     >
+      <div
+        class="absolute inset-0 bg-black/60"
+        @click="close"
+      />
+
+      <div
+        ref="panelRef"
+        class="sheet-panel relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
+        :style="{
+          transform: `translateY(${dragY}px)`,
+          transition: dragging ? 'none' : 'transform 0.2s ease-out',
+        }"
+        @touchstart.passive="onTouchStart"
+        @touchmove.passive="onTouchMove"
+        @touchend="onTouchEnd"
+        @touchcancel="onTouchEnd"
+      >
       <div class="flex justify-center pb-2 -mt-1 cursor-grab active:cursor-grabbing">
         <div class="w-10 h-1 rounded-full bg-border-2" />
       </div>
@@ -341,6 +344,7 @@ function sideChipBg(active: boolean, s: Side): string {
           @click="armRemove"
         >{{ removeArmed ? 'Tap again to confirm delete' : 'Delete transition' }}</button>
       </section>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
