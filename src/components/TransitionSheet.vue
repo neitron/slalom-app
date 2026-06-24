@@ -208,10 +208,12 @@ function sideChipBg(active: boolean, s: Side): string {
 
       <div
         ref="panelRef"
-        class="sheet-panel relative w-full bg-card rounded-t-xl p-4 pt-2 max-h-[90dvh] overflow-y-auto border-t border-border touch-pan-y overscroll-contain"
+        class="sheet-panel gw-glass-strong relative w-full p-4 pt-2 max-h-[90dvh] overflow-y-auto touch-pan-y overscroll-contain"
         :style="{
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.2s ease-out',
+          borderTopLeftRadius: 'var(--radius-g-panel)',
+          borderTopRightRadius: 'var(--radius-g-panel)',
         }"
         @touchstart.passive="onTouchStart"
         @touchmove.passive="onTouchMove"
