@@ -22,6 +22,12 @@ const routes: RouteRecordRaw[] = [
           component: () => import('./pages/spec/Tokens.vue'),
           meta: { hideTabs: true },
         } as RouteRecordRaw,
+        {
+          path: '/spec/rate-options',
+          name: 'spec-rate-options',
+          component: () => import('./pages/spec/RateOptions.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
       ]
     : []),
 ]
