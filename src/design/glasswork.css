@@ -13,9 +13,9 @@
   /* Brand */
   --color-g-brand: #B5A8FF;
   --color-g-brand-soft: #D8CFFF;
-  --color-g-peach: #FFB59E;
-  --color-g-mint: #9EE8C7;
-  --color-g-sky: #9ECDFF;
+  --color-g-brand-peach: #FFB59E;
+  --color-g-brand-mint: #9EE8C7;
+  --color-g-brand-sky: #9ECDFF;
 
   /* Leg (categorical) */
   --color-g-leg-l: #FF9C7C;
