@@ -49,7 +49,13 @@ async function bootstrap(): Promise<void> {
       }
       await sync.setupAutoFlush()
     }
-    schedule(() => { void initCloud() })
+    const params = new URLSearchParams(window.location.search)
+    const isOAuthCallback = params.has('code') || params.has('error')
+    if (isOAuthCallback) {
+      void initCloud()
+    } else {
+      schedule(() => { void initCloud() })
+    }
   }
 }
 

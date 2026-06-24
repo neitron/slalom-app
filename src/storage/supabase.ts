@@ -15,6 +15,8 @@ export function getSb(): Promise<SupabaseClient | null> {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: 'pkce',
           storageKey: 'slalom.sb.auth',
         },
       }),
