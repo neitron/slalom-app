@@ -76,8 +76,6 @@ function onFeedbackClose() {
       :style="{
         marginTop: 'calc(env(safe-area-inset-top) * -1)',
         paddingTop: 'env(safe-area-inset-top)',
-        transform: 'translateY(var(--vv-drift, 0px))',
-        willChange: 'transform',
       }"
     >
       <HeaderProfileMenu />

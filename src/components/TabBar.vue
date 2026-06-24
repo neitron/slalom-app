@@ -20,11 +20,7 @@ const incomingCount = computed<number>(() => friends.incomingCount)
 <template>
   <nav
     class="sticky bottom-0 z-30 grid grid-cols-6 gap-0.5 bg-card border-t border-border pt-1 px-1"
-    :style="{
-      paddingBottom: 'max(env(safe-area-inset-bottom), 0.25rem)',
-      transform: 'translateY(calc(0px - var(--vv-drift, 0px)))',
-      willChange: 'transform',
-    }"
+    :style="{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.25rem)' }"
   >
     <RouterLink
       v-for="t in tabs"

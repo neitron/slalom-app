@@ -7,22 +7,7 @@ import { migrateNonUuidIds } from './storage/migrateIds'
 import { setupInstallPromptCapture } from './utils/installPrompt'
 import './style.css'
 
-function setupVisualViewportFix(): void {
-  if (typeof window === 'undefined') return
-  const vv = window.visualViewport
-  if (!vv) return
-  const update = (): void => {
-    const drift = Math.max(0, window.innerHeight - vv.offsetTop - vv.height)
-    document.documentElement.style.setProperty('--vv-drift', `${drift}px`)
-  }
-  vv.addEventListener('resize', update)
-  vv.addEventListener('scroll', update)
-  window.addEventListener('orientationchange', update)
-  update()
-}
-
 async function bootstrap(): Promise<void> {
-  setupVisualViewportFix()
   setupInstallPromptCapture()
 
   const app = createApp(App)
