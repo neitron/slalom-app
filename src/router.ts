@@ -2,7 +2,8 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-rou
 import AllTricks from './pages/AllTricks.vue'
 
 const routes: RouteRecordRaw[] = [
-  { path: '/', name: 'all', component: AllTricks },
+  { path: '/', name: 'home', component: () => import('./pages/Home.vue') },
+  { path: '/tricks', name: 'tricks', component: AllTricks },
   { path: '/learning', name: 'learning', component: () => import('./pages/Learning.vue') },
   { path: '/graph', name: 'graph', component: () => import('./pages/Graph.vue') },
   { path: '/transitions', name: 'transitions', component: () => import('./pages/Transitions.vue') },
@@ -11,6 +12,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/u/:nickname', name: 'foreign-profile', component: () => import('./pages/ForeignProfile.vue') },
   { path: '/onboarding/nickname', name: 'nickname-onboarding', component: () => import('./pages/NicknameOnboarding.vue'), meta: { hideTabs: true } },
   { path: '/settings', name: 'settings', component: () => import('./pages/Settings.vue') },
+  { path: '/diagnostics', name: 'diagnostics', component: () => import('./pages/Diagnostics.vue') },
   { path: '/install', name: 'install', component: () => import('./pages/Install.vue'), meta: { hideTabs: true } },
   ...(import.meta.env.DEV
     ? [
