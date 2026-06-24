@@ -17,3 +17,25 @@ describe('hexToRgb', () => {
     expect(() => hexToRgb('#ggg')).toThrow()
   })
 })
+
+import { contrastRatio } from './color'
+
+describe('contrastRatio', () => {
+  it('returns 21 for black vs white', () => {
+    expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 0)
+  })
+
+  it('returns 1 for identical colors', () => {
+    expect(contrastRatio('#7cc5ff', '#7cc5ff')).toBeCloseTo(1, 2)
+  })
+
+  it('is symmetric', () => {
+    const a = contrastRatio('#0E0D12', '#e6e6ec')
+    const b = contrastRatio('#e6e6ec', '#0E0D12')
+    expect(a).toBeCloseTo(b, 5)
+  })
+
+  it('classifies fg/bg pairs against WCAG AA (4.5:1)', () => {
+    expect(contrastRatio('#0E0D12', '#e6e6ec')).toBeGreaterThan(4.5)
+  })
+})
