@@ -2,26 +2,10 @@
 @config "../tailwind.config.js";
 
 @layer base {
-  html, body, #app {
+  html, body {
     @apply bg-bg text-fg;
     -webkit-tap-highlight-color: transparent;
     margin: 0;
-  }
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
-  #app {
-    position: fixed;
-    inset: 0;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    background-color: var(--card, #1c1d24);
-  }
-  .app-shell {
-    height: 100%;
-    background-color: var(--bg, #14151a);
   }
 }
 
