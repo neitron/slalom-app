@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { gw } from '../../design/tokens'
 
-type Variant = 'A' | 'B' | 'C'
+type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
-  { id: 'A', title: '5-dot strip (ordinal density)', desc: 'Familiar shape; dots fill left-to-right by rate. Off-hue density.' },
-  { id: 'B', title: 'Single ordinal chip', desc: 'One labeled pill per leg ("Bad" / "Mid" / "Good"). Larger, glanceable.' },
-  { id: 'C', title: 'Weighted vertical bars', desc: '1–5 vertical bars of growing height/weight.' },
+  { id: 'D', title: 'Hero numeral', desc: 'Rate as a bold number in a leg-tinted glass pill. Number is the brand.' },
+  { id: 'E', title: 'Apple-Watch radial arc', desc: 'A small ring fills around the circle. Kinetic, iOS-native.' },
+  { id: 'F', title: 'Tally / slash marks', desc: '1–5 diagonal slashes in leg color. Skate-tag energy.' },
+  { id: 'G', title: 'Dots filled with leg color', desc: '5 dots, count = rate, fill = leg hue. No separate rate-hue.' },
+  { id: 'A', title: '(rejected) 5-dot strip, leg ring + density fill', desc: 'Original Option A — for reference.' },
+  { id: 'B', title: '(rejected) Single ordinal chip', desc: 'Original Option B — for reference.' },
+  { id: 'C', title: '(rejected) Weighted vertical bars', desc: 'Original Option C — for reference.' },
 ]
 
 const sampleRates: (number | null)[] = [null, 1, 2, 3, 4, 5]
@@ -32,6 +36,14 @@ function rateFillColor(rate: number | null): string {
   if (b === 'mid') return gw.rate.mid
   return gw.rate.good
 }
+
+// For Option E (radial arc) — SVG arc geometry.
+const arcRadius = 9
+const arcCircumference = 2 * Math.PI * arcRadius
+function arcDashOffset(rate: number | null): number {
+  if (rate == null) return arcCircumference
+  return arcCircumference * (1 - Math.min(rate, 5) / 5)
+}
 </script>
 
 <template>
@@ -40,10 +52,10 @@ function rateFillColor(rate: number | null): string {
     :style="{ color: gw.fg, fontFamily: 'system-ui, -apple-system, sans-serif' }"
   >
     <h1 :style="{ fontSize: gw.type.display + 'px', fontWeight: 700, letterSpacing: '-0.02em' }">
-      Rate options
+      Rate options · v2
     </h1>
     <p :style="{ color: gw.fgMuted, fontSize: gw.type.body + 'px' }">
-      Three patterns for RateDots. Pick one. Leg color tints stay in all three.
+      Four new patterns (D–G). The three rejected ones (A/B/C) are kept at the bottom for reference.
     </p>
 
     <section
@@ -80,8 +92,99 @@ function rateFillColor(rate: number | null): string {
           >{{ leg.label }}</span>
           <div class="flex items-center gap-3">
             <div v-for="r in sampleRates" :key="String(r)" class="flex flex-col items-center gap-1">
-              <!-- Option A: 5-dot strip -->
-              <template v-if="v.id === 'A'">
+              <!-- Option D: Hero numeral -->
+              <template v-if="v.id === 'D'">
+                <span
+                  :style="{
+                    minWidth: '48px',
+                    height: '32px',
+                    padding: '0 10px',
+                    borderRadius: '999px',
+                    fontSize: '20px',
+                    fontWeight: 800,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.02em',
+                    color: r == null ? gw.fgMuted : leg.tint,
+                    background: r == null ? 'transparent' : 'rgba(255,255,255,0.04)',
+                    border: `1.5px solid ${r == null ? gw.fgMuted : leg.tint}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }"
+                >{{ r == null ? '—' : r.toFixed(1) }}</span>
+              </template>
+
+              <!-- Option E: Apple-Watch radial arc -->
+              <template v-else-if="v.id === 'E'">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                  <!-- track -->
+                  <circle
+                    cx="12"
+                    cy="12"
+                    :r="arcRadius"
+                    fill="none"
+                    :stroke="leg.tint"
+                    stroke-opacity="0.2"
+                    stroke-width="3"
+                  />
+                  <!-- fill -->
+                  <circle
+                    v-if="r != null"
+                    cx="12"
+                    cy="12"
+                    :r="arcRadius"
+                    fill="none"
+                    :stroke="leg.tint"
+                    stroke-width="3"
+                    :stroke-dasharray="arcCircumference"
+                    :stroke-dashoffset="arcDashOffset(r)"
+                    stroke-linecap="round"
+                    transform="rotate(-90 12 12)"
+                  />
+                </svg>
+              </template>
+
+              <!-- Option F: Tally / slash marks -->
+              <template v-else-if="v.id === 'F'">
+                <div class="flex items-center" style="gap: 3px; height: 18px;">
+                  <span
+                    v-for="i in 5"
+                    :key="i"
+                    :style="{
+                      width: '2.5px',
+                      height: '14px',
+                      background: r != null && i <= Math.round(r) ? leg.tint : 'transparent',
+                      border: r != null && i <= Math.round(r) ? 'none' : `1px solid ${leg.tint}`,
+                      opacity: r != null && i <= Math.round(r) ? 1 : 0.4,
+                      transform: 'skewX(-20deg)',
+                      borderRadius: '1px',
+                      boxSizing: 'border-box',
+                    }"
+                  />
+                </div>
+              </template>
+
+              <!-- Option G: Dots filled with leg color -->
+              <template v-else-if="v.id === 'G'">
+                <div class="flex" style="gap: 4px;">
+                  <span
+                    v-for="i in 5"
+                    :key="i"
+                    :style="{
+                      width: '9px',
+                      height: '9px',
+                      borderRadius: '50%',
+                      background: r != null && i <= Math.round(r) ? leg.tint : 'transparent',
+                      border: `1.5px solid ${leg.tint}`,
+                      opacity: r != null && i <= Math.round(r) ? 1 : 0.35,
+                      boxSizing: 'border-box',
+                    }"
+                  />
+                </div>
+              </template>
+
+              <!-- Option A: original 5-dot strip with density fill (rejected, for reference) -->
+              <template v-else-if="v.id === 'A'">
                 <div class="flex gap-[3px]">
                   <span
                     v-for="i in 5"
@@ -97,7 +200,8 @@ function rateFillColor(rate: number | null): string {
                   />
                 </div>
               </template>
-              <!-- Option B: Single ordinal chip -->
+
+              <!-- Option B: single ordinal chip (rejected) -->
               <template v-else-if="v.id === 'B'">
                 <span
                   :style="{
@@ -114,7 +218,8 @@ function rateFillColor(rate: number | null): string {
                   }"
                 >{{ r == null ? '—' : (rateBucket(r) === 'bad' ? 'Bad' : rateBucket(r) === 'mid' ? 'Mid' : 'Good') }}</span>
               </template>
-              <!-- Option C: Weighted vertical bars -->
+
+              <!-- Option C: weighted vertical bars (rejected) -->
               <template v-else-if="v.id === 'C'">
                 <div class="flex items-end gap-[2px]" style="height: 16px;">
                   <span
@@ -131,6 +236,7 @@ function rateFillColor(rate: number | null): string {
                   />
                 </div>
               </template>
+
               <span :style="{ fontSize: '9px', color: gw.fgMuted, fontFamily: 'ui-monospace, monospace' }">
                 {{ r == null ? '—' : r }}
               </span>
