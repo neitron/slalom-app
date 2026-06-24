@@ -64,8 +64,11 @@ function onFeedbackClose() {
 
 <template>
   <div
-    class="flex flex-col h-svh"
-    :style="{ paddingTop: 'env(safe-area-inset-top)' }"
+    class="flex flex-col"
+    :style="{
+      height: 'var(--app-h, 100svh)',
+      paddingTop: 'env(safe-area-inset-top)',
+    }"
   >
     <header
       v-if="showHeader"
