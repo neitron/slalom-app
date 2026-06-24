@@ -64,16 +64,21 @@ function onFeedbackClose() {
 
 <template>
   <div
-    class="flex flex-col h-svh"
-    :style="{ paddingTop: 'env(safe-area-inset-top)' }"
+    class="flex flex-col"
+    :style="{
+      minHeight: '100svh',
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingBottom: showTabs ? 'calc(env(safe-area-inset-bottom) + 3.25rem)' : 'env(safe-area-inset-bottom)',
+    }"
   >
     <header
       v-if="showHeader"
-      class="shrink-0 flex justify-end items-center px-3 py-1 bg-card/60 border-b border-border"
+      class="sticky top-0 z-30 flex justify-end items-center px-3 py-1 bg-card/95 backdrop-blur border-b border-border"
+      :style="{ marginTop: 'calc(env(safe-area-inset-top) * -1)', paddingTop: 'env(safe-area-inset-top)' }"
     >
       <HeaderProfileMenu />
     </header>
-    <main class="flex-1 min-h-0 overflow-y-auto">
+    <main class="flex-1">
       <RouterView />
     </main>
     <TabBar v-if="showTabs" />
