@@ -51,7 +51,7 @@ function onVideo(t: Trick, e: MouseEvent) {
     <div
       v-if="readonly && ownerNickname"
       class="sticky z-[5] -mx-2 px-3 py-1.5 bg-fav/15 backdrop-blur border-y border-fav/30 flex items-center gap-2 text-[11px] font-semibold text-fav"
-      :style="{ top: 'var(--header-h, 60px)' }"
+      :style="{ top: 'env(safe-area-inset-top)' }"
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
