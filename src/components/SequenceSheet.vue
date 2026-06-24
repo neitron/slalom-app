@@ -202,7 +202,7 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
   <div
     v-if="isOpen && seq"
     class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100svh"
+    style="inset: 0; height: auto"
     role="dialog"
     aria-modal="true"
   >

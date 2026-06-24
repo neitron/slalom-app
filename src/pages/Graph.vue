@@ -374,7 +374,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
 <template>
   <div
     class="flex flex-col min-h-0"
-    :style="{ height: 'calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 3.25rem)' }"
+    :style="{ height: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 3.25rem)' }"
   >
     <div class="flex items-center gap-2 px-3 pt-2 pb-2 shrink-0">
       <h1 class="text-lg font-semibold flex-1">Graph</h1>

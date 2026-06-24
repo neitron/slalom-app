@@ -193,7 +193,7 @@ function sideChipBg(active: boolean, s: Side): string {
   <div
     v-if="isOpen && edge && fromTrick && toTrick"
     class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100svh"
+    style="inset: 0; height: auto"
     role="dialog"
     aria-modal="true"
   >

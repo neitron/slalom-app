@@ -212,7 +212,7 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
   <div
     v-if="isOpen && trick"
     class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-    style="height: 100svh"
+    style="inset: 0; height: auto"
     role="dialog"
     aria-modal="true"
   >

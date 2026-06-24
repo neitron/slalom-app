@@ -68,7 +68,6 @@ function onFeedbackClose() {
     :style="{
       minHeight: '100vh',
       paddingTop: 'env(safe-area-inset-top)',
-      paddingBottom: showTabs ? 'calc(env(safe-area-inset-bottom) + 3.25rem)' : 'env(safe-area-inset-bottom)',
     }"
   >
     <header
