@@ -1,0 +1,103 @@
+/* Glasswork design tokens — CSS layer.
+   Mirrors src/design/tokens.ts. If you change a hex here, change it there.
+   The token module is the source of truth; this file is its CSS surface. */
+
+@theme {
+  /* Base */
+  --color-g-base: #0E0D12;
+  --color-g-base-raised: #16151B;
+  --color-g-fg: #EDEAF2;
+  --color-g-fg-muted: #8E8B98;
+  --color-g-fg-faint: #5A5762;
+
+  /* Brand */
+  --color-g-brand: #B5A8FF;
+  --color-g-brand-soft: #D8CFFF;
+  --color-g-peach: #FFB59E;
+  --color-g-mint: #9EE8C7;
+  --color-g-sky: #9ECDFF;
+
+  /* Leg (categorical) */
+  --color-g-leg-l: #FF9C7C;
+  --color-g-leg-r: #5FD8C9;
+  --color-g-leg-both: #EBE5D5;
+  --color-g-leg-none: #7A7682;
+
+  /* Rate (ordinal — single hue, four weights) */
+  --color-g-rate-none: #3C3A45;
+  --color-g-rate-bad: #7A6F84;
+  --color-g-rate-mid: #B5A8C8;
+  --color-g-rate-good: #E0D5FF;
+
+  /* Signals */
+  --color-g-danger: #C83030;
+
+  /* Radii (px) */
+  --radius-g-panel: 26px;
+  --radius-g-chip: 14px;
+  --radius-g-micro: 6px;
+
+  /* Type (px) */
+  --text-g-display: 40px;
+  --text-g-h1: 28px;
+  --text-g-h2: 22px;
+  --text-g-body: 15px;
+  --text-g-micro: 12px;
+
+  /* Motion (ms) */
+  --duration-g-sheet: 320ms;
+  --duration-g-pulse: 180ms;
+  --duration-g-route: 240ms;
+}
+
+/* Surface utilities — frost glass + aurora gradient. */
+
+.gw-glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gw-glass-strong {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Aurora — used as a background layer on focal screens. */
+
+.gw-aurora-bg-sm {
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(181, 168, 255, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(255, 181, 158, 0.06) 0%, transparent 50%),
+    var(--color-g-base);
+}
+
+.gw-aurora-bg-lg {
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(181, 168, 255, 0.20) 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 100%, rgba(255, 181, 158, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(158, 232, 199, 0.06) 0%, transparent 70%),
+    var(--color-g-base);
+}
+
+/* Pattern fills — used sparingly for inactive/empty states. */
+
+.gw-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.04) 0 2px,
+    transparent 2px 8px
+  );
+}
+
+.gw-halftone {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.06) 1px,
+    transparent 1.5px
+  );
+  background-size: 8px 8px;
+}

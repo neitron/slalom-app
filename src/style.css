@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
+@import "./design/glasswork.css";
 
 @layer base {
   :root {
