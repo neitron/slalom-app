@@ -13,7 +13,7 @@ import {
 } from 'd3-force';
 import { useTricksStore } from '../stores/tricks';
 import { useTransitionsStore } from '../stores/transitions';
-import { effectiveRate, sideColor } from '../domain/rating';
+import { effectiveRate, rateColor, sideColor } from '../domain/rating';
 import { loadView, saveView, type NodePosition } from '../utils/graphView';
 import { displayName } from '../domain/display';
 import type { Transition, Trick } from '../domain/types';
@@ -43,8 +43,6 @@ const emit = defineEmits<{
 }>();
 
 const NODE_R = 22;
-const TILE_W = 132;
-const TILE_H = 44;
 const DRAG_THRESHOLD = 4;
 const PARALLEL_SPACING = 7;
 const SELF_LOOP_BASE = 26;
@@ -205,6 +203,20 @@ const edgeRenders = computed<EdgeRender[]>(() => {
 });
 
 const sequenceSet = computed(() => new Set(props.sequenceIds ?? []));
+
+function halfPathD(p: NodePosition, side: 'L' | 'R'): string {
+  const sweep = side === 'R' ? 1 : 0;
+  return `M ${p.x} ${p.y - NODE_R} A ${NODE_R} ${NODE_R} 0 0 ${sweep} ${p.x} ${p.y + NODE_R}`;
+}
+
+function ringStroke(t: Trick, side?: 'L' | 'R'): string {
+  if (side) {
+    const v = side === 'L' ? t.rateL : t.rateR;
+    return v == null ? '#565764' : rateColor(v);
+  }
+  const er = effectiveRate(t);
+  return er == null ? '#565764' : rateColor(er);
+}
 
 function nodeLabel(t: Trick): string {
   const n = displayName(t);
@@ -638,70 +650,89 @@ const gridDots = computed<GridDot[]>(() => {
             :style="{ cursor: 'pointer' }"
           >
             <template v-if="t.id && positions[t.id]">
-              <!-- Highlight outer ring (selected node) -->
-              <rect
+              <circle
                 v-if="t.id === highlightNodeId"
-                :x="positions[t.id].x - TILE_W / 2 - 4"
-                :y="positions[t.id].y - TILE_H / 2 - 4"
-                :width="TILE_W + 8"
-                :height="TILE_H + 8"
-                :rx="14"
-                :ry="14"
+                :cx="positions[t.id].x"
+                :cy="positions[t.id].y"
+                :r="NODE_R + 5"
                 fill="none"
-                stroke="var(--color-g-brand)"
+                stroke="#ffffff"
                 stroke-width="2.5"
-                stroke-opacity="0.9"
-                pointer-events="none"
+                stroke-opacity="0.85"
               />
-              <!-- Link-source ring (dashed) -->
-              <rect
+              <circle
                 v-if="t.id === linkSourceId"
-                :x="positions[t.id].x - TILE_W / 2 - 3"
-                :y="positions[t.id].y - TILE_H / 2 - 3"
-                :width="TILE_W + 6"
-                :height="TILE_H + 6"
-                :rx="12"
-                :ry="12"
+                :cx="positions[t.id].x"
+                :cy="positions[t.id].y"
+                :r="NODE_R + 5"
                 fill="none"
-                stroke="var(--color-g-brand)"
+                stroke="#ffffff"
                 stroke-width="2"
                 stroke-dasharray="4 3"
                 stroke-opacity="0.9"
-                pointer-events="none"
               />
-              <!-- The glass tile itself, rendered as HTML inside foreignObject -->
-              <foreignObject
-                :x="positions[t.id].x - TILE_W / 2"
-                :y="positions[t.id].y - TILE_H / 2"
-                :width="TILE_W"
-                :height="TILE_H"
-              >
-                <div
-                  xmlns="http://www.w3.org/1999/xhtml"
-                  class="gw-graph-node-tile"
-                  :class="{
-                    'gw-graph-node-tile--seq': sequenceSet.has(t.id),
-                    'gw-graph-node-tile--lr': t.lr,
-                  }"
-                >
-                  <span
-                    v-if="t.lr"
-                    class="gw-graph-node-tile__leg gw-graph-node-tile__leg--l"
-                    aria-hidden="true"
-                  />
-                  <span
-                    v-if="t.lr"
-                    class="gw-graph-node-tile__leg gw-graph-node-tile__leg--r"
-                    aria-hidden="true"
-                  />
-                  <span
-                    v-if="glyphFor(t)"
-                    class="gw-graph-node-tile__glyph"
-                    aria-hidden="true"
-                  >{{ glyphFor(t) }}</span>
-                  <span class="gw-graph-node-tile__name">{{ nodeLabel(t) }}</span>
-                </div>
-              </foreignObject>
+              <circle
+                :cx="positions[t.id].x"
+                :cy="positions[t.id].y"
+                :r="NODE_R"
+                :fill="sequenceSet.has(t.id) ? '#2c3550' : 'var(--card, #1c1d24)'"
+                :stroke="'var(--border, #2a2b33)'"
+                stroke-width="1"
+              />
+              <template v-if="t.lr">
+                <path
+                  :d="halfPathD(positions[t.id], 'L')"
+                  fill="none"
+                  stroke-width="3"
+                  :stroke="ringStroke(t, 'L')"
+                />
+                <path
+                  :d="halfPathD(positions[t.id], 'R')"
+                  fill="none"
+                  stroke-width="3"
+                  :stroke="ringStroke(t, 'R')"
+                />
+                <text
+                  :x="positions[t.id].x - NODE_R - 8"
+                  :y="positions[t.id].y + 3"
+                  text-anchor="middle"
+                  font-size="9"
+                  font-weight="bold"
+                  :fill="sideColor('L')"
+                >L</text>
+                <text
+                  :x="positions[t.id].x + NODE_R + 8"
+                  :y="positions[t.id].y + 3"
+                  text-anchor="middle"
+                  font-size="9"
+                  font-weight="bold"
+                  :fill="sideColor('R')"
+                >R</text>
+              </template>
+              <circle
+                v-else
+                :cx="positions[t.id].x"
+                :cy="positions[t.id].y"
+                :r="NODE_R"
+                fill="none"
+                stroke-width="3"
+                :stroke="ringStroke(t)"
+              />
+              <text
+                :x="positions[t.id].x"
+                :y="positions[t.id].y + 6"
+                text-anchor="middle"
+                font-size="18"
+                style="pointer-events: none"
+              >{{ glyphFor(t) }}</text>
+              <text
+                :x="positions[t.id].x"
+                :y="positions[t.id].y + NODE_R + 13"
+                text-anchor="middle"
+                font-size="11"
+                fill="var(--fg, #e6e6ec)"
+                style="pointer-events: none"
+              >{{ nodeLabel(t) }}</text>
             </template>
           </g>
         </g>
@@ -710,31 +741,19 @@ const gridDots = computed<GridDot[]>(() => {
     <div class="absolute bottom-3 right-3 flex flex-col gap-1.5">
       <button
         type="button"
-        class="w-9 h-9 gw-glass-strong text-lg leading-none flex items-center justify-center active:opacity-70"
-        :style="{
-          color: 'var(--color-g-fg)',
-          borderRadius: 'var(--radius-g-chip)',
-        }"
+        class="w-9 h-9 rounded-md bg-card border border-border text-fg text-lg leading-none flex items-center justify-center active:opacity-70"
         aria-label="Zoom in"
         @click="zoomIn"
       >+</button>
       <button
         type="button"
-        class="w-9 h-9 gw-glass-strong text-lg leading-none flex items-center justify-center active:opacity-70"
-        :style="{
-          color: 'var(--color-g-fg)',
-          borderRadius: 'var(--radius-g-chip)',
-        }"
+        class="w-9 h-9 rounded-md bg-card border border-border text-fg text-lg leading-none flex items-center justify-center active:opacity-70"
         aria-label="Zoom out"
         @click="zoomOut"
       >−</button>
       <button
         type="button"
-        class="w-9 h-9 gw-glass-strong text-base leading-none flex items-center justify-center active:opacity-70"
-        :style="{
-          color: 'var(--color-g-fg)',
-          borderRadius: 'var(--radius-g-chip)',
-        }"
+        class="w-9 h-9 rounded-md bg-card border border-border text-fg text-base leading-none flex items-center justify-center active:opacity-70"
         aria-label="Reset view"
         @click="resetView"
       >⌂</button>
@@ -747,65 +766,5 @@ const gridDots = computed<GridDot[]>(() => {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-}
-
-.gw-graph-node-tile {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  color: var(--color-g-fg);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  overflow: hidden;
-  position: relative;
-  /* Force GPU layer for crisp text on zoom */
-  transform: translateZ(0);
-  /* d3-drag is wired to parent <g>; let pointer events fall through */
-  pointer-events: none;
-}
-
-.gw-graph-node-tile--seq {
-  background: linear-gradient(135deg, rgba(181, 168, 255, 0.30), rgba(181, 168, 255, 0.18));
-  border-color: var(--color-g-brand);
-}
-
-.gw-graph-node-tile__glyph {
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.gw-graph-node-tile__name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gw-graph-node-tile__leg {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-}
-
-.gw-graph-node-tile__leg--l {
-  left: 0;
-  background: var(--color-g-leg-l);
-}
-
-.gw-graph-node-tile__leg--r {
-  right: 0;
-  background: var(--color-g-leg-r);
 }
 </style>
