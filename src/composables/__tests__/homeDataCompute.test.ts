@@ -4,6 +4,7 @@ import {
   buildHeatmap14,
   joinActivityRows,
   pickCurrentSequence,
+  nextCycleScore,
   type ActivityRow,
 } from '../homeDataCompute'
 import type { Trick, Sequence, PracticeLog } from '../../domain/types'
@@ -183,5 +184,32 @@ describe('pickCurrentSequence', () => {
   it('returns null on empty input', () => {
     setNow('2026-06-26T10:00:00')
     expect(pickCurrentSequence([])).toBeNull()
+  })
+})
+
+describe('nextCycleScore', () => {
+  it('null and 0 both cycle to 1 (Bad)', () => {
+    expect(nextCycleScore(null)).toBe(1)
+    expect(nextCycleScore(0)).toBe(1)
+  })
+
+  it('1 and 2 cycle to 3 (Mid)', () => {
+    expect(nextCycleScore(1)).toBe(3)
+    expect(nextCycleScore(2)).toBe(3)
+  })
+
+  it('3 and 4 cycle to 5 (Good)', () => {
+    expect(nextCycleScore(3)).toBe(5)
+    expect(nextCycleScore(4)).toBe(5)
+  })
+
+  it('5 wraps back to 1', () => {
+    expect(nextCycleScore(5)).toBe(1)
+  })
+
+  it('rounds non-integer rates before mapping (blended rates are decimals)', () => {
+    expect(nextCycleScore(2.4)).toBe(3) // rounds to 2 → 3
+    expect(nextCycleScore(2.6)).toBe(5) // rounds to 3 → 5
+    expect(nextCycleScore(0.4)).toBe(1) // rounds to 0 → 1
   })
 })

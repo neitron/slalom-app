@@ -156,9 +156,10 @@ export function pickCurrentSequence(sequences: Sequence[]): Sequence | null {
 export function nextCycleScore(currentRate: number | null): 1 | 3 | 5 {
   if (currentRate == null) return 1
   const rounded = Math.round(currentRate)
-  if (rounded <= 1) return 3
+  if (rounded <= 0) return 1
+  if (rounded === 1) return 3
   if (rounded === 2) return 3
   if (rounded === 3) return 5
   if (rounded === 4) return 5
-  return 1
+  return 1 // 5 wraps back to 1
 }
