@@ -25,6 +25,12 @@ function isActive(to: string): boolean {
   if (to === '/') return route.path === '/'
   return route.path === to || route.path.startsWith(to + '/')
 }
+
+function tabBorderRadius(index: number, total: number): string {
+  if (index === 0) return '22px 14px 14px 22px'
+  if (index === total - 1) return '14px 22px 22px 14px'
+  return '14px'
+}
 </script>
 
 <template>
@@ -38,11 +44,11 @@ function isActive(to: string): boolean {
       }"
     >
       <RouterLink
-        v-for="t in tabs"
+        v-for="(t, idx) in tabs"
         :key="t.to"
         :to="t.to"
         class="relative flex flex-col items-center justify-center min-h-[44px] py-1.5"
-        :style="{ borderRadius: 'var(--radius-g-chip)' }"
+        :style="{ borderRadius: tabBorderRadius(idx, tabs.length) }"
         :class="isActive(t.to)
           ? 'tabbar-active font-semibold'
           : 'text-[color:var(--color-g-fg-muted)]'"

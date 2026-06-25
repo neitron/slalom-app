@@ -33,8 +33,13 @@ async function onSignOut() {
   <div class="relative inline-block">
     <button
       type="button"
-      class="w-11 h-11 rounded-full overflow-hidden grid place-items-center gw-glass-strong"
-      :style="{ position: 'relative', zIndex: 80 }"
+      class="w-11 h-11 rounded-full overflow-hidden grid place-items-center"
+      :style="{
+        background: 'rgba(255, 255, 255, 0.10)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        position: 'relative',
+        zIndex: 80,
+      }"
       :aria-label="'Profile menu'"
       @click="toggle"
     >

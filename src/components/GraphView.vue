@@ -823,11 +823,11 @@ function nextSpawnPosition(): { x: number; y: number } {
                 v-if="t.id === highlightNodeId"
                 :cx="positions[t.id].x"
                 :cy="positions[t.id].y"
-                :r="NODE_R + 5"
+                :r="NODE_R"
                 fill="none"
                 stroke="var(--color-g-brand)"
                 stroke-width="3"
-                stroke-opacity="0.45"
+                stroke-opacity="0.55"
                 filter="url(#gw-node-glow)"
                 pointer-events="none"
               />

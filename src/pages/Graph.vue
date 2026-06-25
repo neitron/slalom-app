@@ -425,7 +425,8 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         left: '50%',
         transform: 'translateX(-50%)',
         maxWidth: 'min(calc(100vw - 1.5rem), 420px)',
-        width: 'max-content',
+        width: 'auto',
+        whiteSpace: 'normal',
         borderRadius: 'var(--radius-g-chip)',
         padding: '8px 12px',
         background: 'rgba(255, 255, 255, 0.10)',
@@ -436,9 +437,9 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         fontSize: 'var(--text-g-body)',
       }"
     >
-      <span class="flex-1 truncate">
+      <span :style="{ flex: '1 1 auto', whiteSpace: 'normal', lineHeight: '1.3' }">
         Linking from
-        <span :style="{ fontWeight: 600 }">{{ linkingHintName }}</span>.
+        <span :style="{ fontWeight: 700 }">{{ linkingHintName }}</span>.
         Tap target trick.
       </span>
       <button
