@@ -525,6 +525,30 @@ onBeforeUnmount(() => {
 });
 
 defineExpose({ resetView, zoomIn, zoomOut });
+
+// Fibonacci anchor-dot grid — golden-spiral substrate behind the graph.
+// Subtle: low alpha, no animation in v1.
+const GRID_DOT_COUNT = 96
+const GRID_SCALE = 38 // controls overall density / size
+const GOLDEN_ANGLE_RAD = Math.PI * (3 - Math.sqrt(5)) // ≈ 137.508° in radians
+
+interface GridDot { x: number; y: number; r: number; opacity: number }
+
+const gridDots = computed<GridDot[]>(() => {
+  const dots: GridDot[] = []
+  for (let i = 1; i <= GRID_DOT_COUNT; i++) {
+    const angle = i * GOLDEN_ANGLE_RAD
+    const radius = GRID_SCALE * Math.sqrt(i)
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
+    // Dots farther from origin fade slightly, dots near origin a hair brighter.
+    const t = 1 - Math.min(i / GRID_DOT_COUNT, 1)
+    const opacity = 0.07 + 0.10 * t
+    const r = 1.2 + 0.6 * t
+    dots.push({ x, y, r, opacity })
+  }
+  return dots
+})
 </script>
 
 <template>
@@ -567,6 +591,17 @@ defineExpose({ resetView, zoomIn, zoomOut });
         </linearGradient>
       </defs>
       <g :transform="`translate(${tx},${ty}) scale(${scale})`">
+        <g class="gw-graph-grid" aria-hidden="true">
+          <circle
+            v-for="(d, i) in gridDots"
+            :key="i"
+            :cx="d.x"
+            :cy="d.y"
+            :r="d.r"
+            fill="var(--color-g-brand)"
+            :opacity="d.opacity"
+          />
+        </g>
         <g class="slalom-edges">
           <g v-for="r in edgeRenders" :key="(r.edge.id ?? '') + ':' + r.d" class="slalom-edge">
             <path
