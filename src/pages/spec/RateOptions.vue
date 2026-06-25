@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { gw } from '../../design/tokens'
 
-type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P'
+type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
-  { id: 'L', title: 'LED dots', desc: 'User-tuned baseline. 4px core + soft halo with color-dodge.' },
-  { id: 'M', title: 'LED slashes', desc: 'F slashes with the LED halo treatment.' },
-  { id: 'N', title: 'LED segment bar', desc: '5 lit pill segments — looks like a battery charge bar.' },
-  { id: 'O', title: 'LED constellation', desc: 'K cluster with LED halos.' },
-  { id: 'P', title: 'LED liquid stripe', desc: 'J capsule with a glowing leading edge.' },
-  { id: 'J', title: '(prev) Liquid stripe', desc: 'For reference.' },
-  { id: 'K', title: '(prev) Constellation', desc: 'For reference.' },
+  { id: 'Q', title: 'Soft LED dots (3px core)', desc: 'Thinner. Halo opacity 0.3, blur 2.5px, color-dodge. Unlit opacity 0.08.' },
+  { id: 'R', title: 'Whisper dots (2px, no color-dodge)', desc: 'Even thinner. Normal blend mode for a quieter halo.' },
+  { id: 'S', title: 'Hairline slashes (1.5px wide)', desc: 'F slashes, much thinner, soft glow.' },
+  { id: 'T', title: 'Thin LED bar (2px segments)', desc: 'Slimmer N. Battery indicator at a smaller scale.' },
+  { id: 'L', title: '(prev) LED dots 4px', desc: 'Stronger version.' },
+  { id: 'M', title: '(prev) LED slashes 2.5px', desc: 'Stronger version.' },
+  { id: 'N', title: '(prev) LED segment bar 3px', desc: 'Stronger version.' },
+  { id: 'O', title: '(prev) LED constellation', desc: 'For reference.' },
+  { id: 'P', title: '(prev) LED liquid stripe', desc: 'For reference.' },
+  { id: 'J', title: '(prev) Liquid stripe (no glow)', desc: 'For reference.' },
+  { id: 'K', title: '(prev) Constellation (no LED)', desc: 'For reference.' },
   { id: 'F', title: '(prev) Slashes', desc: 'For reference.' },
   { id: 'H', title: '(prev) Bare leg dots', desc: 'For reference.' },
   { id: 'I', title: '(prev) Blurred ghost dots', desc: 'For reference.' },
@@ -101,8 +105,183 @@ function arcDashOffset(rate: number | null): number {
           >{{ leg.label }}</span>
           <div class="flex items-center gap-3">
             <div v-for="r in sampleRates" :key="String(r)" class="flex flex-col items-center gap-1">
+              <!-- Option Q: Soft LED dots, 3px core -->
+              <template v-if="v.id === 'Q'">
+                <div class="flex" style="gap: 5px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '3px',
+                        height: '3px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 1,
+                      }"
+                    >
+                      <div
+                        :style="{
+                          width: '5px',
+                          height: '5px',
+                          borderRadius: '50%',
+                          background: leg.tint,
+                          opacity: 0.3,
+                          filter: 'blur(2.5px)',
+                          mixBlendMode: 'color-dodge',
+                          position: 'relative',
+                          top: '-1px',
+                          left: '-1px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '3px',
+                        height: '3px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 0.08,
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option R: Whisper dots, 2px no color-dodge -->
+              <template v-else-if="v.id === 'R'">
+                <div class="flex" style="gap: 4px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '2px',
+                        height: '2px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 1,
+                      }"
+                    >
+                      <div
+                        :style="{
+                          width: '4px',
+                          height: '4px',
+                          borderRadius: '50%',
+                          background: leg.tint,
+                          opacity: 0.4,
+                          filter: 'blur(2px)',
+                          position: 'relative',
+                          top: '-1px',
+                          left: '-1px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '2px',
+                        height: '2px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 0.12,
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option S: Hairline slashes -->
+              <template v-else-if="v.id === 'S'">
+                <div class="flex items-center" style="gap: 4px; height: 16px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '1.5px',
+                        height: '12px',
+                        background: leg.tint,
+                        opacity: 1,
+                        transform: 'skewX(-20deg)',
+                        borderRadius: '1px',
+                        position: 'relative',
+                      }"
+                    >
+                      <div
+                        :style="{
+                          position: 'absolute',
+                          width: '6px',
+                          height: '16px',
+                          left: '-2.25px',
+                          top: '-2px',
+                          background: leg.tint,
+                          opacity: 0.3,
+                          filter: 'blur(3px)',
+                          mixBlendMode: 'color-dodge',
+                          borderRadius: '4px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '1.5px',
+                        height: '12px',
+                        background: leg.tint,
+                        opacity: 0.1,
+                        transform: 'skewX(-20deg)',
+                        borderRadius: '1px',
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option T: Thin LED segment bar -->
+              <template v-else-if="v.id === 'T'">
+                <div class="flex items-center" style="gap: 2px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '8px',
+                        height: '2px',
+                        borderRadius: '999px',
+                        background: leg.tint,
+                        opacity: 1,
+                        position: 'relative',
+                      }"
+                    >
+                      <div
+                        :style="{
+                          position: 'absolute',
+                          width: '10px',
+                          height: '4px',
+                          left: '-1px',
+                          top: '-1px',
+                          background: leg.tint,
+                          opacity: 0.3,
+                          filter: 'blur(2.5px)',
+                          mixBlendMode: 'color-dodge',
+                          borderRadius: '999px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '8px',
+                        height: '2px',
+                        borderRadius: '999px',
+                        background: leg.tint,
+                        opacity: 0.1,
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
               <!-- Option L: LED dots (user's recipe baseline) -->
-              <template v-if="v.id === 'L'">
+              <template v-else-if="v.id === 'L'">
                 <div class="flex" style="gap: 5px;">
                   <template v-for="i in 5" :key="i">
                     <div
