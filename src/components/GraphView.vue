@@ -958,11 +958,12 @@ function nextSpawnPosition(): { x: number; y: number } {
               <!-- Glyph (centered in circle) -->
               <text
                 :x="positions[t.id].x"
-                :y="positions[t.id].y + 5"
+                :y="positions[t.id].y"
                 text-anchor="middle"
+                dominant-baseline="central"
                 :font-size="glyphSize(t)"
                 font-weight="700"
-                fill="var(--color-g-fg)"
+                fill="var(--color-g-fg-muted)"
                 pointer-events="none"
               >{{ glyphFor(t) }}</text>
 
