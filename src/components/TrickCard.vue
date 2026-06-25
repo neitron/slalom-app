@@ -83,7 +83,7 @@ function onVideoClick(e: MouseEvent) {
     </div>
 
     <div
-      class="mt-1.5 truncate"
+      class="mt-0.5 truncate"
       :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
     >
       <span>{{ trick.category }}</span>
@@ -94,7 +94,7 @@ function onVideoClick(e: MouseEvent) {
       > · {{ trick.tags.map(t => '#' + t).join(' ') }}</span>
     </div>
 
-    <div class="mt-2.5">
+    <div class="mt-4">
       <RateDots
         :rate="trick.rate"
         :rate-l="trick.rateL"

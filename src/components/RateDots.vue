@@ -179,7 +179,7 @@ const style = computed(() => prefs.rateDotStyle)
 function tintFor(side: 'single' | 'l' | 'r'): string {
   if (side === 'l') return gw.leg.l
   if (side === 'r') return gw.leg.r
-  return gw.fgMuted
+  return gw.fg
 }
 </script>
 

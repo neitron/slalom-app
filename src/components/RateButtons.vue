@@ -57,22 +57,26 @@ function reset(side: Side) {
             v-for="p in pills"
             :key="p.id"
             type="button"
-            class="flex-1 py-2 font-semibold transition-all duration-150 active:scale-95"
+            class="flex-1 py-2 font-semibold transition-all duration-150 active:scale-95 gw-glass-strong"
             :style="{
-              background: p.fill,
-              color: 'var(--color-g-base, #0E0D12)',
+              background: getLastRef(side).value === p.score
+                ? p.fill
+                : `linear-gradient(135deg, ${p.fill}25 0%, ${p.fill}10 100%)`,
+              color: getLastRef(side).value === p.score
+                ? 'var(--color-g-base, #0E0D12)'
+                : 'var(--color-g-fg, #EDEAF2)',
               borderRadius: 'var(--radius-g-chip, 14px)',
               fontSize: 'var(--text-g-body, 15px)',
-              opacity: getLastRef(side).value !== null && getLastRef(side).value !== p.score ? 0.45 : 1,
+              opacity: getLastRef(side).value !== null && getLastRef(side).value !== p.score ? 0.55 : 1,
               transform: getLastRef(side).value === p.score ? 'scale(1.06)' : '',
             }"
             @click="tap(p.score, side)"
           >{{ p.label }}</button>
           <button
             type="button"
-            class="px-3 py-2 transition-colors active:scale-95"
+            class="py-2 px-4 transition-colors active:scale-95 gw-glass-strong"
             :style="{
-              background: 'rgba(255,255,255,0.08)',
+              background: 'transparent',
               color: 'var(--color-g-fg-muted, #8E8B98)',
               borderRadius: 'var(--radius-g-chip, 14px)',
               fontSize: 'var(--text-g-micro, 12px)',
@@ -92,22 +96,26 @@ function reset(side: Side) {
           v-for="p in pills"
           :key="p.id"
           type="button"
-          class="flex-1 py-2 font-semibold transition-all duration-150 active:scale-95"
+          class="flex-1 py-2 font-semibold transition-all duration-150 active:scale-95 gw-glass-strong"
           :style="{
-            background: p.fill,
-            color: 'var(--color-g-base, #0E0D12)',
+            background: getLastRef(null).value === p.score
+              ? p.fill
+              : `linear-gradient(135deg, ${p.fill}25 0%, ${p.fill}10 100%)`,
+            color: getLastRef(null).value === p.score
+              ? 'var(--color-g-base, #0E0D12)'
+              : 'var(--color-g-fg, #EDEAF2)',
             borderRadius: 'var(--radius-g-chip, 14px)',
             fontSize: 'var(--text-g-body, 15px)',
-            opacity: getLastRef(null).value !== null && getLastRef(null).value !== p.score ? 0.45 : 1,
+            opacity: getLastRef(null).value !== null && getLastRef(null).value !== p.score ? 0.55 : 1,
             transform: getLastRef(null).value === p.score ? 'scale(1.06)' : '',
           }"
           @click="tap(p.score, null)"
         >{{ p.label }}</button>
         <button
           type="button"
-          class="px-3 py-2 transition-colors active:scale-95"
+          class="py-2 px-4 transition-colors active:scale-95 gw-glass-strong"
           :style="{
-            background: 'rgba(255,255,255,0.08)',
+            background: 'transparent',
             color: 'var(--color-g-fg-muted, #8E8B98)',
             borderRadius: 'var(--radius-g-chip, 14px)',
             fontSize: 'var(--text-g-micro, 12px)',
