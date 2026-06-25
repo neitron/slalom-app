@@ -383,6 +383,14 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
   >
     <div class="flex items-center gap-2 px-3 pt-2 pb-2 shrink-0">
       <h1 class="text-lg font-semibold flex-1">Graph</h1>
+      <RouterLink
+        to="/transitions"
+        class="px-3 py-1.5 rounded-full text-xs transition-colors gw-glass-strong"
+        :style="{
+          color: 'var(--color-g-fg-muted)',
+          borderRadius: 'var(--radius-g-chip)',
+        }"
+      >↔ Transitions</RouterLink>
       <button
         type="button"
         class="px-3 py-1.5 rounded-full text-xs border transition-colors"
