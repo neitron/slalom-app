@@ -258,6 +258,47 @@ function glyphFor(t: Trick): string {
   return t.icon || displayName(t).charAt(0).toUpperCase();
 }
 
+// Edge rate encoding: width 1..3 and opacity 0.15..0.80 grow linearly with rate.
+function edgeWidth(rate: number | null | undefined): number {
+  if (rate == null) return 1;
+  return 1 + (Math.min(5, Math.max(0, rate)) / 5) * 2;
+}
+
+function edgeOpacity(rate: number | null | undefined): number {
+  if (rate == null) return 0.15;
+  return 0.15 + (Math.min(5, Math.max(0, rate)) / 5) * 0.65;
+}
+
+// Endpoint positions sit precisely on the node circle's edge, along the line
+// connecting the two node centers. Skipped for self-loops by the caller.
+function endpointFromPos(r: EdgeRender): { x: number; y: number } {
+  const fromPos = positions.value[r.edge.from];
+  const toPos = positions.value[r.edge.to];
+  if (!fromPos || !toPos) return { x: 0, y: 0 };
+  const dx = toPos.x - fromPos.x;
+  const dy = toPos.y - fromPos.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return { x: fromPos.x, y: fromPos.y };
+  return { x: fromPos.x + (dx / len) * NODE_R, y: fromPos.y + (dy / len) * NODE_R };
+}
+
+function endpointToPos(r: EdgeRender): { x: number; y: number } {
+  const fromPos = positions.value[r.edge.from];
+  const toPos = positions.value[r.edge.to];
+  if (!fromPos || !toPos) return { x: 0, y: 0 };
+  const dx = fromPos.x - toPos.x;
+  const dy = fromPos.y - toPos.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return { x: toPos.x, y: toPos.y };
+  return { x: toPos.x + (dx / len) * NODE_R, y: toPos.y + (dy / len) * NODE_R };
+}
+
+function legSideColor(side: 'L' | 'R' | null | undefined): string {
+  if (side === 'L') return 'var(--color-g-leg-l)';
+  if (side === 'R') return 'var(--color-g-leg-r)';
+  return 'var(--color-g-fg)';
+}
+
 const initialized = ref(false);
 let initRO: ResizeObserver | null = null;
 
@@ -699,29 +740,46 @@ function nextSpawnPosition(): { x: number; y: number } {
         </g>
         <g class="slalom-edges">
           <template v-for="r in edgeRenders" :key="(r.edge.id ?? '') + ':' + r.d">
-            <!-- Glow layer: soft brand halo behind highlighted edge -->
+            <!-- S3 glow layer: soft brand halo behind highlighted edge -->
             <path
               v-if="r.edge.id && r.edge.id === highlightEdgeId"
               :d="r.d"
               fill="none"
               stroke="var(--color-g-brand)"
-              stroke-width="6"
-              stroke-opacity="0.5"
+              stroke-width="4.5"
+              stroke-opacity="0.4"
               stroke-linecap="round"
               filter="url(#gw-edge-glow)"
               pointer-events="none"
             />
-            <!-- Crisp line -->
+            <!-- Crisp line: idle uses rate-encoded width + opacity; selected uses brand color -->
             <path
               :d="r.d"
               fill="none"
               :stroke="r.edge.id === highlightEdgeId ? 'var(--color-g-brand)' : 'var(--color-g-fg)'"
-              :stroke-width="r.edge.id === highlightEdgeId ? 2 : 1.5"
-              :stroke-opacity="r.edge.id === highlightEdgeId ? 1 : 0.25"
+              :stroke-width="r.edge.id === highlightEdgeId ? 2 : edgeWidth(r.edge.rate)"
+              :stroke-opacity="r.edge.id === highlightEdgeId ? 1 : edgeOpacity(r.edge.rate)"
               stroke-linecap="round"
               :marker-end="`url(#${r.markerEnd})`"
               :marker-start="r.edge.bidi ? `url(#${r.markerStart})` : undefined"
             />
+            <!-- Endpoint dots: leg-colored, sit precisely on node-edge boundary. Skip self-loops. -->
+            <template v-if="r.edge.from !== r.edge.to">
+              <circle
+                :cx="endpointFromPos(r).x"
+                :cy="endpointFromPos(r).y"
+                r="3.5"
+                :fill="legSideColor(r.edge.fromSide)"
+                pointer-events="none"
+              />
+              <circle
+                :cx="endpointToPos(r).x"
+                :cy="endpointToPos(r).y"
+                r="3.5"
+                :fill="legSideColor(r.edge.toSide)"
+                pointer-events="none"
+              />
+            </template>
             <!-- Wide transparent hit-target for click -->
             <path
               :d="r.d"
@@ -742,7 +800,7 @@ function nextSpawnPosition(): { x: number; y: number } {
             :style="{ cursor: 'pointer' }"
           >
             <template v-if="t.id && positions[t.id]">
-              <!-- Highlight ring -->
+              <!-- S3 selected glow ring (stays unscaled, outside the scale group) -->
               <circle
                 v-if="t.id === highlightNodeId"
                 :cx="positions[t.id].x"
@@ -750,11 +808,12 @@ function nextSpawnPosition(): { x: number; y: number } {
                 :r="NODE_R + 5"
                 fill="none"
                 stroke="var(--color-g-brand)"
-                stroke-width="2.5"
-                stroke-opacity="0.9"
+                stroke-width="3"
+                stroke-opacity="0.45"
+                filter="url(#gw-node-glow)"
                 pointer-events="none"
               />
-              <!-- Link-source ring (dashed) -->
+              <!-- S3 link-source dashed glow ring -->
               <circle
                 v-if="t.id === linkSourceId"
                 :cx="positions[t.id].x"
@@ -764,10 +823,17 @@ function nextSpawnPosition(): { x: number; y: number } {
                 stroke="var(--color-g-brand)"
                 stroke-width="2"
                 stroke-dasharray="4 3"
-                stroke-opacity="0.9"
+                stroke-opacity="0.55"
+                filter="url(#gw-node-glow)"
                 pointer-events="none"
               />
 
+              <!-- Node body group: scales up when selected (S3 treatment) -->
+              <g
+                :transform="t.id === highlightNodeId
+                  ? `translate(${positions[t.id].x}, ${positions[t.id].y}) scale(1.06) translate(${-positions[t.id].x}, ${-positions[t.id].y})`
+                  : ''"
+              >
               <!-- Glass circle background (W6 design) -->
               <circle
                 :cx="positions[t.id].x"
@@ -899,6 +965,7 @@ function nextSpawnPosition(): { x: number; y: number } {
                 fill="var(--color-g-fg)"
                 pointer-events="none"
               >{{ nodeLabel(t) }}</text>
+              </g>
             </template>
           </g>
         </g>
