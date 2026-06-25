@@ -48,7 +48,7 @@ function reset(side: Side) {
       <div v-for="side in (['L', 'R'] as const)" :key="side" class="flex flex-col gap-1">
         <div
           class="text-[12.5px]"
-          :style="{ color: side === 'L' ? 'var(--side-l)' : 'var(--side-r)' }"
+          :style="{ color: side === 'L' ? 'var(--color-g-leg-l)' : 'var(--color-g-leg-r)' }"
         >
           {{ side === 'L' ? 'Left foot leading' : 'Right foot leading' }} — how was it today?
         </div>
@@ -86,7 +86,7 @@ function reset(side: Side) {
 
     <!-- default mode: single pill row, side = null -->
     <template v-else>
-      <div class="text-[12.5px] text-muted">How was this trick today?</div>
+      <div class="text-[12.5px]" :style="{ color: 'var(--color-g-fg-muted)' }">How was this trick today?</div>
       <div class="flex items-center gap-2">
         <button
           v-for="p in pills"
