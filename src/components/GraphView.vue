@@ -13,7 +13,7 @@ import {
 } from 'd3-force';
 import { useTricksStore } from '../stores/tricks';
 import { useTransitionsStore } from '../stores/transitions';
-import { effectiveRate, rateColor, sideColor } from '../domain/rating';
+import { effectiveRate, sideColor } from '../domain/rating';
 import { loadView, saveView, type NodePosition } from '../utils/graphView';
 import { displayName } from '../domain/display';
 import type { Transition, Trick } from '../domain/types';
@@ -42,7 +42,10 @@ const emit = defineEmits<{
   (e: 'viewChange', view: { tx: number; ty: number; scale: number }): void;
 }>();
 
-const NODE_R = 22;
+const NODE_R = 28;
+const SEMI_R = 22;
+const GLYPH_SIZE = 16;
+const NAME_OFFSET = NODE_R + 14;
 const DRAG_THRESHOLD = 4;
 const PARALLEL_SPACING = 7;
 const SELF_LOOP_BASE = 26;
@@ -204,18 +207,46 @@ const edgeRenders = computed<EdgeRender[]>(() => {
 
 const sequenceSet = computed(() => new Set(props.sequenceIds ?? []));
 
-function halfPathD(p: NodePosition, side: 'L' | 'R'): string {
-  const sweep = side === 'R' ? 1 : 0;
-  return `M ${p.x} ${p.y - NODE_R} A ${NODE_R} ${NODE_R} 0 0 ${sweep} ${p.x} ${p.y + NODE_R}`;
+// W6 node geometry — semicircle rate arcs
+function w6PolarPoint(angleDeg: number, radius: number, cx: number, cy: number): { x: number; y: number } {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + Math.cos(rad) * radius, y: cy + Math.sin(rad) * radius };
 }
 
-function ringStroke(t: Trick, side?: 'L' | 'R'): string {
-  if (side) {
-    const v = side === 'L' ? t.rateL : t.rateR;
-    return v == null ? '#565764' : rateColor(v);
-  }
-  const er = effectiveRate(t);
-  return er == null ? '#565764' : rateColor(er);
+function w6ArcBetween(startDeg: number, endDeg: number, radius: number, cx: number, cy: number): string {
+  const s = w6PolarPoint(startDeg, radius, cx, cy);
+  const e = w6PolarPoint(endDeg, radius, cx, cy);
+  const sweep = endDeg > startDeg ? 1 : 0;
+  const large = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} ${sweep} ${e.x} ${e.y}`;
+}
+
+function w6PartialArc(startDeg: number, endDeg: number, radius: number, cx: number, cy: number, fraction: number): string {
+  if (fraction <= 0) return '';
+  const f = Math.min(fraction, 0.9999);
+  const targetDeg = startDeg + (endDeg - startDeg) * f;
+  return w6ArcBetween(startDeg, targetDeg, radius, cx, cy);
+}
+
+function w6PartialArcCentered(centerDeg: number, halfSpan: number, radius: number, cx: number, cy: number, fraction: number): string {
+  if (fraction <= 0) return '';
+  const f = Math.min(fraction, 1);
+  return w6ArcBetween(centerDeg - halfSpan * f, centerDeg + halfSpan * f, radius, cx, cy);
+}
+
+function w6RateFrac(r: number | null | undefined): number {
+  if (r == null) return 0;
+  return Math.max(0, Math.min(1, r / 5));
+}
+
+function effRateForLeg(t: Trick, side: 'L' | 'R'): number | null {
+  if (!t.lr) return null;
+  return side === 'L' ? t.rateL : t.rateR;
+}
+
+function effRateSingle(t: Trick): number | null {
+  if (t.lr) return null;
+  return t.rate;
 }
 
 function nodeLabel(t: Trick): string {
@@ -562,6 +593,15 @@ const gridDots = computed<GridDot[]>(() => {
         <filter id="gw-edge-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
         </filter>
+        <filter id="gw-node-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+        </filter>
+        <linearGradient id="gw-node-stroke" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.40)" />
+          <stop offset="25%" stop-color="rgba(255,255,255,0.14)" />
+          <stop offset="55%" stop-color="rgba(255,255,255,0.04)" />
+          <stop offset="100%" stop-color="rgba(255,255,255,0.22)" />
+        </linearGradient>
         <marker
           v-for="m in [
             { id: 'slalom-arr-l', color: sideColor('L') },
@@ -650,88 +690,162 @@ const gridDots = computed<GridDot[]>(() => {
             :style="{ cursor: 'pointer' }"
           >
             <template v-if="t.id && positions[t.id]">
+              <!-- Highlight ring -->
               <circle
                 v-if="t.id === highlightNodeId"
                 :cx="positions[t.id].x"
                 :cy="positions[t.id].y"
                 :r="NODE_R + 5"
                 fill="none"
-                stroke="#ffffff"
+                stroke="var(--color-g-brand)"
                 stroke-width="2.5"
-                stroke-opacity="0.85"
+                stroke-opacity="0.9"
+                pointer-events="none"
               />
+              <!-- Link-source ring (dashed) -->
               <circle
                 v-if="t.id === linkSourceId"
                 :cx="positions[t.id].x"
                 :cy="positions[t.id].y"
                 :r="NODE_R + 5"
                 fill="none"
-                stroke="#ffffff"
+                stroke="var(--color-g-brand)"
                 stroke-width="2"
                 stroke-dasharray="4 3"
                 stroke-opacity="0.9"
+                pointer-events="none"
               />
+
+              <!-- Glass circle background (W6 design) -->
               <circle
                 :cx="positions[t.id].x"
                 :cy="positions[t.id].y"
                 :r="NODE_R"
-                :fill="sequenceSet.has(t.id) ? '#2c3550' : 'var(--card, #1c1d24)'"
-                :stroke="'var(--border, #2a2b33)'"
-                stroke-width="1"
+                :fill="sequenceSet.has(t.id) ? 'rgba(181, 168, 255, 0.20)' : 'rgba(255, 255, 255, 0.06)'"
               />
-              <template v-if="t.lr">
-                <path
-                  :d="halfPathD(positions[t.id], 'L')"
-                  fill="none"
-                  stroke-width="3"
-                  :stroke="ringStroke(t, 'L')"
-                />
-                <path
-                  :d="halfPathD(positions[t.id], 'R')"
-                  fill="none"
-                  stroke-width="3"
-                  :stroke="ringStroke(t, 'R')"
-                />
-                <text
-                  :x="positions[t.id].x - NODE_R - 8"
-                  :y="positions[t.id].y + 3"
-                  text-anchor="middle"
-                  font-size="9"
-                  font-weight="bold"
-                  :fill="sideColor('L')"
-                >L</text>
-                <text
-                  :x="positions[t.id].x + NODE_R + 8"
-                  :y="positions[t.id].y + 3"
-                  text-anchor="middle"
-                  font-size="9"
-                  font-weight="bold"
-                  :fill="sideColor('R')"
-                >R</text>
-              </template>
               <circle
-                v-else
                 :cx="positions[t.id].x"
                 :cy="positions[t.id].y"
                 :r="NODE_R"
                 fill="none"
-                stroke-width="3"
-                :stroke="ringStroke(t)"
+                stroke="url(#gw-node-stroke)"
+                stroke-width="1"
               />
+
+              <!-- W6 rate semicircles -->
+              <template v-if="t.lr">
+                <!-- L track -->
+                <path
+                  :d="w6ArcBetween(185, 355, SEMI_R, positions[t.id].x, positions[t.id].y)"
+                  fill="none"
+                  stroke="var(--color-g-leg-l)"
+                  stroke-opacity="0.15"
+                  stroke-width="1"
+                />
+                <!-- L glow -->
+                <path
+                  v-if="w6RateFrac(effRateForLeg(t, 'L')) > 0"
+                  :d="w6PartialArc(185, 355, SEMI_R, positions[t.id].x, positions[t.id].y, w6RateFrac(effRateForLeg(t, 'L')))"
+                  fill="none"
+                  stroke="var(--color-g-leg-l)"
+                  stroke-width="3"
+                  stroke-opacity="0.5"
+                  stroke-linecap="round"
+                  filter="url(#gw-node-glow)"
+                  pointer-events="none"
+                />
+                <!-- L crisp -->
+                <path
+                  v-if="w6RateFrac(effRateForLeg(t, 'L')) > 0"
+                  :d="w6PartialArc(185, 355, SEMI_R, positions[t.id].x, positions[t.id].y, w6RateFrac(effRateForLeg(t, 'L')))"
+                  fill="none"
+                  stroke="var(--color-g-leg-l)"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                  pointer-events="none"
+                />
+                <!-- R track -->
+                <path
+                  :d="w6ArcBetween(175, 5, SEMI_R, positions[t.id].x, positions[t.id].y)"
+                  fill="none"
+                  stroke="var(--color-g-leg-r)"
+                  stroke-opacity="0.15"
+                  stroke-width="1"
+                />
+                <!-- R glow -->
+                <path
+                  v-if="w6RateFrac(effRateForLeg(t, 'R')) > 0"
+                  :d="w6PartialArc(175, 5, SEMI_R, positions[t.id].x, positions[t.id].y, w6RateFrac(effRateForLeg(t, 'R')))"
+                  fill="none"
+                  stroke="var(--color-g-leg-r)"
+                  stroke-width="3"
+                  stroke-opacity="0.5"
+                  stroke-linecap="round"
+                  filter="url(#gw-node-glow)"
+                  pointer-events="none"
+                />
+                <!-- R crisp -->
+                <path
+                  v-if="w6RateFrac(effRateForLeg(t, 'R')) > 0"
+                  :d="w6PartialArc(175, 5, SEMI_R, positions[t.id].x, positions[t.id].y, w6RateFrac(effRateForLeg(t, 'R')))"
+                  fill="none"
+                  stroke="var(--color-g-leg-r)"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                  pointer-events="none"
+                />
+              </template>
+              <template v-else>
+                <!-- u track -->
+                <path
+                  :d="w6ArcBetween(95, 265, SEMI_R, positions[t.id].x, positions[t.id].y)"
+                  fill="none"
+                  stroke="var(--color-g-fg)"
+                  stroke-opacity="0.15"
+                  stroke-width="1"
+                />
+                <!-- u glow -->
+                <path
+                  v-if="w6RateFrac(effRateSingle(t)) > 0"
+                  :d="w6PartialArcCentered(180, 85, SEMI_R, positions[t.id].x, positions[t.id].y, w6RateFrac(effRateSingle(t)))"
+                  fill="none"
+                  stroke="var(--color-g-fg)"
+                  stroke-width="3"
+                  stroke-opacity="0.5"
+                  stroke-linecap="round"
+                  filter="url(#gw-node-glow)"
+                  pointer-events="none"
+                />
+                <!-- u crisp -->
+                <path
+                  v-if="w6RateFrac(effRateSingle(t)) > 0"
+                  :d="w6PartialArcCentered(180, 85, SEMI_R, positions[t.id].x, positions[t.id].y, w6RateFrac(effRateSingle(t)))"
+                  fill="none"
+                  stroke="var(--color-g-fg)"
+                  stroke-width="1"
+                  stroke-linecap="round"
+                  pointer-events="none"
+                />
+              </template>
+
+              <!-- Glyph (centered in circle) -->
               <text
                 :x="positions[t.id].x"
-                :y="positions[t.id].y + 6"
+                :y="positions[t.id].y + 5"
                 text-anchor="middle"
-                font-size="18"
-                style="pointer-events: none"
+                :font-size="GLYPH_SIZE"
+                pointer-events="none"
               >{{ glyphFor(t) }}</text>
+
+              <!-- Name (below circle) -->
               <text
                 :x="positions[t.id].x"
-                :y="positions[t.id].y + NODE_R + 13"
+                :y="positions[t.id].y + NAME_OFFSET"
                 text-anchor="middle"
                 font-size="11"
-                fill="var(--fg, #e6e6ec)"
-                style="pointer-events: none"
+                font-weight="600"
+                fill="var(--color-g-fg)"
+                pointer-events="none"
               >{{ nodeLabel(t) }}</text>
             </template>
           </g>
