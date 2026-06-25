@@ -112,9 +112,13 @@ function openDetails() {
     <Transition name="gb">
       <div
         ref="root"
-        class="fixed z-50 gw-glass-strong p-3 w-[260px]"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px', borderRadius: 'var(--radius-g-panel)' }"
+        class="fixed z-50 w-[260px]"
+        :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
         @click.stop
+      >
+      <div
+        class="gw-glass-strong p-3"
+        :style="{ borderRadius: 'var(--radius-g-panel)' }"
       >
         <div class="flex items-start gap-2 mb-2">
           <div class="flex-1 min-w-0 text-[13px] font-semibold leading-snug">
@@ -182,6 +186,7 @@ function openDetails() {
             : { borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)', border: '1px solid rgba(255,255,255,0.10)' }"
           @click="onRemove"
         >{{ removeArmed ? 'Tap again to confirm' : 'Remove edge' }}</button>
+      </div>
       </div>
     </Transition>
   </Teleport>

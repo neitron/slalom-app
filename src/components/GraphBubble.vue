@@ -72,9 +72,13 @@ function startLink(side: 'L' | 'R' | null) {
     <Transition name="gb">
       <div
         ref="root"
-        class="fixed z-50 gw-glass-strong p-3 w-[240px]"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px', borderRadius: 'var(--radius-g-panel)' }"
+        class="fixed z-50 w-[240px]"
+        :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
         @click.stop
+      >
+      <div
+        class="gw-glass-strong p-3"
+        :style="{ borderRadius: 'var(--radius-g-panel)' }"
       >
         <div class="flex items-start gap-2 mb-2">
           <div class="text-2xl leading-none select-none">{{ trick.icon ?? '·' }}</div>
@@ -142,6 +146,7 @@ function startLink(side: 'L' | 'R' | null) {
         >
           Tap a target node to link…
         </div>
+      </div>
       </div>
     </Transition>
   </Teleport>
