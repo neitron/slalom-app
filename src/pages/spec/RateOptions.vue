@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import { gw } from '../../design/tokens'
 
-type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K'
+type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
-  { id: 'J', title: 'Liquid stripe', desc: 'A glass capsule fills with leg color from left. Unfilled portion is a soft blurred wash.' },
-  { id: 'K', title: 'Constellation', desc: '5 dots in a small star cluster, not a row. Rated dots glow softly.' },
-  { id: 'F', title: 'Tally / slash marks', desc: '1–5 diagonal slashes in leg color. Skate-tag energy.' },
-  { id: 'H', title: 'Bare leg dots (no border)', desc: 'Rated = bright leg color; unrated = same color at 0.30 opacity.' },
-  { id: 'I', title: 'Blurred ghost dots', desc: 'Unrated dots blurred strongly — they blend at the edges.' },
-  { id: 'G', title: 'Leg-filled dots (border)', desc: 'Familiar 5 dots, leg color fill + border on unrated.' },
-  { id: 'D', title: 'Hero numeral', desc: 'Rate as a bold number in a leg-tinted glass pill.' },
-  { id: 'E', title: 'Apple-Watch radial arc', desc: 'A small ring fills around the circle.' },
-  { id: 'A', title: '(rejected) 5-dot strip, leg ring + density fill', desc: 'Original Option A — for reference.' },
-  { id: 'B', title: '(rejected) Single ordinal chip', desc: 'Original Option B — for reference.' },
-  { id: 'C', title: '(rejected) Weighted vertical bars', desc: 'Original Option C — for reference.' },
+  { id: 'L', title: 'LED dots', desc: 'User-tuned baseline. 4px core + soft halo with color-dodge.' },
+  { id: 'M', title: 'LED slashes', desc: 'F slashes with the LED halo treatment.' },
+  { id: 'N', title: 'LED segment bar', desc: '5 lit pill segments — looks like a battery charge bar.' },
+  { id: 'O', title: 'LED constellation', desc: 'K cluster with LED halos.' },
+  { id: 'P', title: 'LED liquid stripe', desc: 'J capsule with a glowing leading edge.' },
+  { id: 'J', title: '(prev) Liquid stripe', desc: 'For reference.' },
+  { id: 'K', title: '(prev) Constellation', desc: 'For reference.' },
+  { id: 'F', title: '(prev) Slashes', desc: 'For reference.' },
+  { id: 'H', title: '(prev) Bare leg dots', desc: 'For reference.' },
+  { id: 'I', title: '(prev) Blurred ghost dots', desc: 'For reference.' },
+  { id: 'G', title: '(prev) Dots with border', desc: 'For reference.' },
+  { id: 'D', title: '(prev) Hero numeral', desc: 'For reference.' },
+  { id: 'E', title: '(prev) Radial arc', desc: 'For reference.' },
+  { id: 'A', title: '(rejected) leg ring + density fill', desc: 'For reference.' },
+  { id: 'B', title: '(rejected) Single ordinal chip', desc: 'For reference.' },
+  { id: 'C', title: '(rejected) Weighted vertical bars', desc: 'For reference.' },
 ]
 
 const sampleRates: (number | null)[] = [null, 1, 2, 3, 4, 5]
@@ -96,8 +101,232 @@ function arcDashOffset(rate: number | null): number {
           >{{ leg.label }}</span>
           <div class="flex items-center gap-3">
             <div v-for="r in sampleRates" :key="String(r)" class="flex flex-col items-center gap-1">
+              <!-- Option L: LED dots (user's recipe baseline) -->
+              <template v-if="v.id === 'L'">
+                <div class="flex" style="gap: 5px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '4px',
+                        height: '4px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 1,
+                      }"
+                    >
+                      <div
+                        :style="{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: leg.tint,
+                          opacity: 0.5,
+                          filter: 'blur(3px)',
+                          mixBlendMode: 'color-dodge',
+                          position: 'relative',
+                          top: '-1px',
+                          left: '-1px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '4px',
+                        height: '4px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 0.1,
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option M: LED slashes -->
+              <template v-else-if="v.id === 'M'">
+                <div class="flex items-center" style="gap: 3px; height: 18px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '2.5px',
+                        height: '14px',
+                        background: leg.tint,
+                        opacity: 1,
+                        transform: 'skewX(-20deg)',
+                        borderRadius: '1px',
+                        position: 'relative',
+                      }"
+                    >
+                      <div
+                        :style="{
+                          position: 'absolute',
+                          width: '8px',
+                          height: '20px',
+                          left: '-3px',
+                          top: '-3px',
+                          background: leg.tint,
+                          opacity: 0.5,
+                          filter: 'blur(4px)',
+                          mixBlendMode: 'color-dodge',
+                          borderRadius: '4px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '2.5px',
+                        height: '14px',
+                        background: leg.tint,
+                        opacity: 0.1,
+                        transform: 'skewX(-20deg)',
+                        borderRadius: '1px',
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option N: LED segment bar -->
+              <template v-else-if="v.id === 'N'">
+                <div class="flex items-center" style="gap: 2px;">
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        width: '9px',
+                        height: '3px',
+                        borderRadius: '999px',
+                        background: leg.tint,
+                        opacity: 1,
+                        position: 'relative',
+                      }"
+                    >
+                      <div
+                        :style="{
+                          position: 'absolute',
+                          width: '11px',
+                          height: '5px',
+                          left: '-1px',
+                          top: '-1px',
+                          background: leg.tint,
+                          opacity: 0.5,
+                          filter: 'blur(3px)',
+                          mixBlendMode: 'color-dodge',
+                          borderRadius: '999px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        width: '9px',
+                        height: '3px',
+                        borderRadius: '999px',
+                        background: leg.tint,
+                        opacity: 0.1,
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option O: LED constellation -->
+              <template v-else-if="v.id === 'O'">
+                <div
+                  style="width: 38px; height: 24px; position: relative;"
+                >
+                  <template v-for="i in 5" :key="i">
+                    <div
+                      v-if="r != null && i <= Math.round(r)"
+                      :style="{
+                        position: 'absolute',
+                        width: '4px',
+                        height: '4px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 1,
+                        left: [4, 14, 26, 18, 32][i - 1] + 'px',
+                        top: [12, 4, 8, 16, 18][i - 1] + 'px',
+                      }"
+                    >
+                      <div
+                        :style="{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: leg.tint,
+                          opacity: 0.5,
+                          filter: 'blur(3px)',
+                          mixBlendMode: 'color-dodge',
+                          position: 'relative',
+                          top: '-1px',
+                          left: '-1px',
+                        }"
+                      />
+                    </div>
+                    <span
+                      v-else
+                      :style="{
+                        position: 'absolute',
+                        width: '4px',
+                        height: '4px',
+                        borderRadius: '50%',
+                        background: leg.tint,
+                        opacity: 0.1,
+                        left: [4, 14, 26, 18, 32][i - 1] + 'px',
+                        top: [12, 4, 8, 16, 18][i - 1] + 'px',
+                      }"
+                    />
+                  </template>
+                </div>
+              </template>
+
+              <!-- Option P: LED liquid stripe -->
+              <template v-else-if="v.id === 'P'">
+                <div
+                  :style="{
+                    width: '64px',
+                    height: '8px',
+                    borderRadius: '999px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    background: `${leg.tint}10`,
+                  }"
+                >
+                  <div
+                    v-if="r != null"
+                    :style="{
+                      position: 'absolute',
+                      inset: '0',
+                      width: `${(Math.min(r, 5) / 5) * 100}%`,
+                      background: leg.tint,
+                      opacity: 1,
+                    }"
+                  />
+                  <div
+                    v-if="r != null && r > 0"
+                    :style="{
+                      position: 'absolute',
+                      top: '-4px',
+                      bottom: '-4px',
+                      left: `calc(${(Math.min(r, 5) / 5) * 100}% - 8px)`,
+                      width: '16px',
+                      background: leg.tint,
+                      opacity: 0.6,
+                      filter: 'blur(5px)',
+                      mixBlendMode: 'color-dodge',
+                      borderRadius: '999px',
+                    }"
+                  />
+                </div>
+              </template>
+
               <!-- Option J: Liquid stripe -->
-              <template v-if="v.id === 'J'">
+              <template v-else-if="v.id === 'J'">
                 <div
                   :style="{
                     width: '64px',
