@@ -77,9 +77,15 @@ void _side
 </script>
 
 <template>
-  <div class="bg-card border border-border rounded-xl p-3 relative">
+  <div
+    class="gw-glass relative"
+    :style="{
+      padding: '12px 14px',
+      borderRadius: 'var(--radius-g-panel)',
+    }"
+  >
     <div
-      class="cursor-pointer"
+      class="cursor-pointer active:opacity-90 transition-opacity"
       role="button"
       tabindex="0"
       @click="onOpen"
@@ -88,18 +94,26 @@ void _side
     >
       <div class="flex items-start gap-2">
         <div class="flex-1 min-w-0">
-          <div class="font-medium text-fg truncate">{{ sequence.name }}</div>
-          <div class="text-muted text-[11px] mt-0.5">
+          <div
+            class="font-medium truncate"
+            :style="{ fontSize: 'var(--text-g-body)', color: 'var(--color-g-fg)' }"
+          >{{ sequence.name }}</div>
+          <div
+            class="mt-0.5"
+            :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
+          >
             <span>created {{ sequence.created }}</span>
             <span v-if="sequence.last"> · last {{ sequence.last }}</span>
           </div>
         </div>
         <button
           type="button"
-          class="shrink-0 -mt-0.5 -mr-1 px-1.5 py-0.5 rounded text-[11px] transition-colors"
-          :class="removeArmed
-            ? 'bg-danger text-fg font-semibold'
-            : 'text-danger hover:bg-danger/10'"
+          class="shrink-0 -mt-0.5 -mr-1 px-1.5 py-0.5 rounded font-semibold transition-colors"
+          :style="{
+            fontSize: '11px',
+            color: removeArmed ? 'var(--color-g-fg)' : 'var(--color-g-danger, #f87171)',
+            background: removeArmed ? 'var(--color-g-danger, #f87171)' : 'transparent',
+          }"
           :aria-label="removeArmed ? 'Confirm delete' : 'Delete sequence'"
           @click.stop="armRemove"
         >{{ removeArmed ? 'Confirm' : 'Delete' }}</button>
@@ -114,19 +128,35 @@ void _side
       </div>
     </div>
 
-    <div class="mt-2" @click.stop>
-      <div class="text-[11.5px] text-muted mb-1">How was it today?</div>
+    <div
+      class="mt-3 pt-3"
+      :style="{ borderTop: '1px solid rgba(255, 255, 255, 0.08)' }"
+      @click.stop
+    >
+      <div
+        class="mb-1"
+        :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
+      >How was it today?</div>
       <div class="flex gap-1.5">
         <button
           v-for="s in SCORES"
           :key="s"
           type="button"
-          class="flex-1 py-1.5 rounded-lg bg-card-2 text-sm cursor-pointer transition-all duration-150 active:scale-95 border border-border-2 text-fg hover:bg-accent hover:text-bg hover:border-accent"
-          :class="flash === s ? 'bg-accent text-bg scale-105 shadow-[0_0_0_3px_rgba(111,140,255,0.35)]' : ''"
+          class="flex-1 py-1.5 rounded-lg text-sm cursor-pointer transition-all duration-150 active:scale-95"
+          :style="{
+            color: flash === s ? 'var(--color-g-bg, #0a0a0f)' : 'var(--color-g-fg)',
+            background: flash === s ? 'var(--color-g-brand)' : 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            boxShadow: flash === s ? '0 0 0 3px rgba(111,140,255,0.35)' : 'none',
+            transform: flash === s ? 'scale(1.05)' : 'scale(1)',
+          }"
           @click.stop="pick(s)"
         >
           {{ s }}
-          <small class="block text-[9px] text-muted">{{ HINTS[s] }}</small>
+          <small
+            class="block"
+            :style="{ fontSize: '9px', color: flash === s ? 'var(--color-g-bg, #0a0a0f)' : 'var(--color-g-fg-muted)' }"
+          >{{ HINTS[s] }}</small>
         </button>
       </div>
     </div>

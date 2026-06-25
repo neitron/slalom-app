@@ -31,7 +31,11 @@ function onClick() {
 
 <template>
   <div
-    class="bg-card border border-border rounded-xl p-3 cursor-pointer active:bg-border/40 transition-colors"
+    class="gw-glass cursor-pointer active:opacity-90 transition-opacity"
+    :style="{
+      padding: '12px 14px',
+      borderRadius: 'var(--radius-g-panel)',
+    }"
     role="button"
     tabindex="0"
     @click="onClick"
@@ -41,22 +45,34 @@ function onClick() {
     <div class="flex items-center gap-2 min-w-0">
       <div class="flex-1 min-w-0 flex items-center gap-1.5">
         <span v-if="fromTrick.icon" class="text-base leading-none shrink-0">{{ fromTrick.icon }}</span>
-        <span class="font-medium text-fg truncate">{{ displayName(fromTrick) }}</span>
         <span
-          class="font-bold text-[11px] shrink-0"
-          :style="{ color: sideColor(edge.fromSide) }"
+          class="font-medium truncate"
+          :style="{ fontSize: 'var(--text-g-body)', color: 'var(--color-g-fg)' }"
+        >{{ displayName(fromTrick) }}</span>
+        <span
+          class="font-bold shrink-0"
+          :style="{ fontSize: '11px', color: sideColor(edge.fromSide) }"
         >{{ edge.fromSide ?? '–' }}</span>
-        <span class="mx-1 text-muted shrink-0">{{ arrow }}</span>
-        <span v-if="toTrick.icon" class="text-base leading-none shrink-0">{{ toTrick.icon }}</span>
-        <span class="font-medium text-fg truncate">{{ displayName(toTrick) }}</span>
         <span
-          class="font-bold text-[11px] shrink-0"
-          :style="{ color: sideColor(edge.toSide) }"
+          class="mx-1 shrink-0"
+          :style="{ color: 'var(--color-g-fg-muted)' }"
+        >{{ arrow }}</span>
+        <span v-if="toTrick.icon" class="text-base leading-none shrink-0">{{ toTrick.icon }}</span>
+        <span
+          class="font-medium truncate"
+          :style="{ fontSize: 'var(--text-g-body)', color: 'var(--color-g-fg)' }"
+        >{{ displayName(toTrick) }}</span>
+        <span
+          class="font-bold shrink-0"
+          :style="{ fontSize: '11px', color: sideColor(edge.toSide) }"
         >{{ edge.toSide ?? '–' }}</span>
       </div>
     </div>
 
-    <div class="text-muted text-xs mt-1 truncate">
+    <div
+      class="mt-1 truncate"
+      :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
+    >
       <span>{{ fromTrick.category }} → {{ toTrick.category }}</span>
       <span> · last: {{ edge.last ?? '—' }}</span>
     </div>
