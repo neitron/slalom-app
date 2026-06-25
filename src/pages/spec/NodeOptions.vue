@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { gw } from '../../design/tokens'
 
-type Variant = 'A' | 'B' | 'C'
+type Variant = 'A2' | 'V1' | 'V2' | 'V3' | 'V4'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
-  { id: 'A', title: 'Apple Watch arcs (smooth)', desc: 'Concentric rings with smooth filled arcs. Bold, kinetic, instrument-feel.' },
-  { id: 'B', title: 'LED dashed segments', desc: '5 dashed arcs around the circle. Lit/ghost in leg color with halo.' },
-  { id: 'C', title: 'LED dot ring', desc: '5 dots around the circle at 72° positions. Pure LED idiom.' },
+  { id: 'A2', title: 'Full ring — R outer + LED glow', desc: 'Refined Apple-Watch full ring. R is the outer concentric, L is inner. Filled arc gently glows.' },
+  { id: 'V1', title: 'Bold semicircles', desc: 'LR mode: "(" left = L, ")" right = R, filling from top down. Non-lr: "u" bottom half filling along arc.' },
+  { id: 'V2', title: 'Thin semicircles', desc: 'Same shapes as V1, thinner stroke (1.5px).' },
+  { id: 'V3', title: 'LED dashed semicircles', desc: '5 dashes per semicircle, lit/ghost with LED halo.' },
+  { id: 'V4', title: 'LED dot semicircles', desc: '5 dots per semicircle, lit/ghost with LED halo.' },
 ]
 
 interface NodeSample {
@@ -20,41 +22,82 @@ interface NodeSample {
 
 const samples: NodeSample[] = [
   { name: 'Cross', icon: '🟦', lr: false, rate: 3, rateL: null, rateR: null },
-  { name: 'Snake (lr)', icon: '🐍', lr: true, rate: null, rateL: 4, rateR: 2 },
-  { name: 'Sun (lr)', icon: '☀️', lr: true, rate: null, rateL: 5, rateR: 5 },
+  { name: 'Snake', icon: '🐍', lr: true, rate: null, rateL: 4, rateR: 2 },
+  { name: 'Sun', icon: '☀️', lr: true, rate: null, rateL: 5, rateR: 5 },
   { name: 'Cobra', icon: '🟪', lr: false, rate: 5, rateL: null, rateR: null },
   { name: 'New', icon: '✨', lr: false, rate: null, rateL: null, rateR: null },
 ]
 
-// SVG geometry helpers
-const ARC_R_OUTER = 22
-const ARC_R_INNER = 16
-const ARC_STROKE = 4
-const DOT_CLOCK_RADIUS_OUTER = 22
-const DOT_CLOCK_RADIUS_INNER = 16
+// Geometry
+const FULL_RING_R_OUTER = 20
+const FULL_RING_R_INNER = 14
+const SEMI_R = 19
 
-// Pre-compute 5 clock positions (in degrees from 12 o'clock, clockwise)
-const CLOCK_DEG = [0, 72, 144, 216, 288]
-function clockPos(rDeg: number, radius: number): { x: number; y: number } {
-  const rad = (rDeg - 90) * Math.PI / 180 // -90 to start at 12
-  return { x: Math.cos(rad) * radius, y: Math.sin(rad) * radius }
-}
-
-function arcPath(radius: number, fraction: number): string {
-  // Returns SVG path for an arc starting at 12 o'clock, going clockwise, covering `fraction` of the circle.
+function arcPathFraction(radius: number, fraction: number): string {
+  // Full-circle arc starting at 12 o'clock, going clockwise.
   if (fraction <= 0) return ''
   const angle = Math.min(fraction, 0.9999) * 2 * Math.PI
-  const startX = 0
-  const startY = -radius
+  const startX = 0, startY = -radius
   const endX = Math.sin(angle) * radius
   const endY = -Math.cos(angle) * radius
   const largeArc = angle > Math.PI ? 1 : 0
   return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY}`
 }
 
-function rateFraction(rate: number | null): number {
+function fullCircleTrack(radius: number): string {
+  // Full circle as a path so stroke-opacity can apply uniformly.
+  return `M 0 ${-radius} A ${radius} ${radius} 0 1 1 0 ${radius} A ${radius} ${radius} 0 1 1 0 ${-radius}`
+}
+
+// Semicircle helpers: angles in degrees from 12 o'clock, clockwise.
+function polarPoint(angleDeg: number, radius: number): { x: number; y: number } {
+  const rad = (angleDeg - 90) * Math.PI / 180
+  return { x: Math.cos(rad) * radius, y: Math.sin(rad) * radius }
+}
+
+function arcBetween(startDeg: number, endDeg: number, radius: number): string {
+  const s = polarPoint(startDeg, radius)
+  const e = polarPoint(endDeg, radius)
+  const sweep = endDeg > startDeg ? 1 : 0
+  const large = Math.abs(endDeg - startDeg) > 180 ? 1 : 0
+  return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} ${sweep} ${e.x} ${e.y}`
+}
+
+// LR semicircle ranges:
+//   L semicircle: from 360° (top, CW) going CCW to 180° (bottom) — i.e. left half
+//   R semicircle: from 0° going CW to 180° (bottom) — i.e. right half
+//   Non-lr u: bottom semi from 90° (3 o'clock) CW through 180° to 270° (9 o'clock)
+
+function rateFrac(rate: number | null): number {
   if (rate == null) return 0
   return Math.max(0, Math.min(1, rate / 5))
+}
+
+// Returns a partial arc within a semicircle.
+// startDeg + endDeg define the semicircle ends. fraction (0..1) determines fill from start toward end.
+function partialArc(startDeg: number, endDeg: number, radius: number, fraction: number): string {
+  if (fraction <= 0) return ''
+  const f = Math.min(fraction, 0.9999)
+  const targetDeg = startDeg + (endDeg - startDeg) * f
+  return arcBetween(startDeg, targetDeg, radius)
+}
+
+// Dash/dot positions along a semicircle: 5 evenly-spaced points
+function semicirclePositions(startDeg: number, endDeg: number, count: number, radius: number): { x: number; y: number; deg: number }[] {
+  const points = []
+  // Position dashes/dots at the centers of 5 equal sub-arcs.
+  for (let i = 0; i < count; i++) {
+    const t = (i + 0.5) / count
+    const deg = startDeg + (endDeg - startDeg) * t
+    const p = polarPoint(deg, radius)
+    points.push({ x: p.x, y: p.y, deg })
+  }
+  return points
+}
+
+// Dashed segment: a small arc at the given center degree
+function dashAt(centerDeg: number, span: number, radius: number): string {
+  return arcBetween(centerDeg - span / 2, centerDeg + span / 2, radius)
 }
 </script>
 
@@ -64,10 +107,10 @@ function rateFraction(rate: number | null): number {
     :style="{ color: gw.fg, fontFamily: 'system-ui, -apple-system, sans-serif' }"
   >
     <h1 :style="{ fontSize: gw.type.display + 'px', fontWeight: 700, letterSpacing: '-0.02em' }">
-      Node options
+      Node options · v2
     </h1>
     <p :style="{ color: gw.fgMuted, fontSize: gw.type.body + 'px' }">
-      Three rate-bar treatments for graph nodes. Name lives outside the circle.
+      Glass circle nodes with rate bars. Pick one for the actual graph.
     </p>
 
     <section
@@ -77,13 +120,7 @@ function rateFraction(rate: number | null): number {
       :style="{ borderRadius: gw.radius.panel + 'px' }"
     >
       <header class="flex items-baseline gap-3">
-        <span
-          :style="{
-            fontSize: gw.type.h2 + 'px',
-            fontWeight: 700,
-            color: gw.brand,
-          }"
-        >Option {{ v.id }}</span>
+        <span :style="{ fontSize: gw.type.h2 + 'px', fontWeight: 700, color: gw.brand }">{{ v.id }}</span>
         <span :style="{ fontSize: gw.type.body + 'px' }">{{ v.title }}</span>
       </header>
       <p :style="{ color: gw.fgMuted, fontSize: gw.type.micro + 'px' }">{{ v.desc }}</p>
@@ -92,182 +129,160 @@ function rateFraction(rate: number | null): number {
         <div
           v-for="(s, idx) in samples"
           :key="idx"
-          class="flex flex-col items-center gap-1"
+          class="flex flex-col items-center gap-1.5"
           style="width: 84px;"
         >
-          <svg width="64" height="64" viewBox="-32 -32 64 64">
-            <!-- Variant A: Apple Watch arcs -->
-            <template v-if="v.id === 'A'">
-              <template v-if="s.lr">
-                <!-- Outer ring L -->
-                <circle
-                  :r="ARC_R_OUTER"
-                  cx="0"
-                  cy="0"
-                  fill="none"
-                  :stroke="gw.leg.l"
-                  stroke-opacity="0.15"
-                  :stroke-width="ARC_STROKE"
-                />
-                <path
-                  :d="arcPath(ARC_R_OUTER, rateFraction(s.rateL))"
-                  fill="none"
-                  :stroke="gw.leg.l"
-                  :stroke-width="ARC_STROKE"
-                  stroke-linecap="round"
-                />
-                <!-- Inner ring R -->
-                <circle
-                  :r="ARC_R_INNER"
-                  cx="0"
-                  cy="0"
-                  fill="none"
-                  :stroke="gw.leg.r"
-                  stroke-opacity="0.15"
-                  :stroke-width="ARC_STROKE"
-                />
-                <path
-                  :d="arcPath(ARC_R_INNER, rateFraction(s.rateR))"
-                  fill="none"
-                  :stroke="gw.leg.r"
-                  :stroke-width="ARC_STROKE"
-                  stroke-linecap="round"
-                />
-              </template>
-              <template v-else>
-                <circle
-                  :r="ARC_R_OUTER"
-                  cx="0"
-                  cy="0"
-                  fill="none"
-                  :stroke="gw.fg"
-                  stroke-opacity="0.15"
-                  :stroke-width="ARC_STROKE"
-                />
-                <path
-                  :d="arcPath(ARC_R_OUTER, rateFraction(s.rate))"
-                  fill="none"
-                  :stroke="gw.fg"
-                  :stroke-width="ARC_STROKE"
-                  stroke-linecap="round"
-                />
-              </template>
-              <!-- Glyph in center -->
-              <text
-                text-anchor="middle"
-                dominant-baseline="central"
-                :style="{ fontSize: '14px' }"
-              >{{ s.icon }}</text>
-            </template>
-
-            <!-- Variant B: LED dashed segments -->
-            <template v-else-if="v.id === 'B'">
-              <template v-if="s.lr">
-                <!-- Outer ring L segments -->
-                <template v-for="(deg, i) in CLOCK_DEG" :key="'lout' + i">
-                  <path
-                    :d="arcPath(ARC_R_OUTER, 0.10)"
-                    :transform="`rotate(${deg})`"
-                    fill="none"
-                    :stroke="gw.leg.l"
-                    :stroke-width="3"
-                    stroke-linecap="round"
-                    :stroke-opacity="i < (s.rateL ?? 0) ? 1 : 0.1"
-                  />
-                </template>
-                <!-- Inner ring R segments -->
-                <template v-for="(deg, i) in CLOCK_DEG" :key="'rin' + i">
-                  <path
-                    :d="arcPath(ARC_R_INNER, 0.10)"
-                    :transform="`rotate(${deg})`"
-                    fill="none"
-                    :stroke="gw.leg.r"
-                    :stroke-width="3"
-                    stroke-linecap="round"
-                    :stroke-opacity="i < (s.rateR ?? 0) ? 1 : 0.1"
-                  />
-                </template>
-              </template>
-              <template v-else>
-                <template v-for="(deg, i) in CLOCK_DEG" :key="'sn' + i">
-                  <path
-                    :d="arcPath(ARC_R_OUTER, 0.10)"
-                    :transform="`rotate(${deg})`"
-                    fill="none"
-                    :stroke="gw.fg"
-                    :stroke-width="3"
-                    stroke-linecap="round"
-                    :stroke-opacity="i < (s.rate ?? 0) ? 1 : 0.1"
-                  />
-                </template>
-              </template>
-              <!-- Glyph in center -->
-              <text
-                text-anchor="middle"
-                dominant-baseline="central"
-                :style="{ fontSize: '14px' }"
-              >{{ s.icon }}</text>
-            </template>
-
-            <!-- Variant C: LED dot ring -->
-            <template v-else-if="v.id === 'C'">
-              <template v-if="s.lr">
-                <!-- Outer dots L -->
-                <template v-for="(deg, i) in CLOCK_DEG" :key="'doutL' + i">
-                  <circle
-                    :cx="clockPos(deg, DOT_CLOCK_RADIUS_OUTER).x"
-                    :cy="clockPos(deg, DOT_CLOCK_RADIUS_OUTER).y"
-                    r="2.5"
-                    :fill="gw.leg.l"
-                    :opacity="i < (s.rateL ?? 0) ? 1 : 0.1"
-                  />
-                </template>
-                <!-- Inner dots R -->
-                <template v-for="(deg, i) in CLOCK_DEG" :key="'dinR' + i">
-                  <circle
-                    :cx="clockPos(deg, DOT_CLOCK_RADIUS_INNER).x"
-                    :cy="clockPos(deg, DOT_CLOCK_RADIUS_INNER).y"
-                    r="2.5"
-                    :fill="gw.leg.r"
-                    :opacity="i < (s.rateR ?? 0) ? 1 : 0.1"
-                  />
-                </template>
-              </template>
-              <template v-else>
-                <template v-for="(deg, i) in CLOCK_DEG" :key="'dsn' + i">
-                  <circle
-                    :cx="clockPos(deg, DOT_CLOCK_RADIUS_OUTER).x"
-                    :cy="clockPos(deg, DOT_CLOCK_RADIUS_OUTER).y"
-                    r="2.5"
-                    :fill="gw.fg"
-                    :opacity="i < (s.rate ?? 0) ? 1 : 0.1"
-                  />
-                </template>
-              </template>
-              <!-- Glyph in center -->
-              <text
-                text-anchor="middle"
-                dominant-baseline="central"
-                :style="{ fontSize: '14px' }"
-              >{{ s.icon }}</text>
-            </template>
-          </svg>
-          <span
+          <div
+            class="gw-glass"
             :style="{
-              fontSize: '11px',
-              color: gw.fg,
-              fontWeight: 600,
-              textAlign: 'center',
-              lineHeight: '1.2',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              position: 'relative',
             }"
-          >{{ s.name }}</span>
-          <span
-            :style="{
-              fontSize: '9px',
-              color: gw.fgMuted,
-              fontFamily: 'ui-monospace, monospace',
-            }"
-          >{{ s.lr ? `L${s.rateL ?? '—'} R${s.rateR ?? '—'}` : `r=${s.rate ?? '—'}` }}</span>
+          >
+            <svg width="56" height="56" viewBox="-28 -28 56 56" style="position: absolute; inset: 0;">
+              <!-- A2: Full ring, R outer + LED glow on filled arc -->
+              <template v-if="v.id === 'A2'">
+                <template v-if="s.lr">
+                  <!-- Outer R track -->
+                  <path :d="fullCircleTrack(FULL_RING_R_OUTER)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="3.5" />
+                  <!-- Outer R glow -->
+                  <path v-if="rateFrac(s.rateR) > 0"
+                    :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="6.5" stroke-opacity="0.55"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <!-- Outer R arc -->
+                  <path :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="3.5" stroke-linecap="round" />
+                  <!-- Inner L track -->
+                  <path :d="fullCircleTrack(FULL_RING_R_INNER)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="3.5" />
+                  <!-- Inner L glow -->
+                  <path v-if="rateFrac(s.rateL) > 0"
+                    :d="arcPathFraction(FULL_RING_R_INNER, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="6.5" stroke-opacity="0.55"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="arcPathFraction(FULL_RING_R_INNER, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="3.5" stroke-linecap="round" />
+                </template>
+                <template v-else>
+                  <path :d="fullCircleTrack(FULL_RING_R_OUTER)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="3.5" />
+                  <path v-if="rateFrac(s.rate) > 0"
+                    :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="6.5" stroke-opacity="0.55"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="3.5" stroke-linecap="round" />
+                </template>
+              </template>
+
+              <!-- V1: Bold semicircles -->
+              <template v-else-if="v.id === 'V1'">
+                <template v-if="s.lr">
+                  <!-- L: left semi, from 0 (top) CCW to -180 (bottom) — express as start=360 → end=180 -->
+                  <path :d="arcBetween(360, 180, SEMI_R)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="3.5" />
+                  <path v-if="rateFrac(s.rateL) > 0"
+                    :d="partialArc(360, 180, SEMI_R, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="6" stroke-opacity="0.55"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="partialArc(360, 180, SEMI_R, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="3.5" stroke-linecap="round" />
+                  <!-- R: right semi, from 0 CW to 180 -->
+                  <path :d="arcBetween(0, 180, SEMI_R)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="3.5" />
+                  <path v-if="rateFrac(s.rateR) > 0"
+                    :d="partialArc(0, 180, SEMI_R, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="6" stroke-opacity="0.55"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="partialArc(0, 180, SEMI_R, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="3.5" stroke-linecap="round" />
+                </template>
+                <template v-else>
+                  <!-- u: bottom semi from 90 (3 o'clock) CW through 180 (bottom) to 270 (9 o'clock) -->
+                  <path :d="arcBetween(90, 270, SEMI_R)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="3.5" />
+                  <path v-if="rateFrac(s.rate) > 0"
+                    :d="partialArc(90, 270, SEMI_R, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="6" stroke-opacity="0.55"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="partialArc(90, 270, SEMI_R, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="3.5" stroke-linecap="round" />
+                </template>
+              </template>
+
+              <!-- V2: Thin semicircles (1.5px) -->
+              <template v-else-if="v.id === 'V2'">
+                <template v-if="s.lr">
+                  <path :d="arcBetween(360, 180, SEMI_R)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="1.5" />
+                  <path :d="partialArc(360, 180, SEMI_R, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="1.5" stroke-linecap="round" />
+                  <path :d="arcBetween(0, 180, SEMI_R)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="1.5" />
+                  <path :d="partialArc(0, 180, SEMI_R, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="1.5" stroke-linecap="round" />
+                </template>
+                <template v-else>
+                  <path :d="arcBetween(90, 270, SEMI_R)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="1.5" />
+                  <path :d="partialArc(90, 270, SEMI_R, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="1.5" stroke-linecap="round" />
+                </template>
+              </template>
+
+              <!-- V3: Dashed semicircles -->
+              <template v-else-if="v.id === 'V3'">
+                <template v-if="s.lr">
+                  <template v-for="(p, i) in semicirclePositions(360, 180, 5, SEMI_R)" :key="'l' + i">
+                    <path :d="dashAt(p.deg, 20, SEMI_R)" fill="none"
+                      :stroke="gw.leg.l"
+                      :stroke-opacity="i < (s.rateL ?? 0) ? 1 : 0.1"
+                      stroke-width="3" stroke-linecap="round" />
+                  </template>
+                  <template v-for="(p, i) in semicirclePositions(0, 180, 5, SEMI_R)" :key="'r' + i">
+                    <path :d="dashAt(p.deg, 20, SEMI_R)" fill="none"
+                      :stroke="gw.leg.r"
+                      :stroke-opacity="i < (s.rateR ?? 0) ? 1 : 0.1"
+                      stroke-width="3" stroke-linecap="round" />
+                  </template>
+                </template>
+                <template v-else>
+                  <template v-for="(p, i) in semicirclePositions(90, 270, 5, SEMI_R)" :key="'u' + i">
+                    <path :d="dashAt(p.deg, 20, SEMI_R)" fill="none"
+                      :stroke="gw.fg"
+                      :stroke-opacity="i < (s.rate ?? 0) ? 1 : 0.1"
+                      stroke-width="3" stroke-linecap="round" />
+                  </template>
+                </template>
+              </template>
+
+              <!-- V4: Dot semicircles -->
+              <template v-else-if="v.id === 'V4'">
+                <template v-if="s.lr">
+                  <template v-for="(p, i) in semicirclePositions(360, 180, 5, SEMI_R)" :key="'dl' + i">
+                    <circle :cx="p.x" :cy="p.y" r="2.5" :fill="gw.leg.l" :opacity="i < (s.rateL ?? 0) ? 1 : 0.1" />
+                  </template>
+                  <template v-for="(p, i) in semicirclePositions(0, 180, 5, SEMI_R)" :key="'dr' + i">
+                    <circle :cx="p.x" :cy="p.y" r="2.5" :fill="gw.leg.r" :opacity="i < (s.rateR ?? 0) ? 1 : 0.1" />
+                  </template>
+                </template>
+                <template v-else>
+                  <template v-for="(p, i) in semicirclePositions(90, 270, 5, SEMI_R)" :key="'du' + i">
+                    <circle :cx="p.x" :cy="p.y" r="2.5" :fill="gw.fg" :opacity="i < (s.rate ?? 0) ? 1 : 0.1" />
+                  </template>
+                </template>
+              </template>
+
+              <!-- Center glyph -->
+              <text text-anchor="middle" dominant-baseline="central" :style="{ fontSize: '14px' }">{{ s.icon }}</text>
+
+              <!-- Defs for LED glow filter -->
+              <defs>
+                <filter id="gw-node-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+                </filter>
+              </defs>
+            </svg>
+          </div>
+          <span :style="{ fontSize: '11px', color: gw.fg, fontWeight: 600, textAlign: 'center', lineHeight: '1.2' }">{{ s.name }}</span>
+          <span :style="{ fontSize: '9px', color: gw.fgMuted, fontFamily: 'ui-monospace, monospace' }">{{ s.lr ? `L${s.rateL ?? '—'} R${s.rateR ?? '—'}` : `r=${s.rate ?? '—'}` }}</span>
         </div>
       </div>
     </section>
