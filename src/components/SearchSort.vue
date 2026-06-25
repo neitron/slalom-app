@@ -29,12 +29,14 @@ function onSortChange(ev: Event) {
       type="search"
       :value="search"
       :placeholder="placeholder"
-      class="flex-1 px-2.5 py-2 bg-card border border-border-2 rounded-lg text-sm text-fg placeholder:text-muted focus:outline-none focus:border-accent"
+      class="flex-1 px-2.5 py-2 gw-glass-strong focus:outline-none"
+      :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-body)' }"
       @input="onSearchInput"
     >
     <select
       :value="sort"
-      class="px-2 py-2 bg-card border border-border-2 rounded-lg text-xs text-muted cursor-pointer focus:outline-none focus:border-accent"
+      class="px-2 py-2 gw-glass-strong cursor-pointer focus:outline-none"
+      :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)', fontSize: 'var(--text-g-micro)' }"
       @change="onSortChange"
     >
       <option value="">A–Z</option>
@@ -43,3 +45,9 @@ function onSortChange(ev: Event) {
     </select>
   </div>
 </template>
+
+<style scoped>
+input::placeholder {
+  color: var(--color-g-fg-faint);
+}
+</style>
