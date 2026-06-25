@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Trick } from '../domain/types'
 import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
@@ -21,8 +21,15 @@ const otherAliases = computed(() =>
   props.trick.aliases.filter((a) => a !== props.trick.mainAlias),
 )
 
+const expanded = ref(false)
+
 function onCardClick() {
   emit('open', props.trick)
+}
+
+function onChevronClick(e: MouseEvent | KeyboardEvent) {
+  e.stopPropagation()
+  expanded.value = !expanded.value
 }
 
 function onVideoClick(e: MouseEvent) {
@@ -62,36 +69,31 @@ function onVideoClick(e: MouseEvent) {
       </div>
       <button
         type="button"
-        class="shrink-0 -mt-0.5 -mr-1 p-1.5 rounded transition-colors"
+        class="shrink-0 -mt-0.5 -mr-1 p-1.5 rounded transition-transform"
         :style="{
-          color: hasVideoLink ? 'var(--color-g-brand)' : 'var(--color-g-fg-muted)',
+          color: 'var(--color-g-fg-muted)',
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
         }"
-        :title="hasVideoLink ? 'Watch tutorial' : 'Search tutorial on YouTube'"
-        :aria-label="hasVideoLink ? 'Watch tutorial' : 'Search tutorial'"
-        @click="onVideoClick"
+        :aria-label="expanded ? 'Collapse details' : 'Expand details'"
+        :aria-expanded="expanded"
+        @click="onChevronClick"
+        @keydown.enter.stop="onChevronClick"
+        @keydown.space.prevent.stop="onChevronClick"
       >
         <svg
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          fill="currentColor"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z" />
+          <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-    </div>
-
-    <div
-      class="mt-0.5 truncate"
-      :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
-    >
-      <span>{{ trick.category }}</span>
-      <span v-if="otherAliases.length"> · aka {{ otherAliases.join(', ') }}</span>
-      <span
-        v-if="trick.tags.length"
-        :style="{ color: 'var(--color-g-brand-sky)' }"
-      > · {{ trick.tags.map(t => '#' + t).join(' ') }}</span>
     </div>
 
     <div class="mt-4">
@@ -101,6 +103,46 @@ function onVideoClick(e: MouseEvent) {
         :rate-r="trick.rateR"
         :lr="trick.lr"
       />
+    </div>
+
+    <div
+      v-if="expanded"
+      class="mt-3 pt-3 flex items-start gap-2"
+      :style="{
+        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+      }"
+    >
+      <div
+        class="flex-1 min-w-0 truncate"
+        :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
+      >
+        <span>{{ trick.category }}</span>
+        <span v-if="otherAliases.length"> · aka {{ otherAliases.join(', ') }}</span>
+        <span
+          v-if="trick.tags.length"
+          :style="{ color: 'var(--color-g-brand-sky)' }"
+        > · {{ trick.tags.map(t => '#' + t).join(' ') }}</span>
+      </div>
+      <button
+        type="button"
+        class="shrink-0 p-1.5 rounded transition-colors"
+        :style="{
+          color: hasVideoLink ? 'var(--color-g-brand)' : 'var(--color-g-fg-muted)',
+        }"
+        :title="hasVideoLink ? 'Watch tutorial' : 'Search tutorial on YouTube'"
+        :aria-label="hasVideoLink ? 'Watch tutorial' : 'Search tutorial'"
+        @click="onVideoClick"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z" />
+        </svg>
+      </button>
     </div>
   </div>
 </template>
