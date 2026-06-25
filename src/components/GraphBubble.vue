@@ -72,19 +72,20 @@ function startLink(side: 'L' | 'R' | null) {
     <Transition name="gb">
       <div
         ref="root"
-        class="fixed z-50 bg-card border border-border rounded-xl p-3 shadow-2xl w-[240px]"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
+        class="fixed z-50 gw-glass-strong p-3 w-[240px]"
+        :style="{ left: pos.left + 'px', top: pos.top + 'px', borderRadius: 'var(--radius-g-panel)' }"
         @click.stop
       >
         <div class="flex items-start gap-2 mb-2">
           <div class="text-2xl leading-none select-none">{{ trick.icon ?? '·' }}</div>
           <div class="flex-1 min-w-0">
-            <div class="font-semibold text-fg text-[15px] leading-tight truncate">{{ displayName(trick) }}</div>
-            <div class="text-[11px] text-muted mt-0.5">{{ meta }}</div>
+            <div class="font-semibold text-[15px] leading-tight truncate" :style="{ color: 'var(--color-g-fg)' }">{{ displayName(trick) }}</div>
+            <div class="text-[11px] mt-0.5" :style="{ color: 'var(--color-g-fg-muted)' }">{{ meta }}</div>
           </div>
           <button
             type="button"
-            class="text-muted text-base leading-none -mr-1 -mt-1 w-6 h-6 grid place-items-center"
+            class="text-base leading-none -mr-1 -mt-1 w-6 h-6 grid place-items-center"
+            :style="{ color: 'var(--color-g-fg-muted)' }"
             aria-label="Close"
             @click="emit('close')"
           >✕</button>
@@ -104,19 +105,22 @@ function startLink(side: 'L' | 'R' | null) {
         >
           <button
             type="button"
-            class="flex-1 py-1.5 rounded-lg border border-border-2 bg-card-2 text-fg text-xs"
+            class="flex-1 py-1.5 text-xs gw-glass"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
             @click="details"
           >Details</button>
           <template v-if="trick.lr">
             <button
               type="button"
-              class="flex-1 py-1.5 rounded-lg btn-l text-xs"
+              class="flex-1 py-1.5 btn-l text-xs"
+              :style="{ borderRadius: 'var(--radius-g-chip)' }"
               :class="{ 'opacity-40 pointer-events-none': sequenceMode }"
               @click="startLink('L')"
             >➕ from L</button>
             <button
               type="button"
-              class="flex-1 py-1.5 rounded-lg btn-r text-xs"
+              class="flex-1 py-1.5 btn-r text-xs"
+              :style="{ borderRadius: 'var(--radius-g-chip)' }"
               :class="{ 'opacity-40 pointer-events-none': sequenceMode }"
               @click="startLink('R')"
             >➕ from R</button>
@@ -124,7 +128,8 @@ function startLink(side: 'L' | 'R' | null) {
           <button
             v-else
             type="button"
-            class="flex-1 py-1.5 rounded-lg border border-border-2 bg-card-2 text-fg text-xs"
+            class="flex-1 py-1.5 text-xs gw-glass"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
             :class="{ 'opacity-40 pointer-events-none': sequenceMode }"
             @click="startLink(null)"
           >➕ Transition</button>
@@ -132,7 +137,8 @@ function startLink(side: 'L' | 'R' | null) {
 
         <div
           v-else
-          class="mt-3 text-[12px] text-accent leading-snug"
+          class="mt-3 text-[12px] leading-snug"
+          :style="{ color: 'var(--color-g-brand)' }"
         >
           Tap a target node to link…
         </div>

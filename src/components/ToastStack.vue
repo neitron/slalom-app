@@ -12,10 +12,10 @@ const ui = useUiStore()
       <div
         v-for="t in ui.toasts"
         :key="t.id"
-        class="pointer-events-auto max-w-md w-full px-3 py-2 rounded-lg border text-sm shadow-lg backdrop-blur flex items-start gap-2"
-        :class="t.kind === 'error'
-          ? 'bg-rate-bad/15 border-rate-bad/40 text-rate-bad'
-          : 'bg-card/90 border-border-2 text-fg'"
+        class="pointer-events-auto max-w-md w-full px-3 py-2 text-sm flex items-start gap-2 gw-glass-strong"
+        :style="t.kind === 'error'
+          ? { borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-danger)', border: '1px solid rgba(255,80,80,0.35)' }
+          : { borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
         role="status"
         @click="ui.dismissToast(t.id)"
       >
@@ -23,6 +23,7 @@ const ui = useUiStore()
         <button
           type="button"
           class="opacity-60 hover:opacity-100 -mr-1 -mt-0.5 text-base leading-none"
+          :style="{ color: 'inherit' }"
           aria-label="Dismiss"
           @click.stop="ui.dismissToast(t.id)"
         >×</button>

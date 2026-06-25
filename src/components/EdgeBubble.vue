@@ -112,20 +112,20 @@ function openDetails() {
     <Transition name="gb">
       <div
         ref="root"
-        class="fixed z-50 bg-card border border-border rounded-xl p-3 shadow-2xl w-[260px]"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
+        class="fixed z-50 gw-glass-strong p-3 w-[260px]"
+        :style="{ left: pos.left + 'px', top: pos.top + 'px', borderRadius: 'var(--radius-g-panel)' }"
         @click.stop
       >
         <div class="flex items-start gap-2 mb-2">
           <div class="flex-1 min-w-0 text-[13px] font-semibold leading-snug">
-            <span class="text-fg">{{ displayName(fromTrick) }}</span>
+            <span :style="{ color: 'var(--color-g-fg)' }">{{ displayName(fromTrick) }}</span>
             <span
               v-if="edge.fromSide"
               class="ml-1 font-bold"
               :style="{ color: sideColor(edge.fromSide) }"
             >({{ edge.fromSide }})</span>
-            <span class="mx-1.5 text-muted">{{ arrow }}</span>
-            <span class="text-fg">{{ displayName(toTrick) }}</span>
+            <span class="mx-1.5" :style="{ color: 'var(--color-g-fg-muted)' }">{{ arrow }}</span>
+            <span :style="{ color: 'var(--color-g-fg)' }">{{ displayName(toTrick) }}</span>
             <span
               v-if="edge.toSide"
               class="ml-1 font-bold"
@@ -134,7 +134,8 @@ function openDetails() {
           </div>
           <button
             type="button"
-            class="text-muted text-base leading-none -mr-1 -mt-1 w-6 h-6 grid place-items-center"
+            class="text-base leading-none -mr-1 -mt-1 w-6 h-6 grid place-items-center"
+            :style="{ color: 'var(--color-g-fg-muted)' }"
             aria-label="Close"
             @click="emit('close')"
           >✕</button>
@@ -150,12 +151,13 @@ function openDetails() {
             v-for="n in 5"
             :key="n"
             type="button"
-            class="py-1.5 rounded-md border border-border-2 bg-card-2 text-fg text-xs"
+            class="py-1.5 text-xs gw-glass"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
             @click="report(n)"
           >{{ n }}</button>
         </div>
 
-        <label class="flex items-center gap-2 mt-3 text-[12px] text-fg cursor-pointer select-none">
+        <label class="flex items-center gap-2 mt-3 text-[12px] cursor-pointer select-none" :style="{ color: 'var(--color-g-fg)' }">
           <input
             type="checkbox"
             :checked="edge.bidi"
@@ -167,16 +169,17 @@ function openDetails() {
 
         <button
           type="button"
-          class="w-full mt-2 py-1.5 rounded-md text-xs border border-border-2 bg-card-2 text-fg"
+          class="w-full mt-2 py-1.5 text-xs gw-glass"
+          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
           @click="openDetails"
         >Details</button>
 
         <button
           type="button"
-          class="w-full mt-2 py-1.5 rounded-md text-xs border"
-          :class="removeArmed
-            ? 'bg-danger text-fg border-danger'
-            : 'border-border-2 bg-card-2 text-muted'"
+          class="w-full mt-2 py-1.5 text-xs"
+          :style="removeArmed
+            ? { borderRadius: 'var(--radius-g-chip)', background: 'var(--color-g-danger)', color: 'var(--color-g-fg)', border: '1px solid var(--color-g-danger)' }
+            : { borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)', border: '1px solid rgba(255,255,255,0.10)' }"
           @click="onRemove"
         >{{ removeArmed ? 'Tap again to confirm' : 'Remove edge' }}</button>
       </div>

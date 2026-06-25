@@ -139,8 +139,8 @@ function close() {
         @click="close"
       >
         <div
-          class="bg-card border border-border rounded-2xl px-5 pt-5 pb-4 max-w-sm w-full shadow-2xl relative cursor-pointer"
-          :style="{ boxShadow: `0 10px 40px -10px ${COLOR[score]}66, 0 0 0 1px ${COLOR[score]}33` }"
+          class="gw-glass-strong px-5 pt-5 pb-4 max-w-sm w-full relative cursor-pointer"
+          :style="{ borderRadius: 'var(--radius-g-panel)', boxShadow: `0 10px 40px -10px ${COLOR[score]}66, 0 0 0 1px ${COLOR[score]}33` }"
           @click.stop="close"
         >
           <div class="flex items-start gap-3 pr-10">
@@ -151,13 +151,13 @@ function close() {
                 :style="{ color: COLOR[score] }"
               >
                 <template v-if="side">
-                  <span :style="{ color: side === 'L' ? 'var(--side-l)' : 'var(--side-r)' }">{{ side }}</span>
+                  <span :style="{ color: side === 'L' ? 'var(--color-g-leg-l)' : 'var(--color-g-leg-r)' }">{{ side }}</span>
                   · {{ score }}/5
                 </template>
                 <template v-else-if="contextLabel">{{ contextLabel }} · {{ score }}/5</template>
                 <template v-else>Rated {{ score }}/5</template>
               </div>
-              <p class="text-fg text-[15px] leading-snug">{{ message }}</p>
+              <p class="text-[15px] leading-snug" :style="{ color: 'var(--color-g-fg)' }">{{ message }}</p>
             </div>
           </div>
 
@@ -179,7 +179,7 @@ function close() {
                 cy="22"
                 :r="RING_R"
                 fill="none"
-                stroke="var(--border)"
+                stroke="rgba(255,255,255,0.15)"
                 stroke-width="2"
                 opacity="0.6"
               />
@@ -197,7 +197,7 @@ function close() {
                 style="transition: none"
               />
             </svg>
-            <span class="relative text-muted text-base leading-none">✕</span>
+            <span class="relative text-base leading-none" :style="{ color: 'var(--color-g-fg-muted)' }">✕</span>
           </button>
         </div>
       </div>
