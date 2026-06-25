@@ -424,7 +424,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         top: 'calc(env(safe-area-inset-top) + 56px)',
         left: '50%',
         transform: 'translateX(-50%)',
-        maxWidth: 'min(calc(100vw - 1.5rem), 420px)',
+        maxWidth: 'calc(100vw - 1.5rem)',
         width: 'auto',
         whiteSpace: 'normal',
         borderRadius: 'var(--radius-g-chip)',
