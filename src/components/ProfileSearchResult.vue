@@ -31,16 +31,18 @@ const chip = computed<string | null>(() => {
 <template>
   <RouterLink
     :to="`/u/${profile.nickname || profile.id}`"
-    class="flex items-center gap-3 p-2 rounded-lg hover:bg-border/40"
+    class="gw-glass flex items-center gap-3 p-2"
+    :style="{ borderRadius: 'var(--radius-g-chip)' }"
   >
     <AvatarBadge :profile="profile" size="md" />
     <div class="flex-1 min-w-0">
-      <div class="text-sm font-medium text-fg truncate">{{ nicknameDisplay(profile) }}</div>
-      <div class="text-[11px] text-muted truncate">@{{ profile.nickname || '—' }}</div>
+      <div class="text-sm font-medium truncate" :style="{ color: 'var(--color-g-fg)' }">{{ nicknameDisplay(profile) }}</div>
+      <div class="text-[11px] truncate" :style="{ color: 'var(--color-g-fg-muted)' }">@{{ profile.nickname || '—' }}</div>
     </div>
     <span
       v-if="chip"
-      class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-border/60 text-muted shrink-0"
+      class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0"
+      :style="{ background: 'var(--color-g-fg)10', color: 'var(--color-g-fg-muted)' }"
     >{{ chip }}</span>
   </RouterLink>
 </template>

@@ -22,9 +22,11 @@ const mono = computed(() => avatarMonogram(props.profile))
 
 <template>
   <div
-    class="rounded-full flex items-center justify-center font-semibold text-white select-none shrink-0"
+    class="rounded-full flex items-center justify-center font-semibold select-none shrink-0"
     :class="dims.box"
-    :style="profile?.avatarEmoji ? { background: '#2a2b35' } : { background: bg }"
+    :style="profile?.avatarEmoji
+      ? { background: 'var(--color-g-base-raised)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--color-g-fg)' }
+      : { background: bg, border: '1px solid rgba(255,255,255,0.10)', color: 'var(--color-g-fg)' }"
     :aria-label="profile?.nickname || mono"
   >
     <span v-if="profile?.avatarEmoji" :class="dims.emoji">{{ profile.avatarEmoji }}</span>

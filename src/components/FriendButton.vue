@@ -101,7 +101,8 @@ async function onUnblock() {
   <button
     v-else-if="state === 'no_nickname'"
     type="button"
-    class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm border border-border-2 text-muted cursor-not-allowed"
+    class="gw-glass-strong min-h-[44px] px-3 py-2.5 text-sm cursor-not-allowed"
+    :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)' }"
     :title="'Pick a nickname to send friend requests'"
     disabled
   >Add friend</button>
@@ -109,7 +110,8 @@ async function onUnblock() {
   <button
     v-else-if="state === 'none'"
     type="button"
-    class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm bg-accent text-bg font-semibold disabled:opacity-50"
+    class="min-h-[44px] px-3 py-2.5 text-sm font-semibold disabled:opacity-50"
+    :style="{ borderRadius: 'var(--radius-g-chip)', background: 'var(--color-g-brand)', color: 'var(--color-g-base)' }"
     :disabled="busy"
     @click="onSend"
   >{{ busy ? 'Sending…' : 'Add friend' }}</button>
@@ -117,7 +119,8 @@ async function onUnblock() {
   <button
     v-else-if="state === 'pending_outgoing'"
     type="button"
-    class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm border border-border-2 text-muted disabled:opacity-50"
+    class="gw-glass-strong min-h-[44px] px-3 py-2.5 text-sm disabled:opacity-50"
+    :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)' }"
     :disabled="busy"
     @click="onCancel"
   >{{ busy ? '…' : 'Requested · cancel' }}</button>
@@ -125,13 +128,15 @@ async function onUnblock() {
   <div v-else-if="state === 'pending_incoming'" class="flex gap-2">
     <button
       type="button"
-      class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm bg-accent text-bg font-semibold disabled:opacity-50"
+      class="min-h-[44px] px-3 py-2.5 text-sm font-semibold disabled:opacity-50"
+      :style="{ borderRadius: 'var(--radius-g-chip)', background: 'var(--color-g-brand)', color: 'var(--color-g-base)' }"
       :disabled="busy"
       @click="onAccept"
     >{{ busy ? '…' : 'Accept' }}</button>
     <button
       type="button"
-      class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm border border-border-2 text-muted disabled:opacity-50"
+      class="gw-glass-strong min-h-[44px] px-3 py-2.5 text-sm disabled:opacity-50"
+      :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)' }"
       :disabled="busy"
       @click="onDecline"
     >Decline</button>
@@ -140,7 +145,8 @@ async function onUnblock() {
   <button
     v-else-if="state === 'friends'"
     type="button"
-    class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm border border-border-2 text-muted disabled:opacity-50"
+    class="gw-glass-strong min-h-[44px] px-3 py-2.5 text-sm disabled:opacity-50"
+    :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)' }"
     :disabled="busy"
     @click="onUnfriend"
   >{{ busy ? '…' : 'Friends · unfriend' }}</button>
@@ -148,13 +154,15 @@ async function onUnblock() {
   <button
     v-else-if="state === 'blocked_by_me'"
     type="button"
-    class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm border border-rate-bad/40 text-rate-bad disabled:opacity-50"
+    class="min-h-[44px] px-3 py-2.5 text-sm disabled:opacity-50"
+    :style="{ borderRadius: 'var(--radius-g-chip)', background: 'var(--color-g-danger)', color: 'var(--color-g-fg)' }"
     :disabled="busy"
     @click="onUnblock"
   >{{ busy ? '…' : 'Unblock' }}</button>
 
   <span
     v-else-if="state === 'blocked_by_them'"
-    class="min-h-[44px] px-3 py-2.5 rounded-lg text-sm border border-border-2 text-muted"
+    class="gw-glass-strong min-h-[44px] px-3 py-2.5 text-sm"
+    :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg-muted)' }"
   >Unavailable</span>
 </template>

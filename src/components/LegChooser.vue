@@ -13,18 +13,20 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="inline-flex items-center gap-2 bg-card border border-border rounded-xl p-2 shadow-2xl">
-    <span class="text-[11px] text-muted px-1">
+  <div class="gw-glass-strong inline-flex items-center gap-2 p-2 shadow-2xl" :style="{ borderRadius: 'var(--radius-g-panel)' }">
+    <span class="text-[11px] px-1" :style="{ color: 'var(--color-g-fg-muted)' }">
       {{ leg === 'from' ? 'from' : leg === 'to' ? 'to' : 'step' }} {{ displayName(trick) }}:
     </span>
     <button
       type="button"
-      class="px-3 py-1.5 rounded-lg btn-l text-sm font-semibold"
+      class="px-3 py-1.5 text-sm font-semibold"
+      :style="{ borderRadius: 'var(--radius-g-chip)', background: 'var(--color-g-leg-l)', color: 'var(--color-g-base)' }"
       @click="emit('chose', 'L')"
     >L</button>
     <button
       type="button"
-      class="px-3 py-1.5 rounded-lg btn-r text-sm font-semibold"
+      class="px-3 py-1.5 text-sm font-semibold"
+      :style="{ borderRadius: 'var(--radius-g-chip)', background: 'var(--color-g-leg-r)', color: 'var(--color-g-base)' }"
       @click="emit('chose', 'R')"
     >R</button>
   </div>
