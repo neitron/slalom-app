@@ -40,6 +40,12 @@ const routes: RouteRecordRaw[] = [
           component: () => import('./pages/spec/EdgeOptions.vue'),
           meta: { hideTabs: true },
         } as RouteRecordRaw,
+        {
+          path: '/spec/selection-options',
+          name: 'spec-selection-options',
+          component: () => import('./pages/spec/SelectionOptions.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
       ]
     : []),
 ]
