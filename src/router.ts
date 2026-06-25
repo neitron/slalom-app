@@ -34,6 +34,12 @@ const routes: RouteRecordRaw[] = [
           component: () => import('./pages/spec/NodeOptions.vue'),
           meta: { hideTabs: true },
         } as RouteRecordRaw,
+        {
+          path: '/spec/edge-options',
+          name: 'spec-edge-options',
+          component: () => import('./pages/spec/EdgeOptions.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
       ]
     : []),
 ]
