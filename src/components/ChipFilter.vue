@@ -46,12 +46,11 @@ function toggle(value: string) {
       v-for="o in options"
       :key="o.value"
       type="button"
-      class="shrink-0 px-3 py-1 rounded-full text-xs whitespace-nowrap border transition-colors"
-      :class="
-        isActive(o.value)
-          ? 'bg-accent text-bg border-accent font-semibold'
-          : 'bg-card border-border-2 text-muted hover:text-fg'
-      "
+      class="shrink-0 px-3 py-1 text-xs whitespace-nowrap transition-colors"
+      :class="isActive(o.value) ? 'font-semibold' : 'gw-glass-strong'"
+      :style="isActive(o.value)
+        ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)' }
+        : { color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)' }"
       @click="toggle(o.value)"
     >
       {{ o.label }}<span
