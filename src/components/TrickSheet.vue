@@ -210,6 +210,19 @@ function openVideo() {
 }
 
 const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null))
+
+const detailItems = computed(() => {
+  const t = trick.value
+  if (!t) return []
+  return [
+    { label: 'Tier',     value: TIERS[t.tier] ?? '—', isStatus: false },
+    { label: 'Category', value: t.category   ?? '—', isStatus: false },
+    { label: 'Entry',    value: t.entry      ?? '—', isStatus: false },
+    { label: 'Exit',     value: t.exit       ?? '—', isStatus: false },
+    { label: 'Status',   value: status(t),             isStatus: true  },
+    { label: 'Last',     value: t.last       ?? '—', isStatus: false },
+  ]
+})
 </script>
 
 <template>
@@ -296,24 +309,51 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
         >Clear</button>
       </div>
 
-      <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-        <dt class="text-muted">Tier</dt><dd>{{ TIERS[trick.tier] }}</dd>
-        <dt class="text-muted">Category</dt><dd>{{ trick.category }}</dd>
-        <dt class="text-muted">Entry</dt><dd>{{ trick.entry }}</dd>
-        <dt class="text-muted">Exit</dt><dd>{{ trick.exit }}</dd>
-        <dt class="text-muted">Status</dt>
-        <dd>
-          <span
-            class="inline-block w-1.5 h-1.5 rounded-full align-middle mr-1.5"
+      <dl
+        class="grid grid-cols-2 mt-3"
+        :style="{
+          borderRadius: 'var(--radius-g-chip)',
+          overflow: 'hidden',
+        }"
+      >
+        <div
+          v-for="(item, idx) in detailItems"
+          :key="item.label"
+          class="px-3 py-2"
+          :style="{
+            borderTop: idx >= 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+            borderLeft: idx % 2 === 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          }"
+        >
+          <dt
+            class="uppercase tracking-wide"
             :style="{
-              background:
-                effRate(trick) == null ? 'var(--rate-none)' :
-                (effRate(trick) ?? 0) >= 4 ? 'var(--rate-good)' :
-                (effRate(trick) ?? 0) >= 2.5 ? 'var(--rate-mid)' : 'var(--rate-bad)'
+              fontSize: '10px',
+              color: 'var(--color-g-fg-muted)',
+              letterSpacing: '0.04em',
             }"
-          />{{ status(trick) }}
-        </dd>
-        <dt class="text-muted">Last</dt><dd>{{ trick.last ?? '—' }}</dd>
+          >{{ item.label }}</dt>
+          <dd
+            class="mt-0.5 truncate"
+            :style="{
+              fontSize: 'var(--text-g-body)',
+              color: 'var(--color-g-fg)',
+            }"
+          >
+            <template v-if="item.isStatus">
+              <span
+                class="inline-block w-1.5 h-1.5 rounded-full align-middle mr-1"
+                :style="{
+                  background:
+                    effRate(trick) == null ? 'var(--rate-none)' :
+                    (effRate(trick) ?? 0) >= 4 ? 'var(--rate-good)' :
+                    (effRate(trick) ?? 0) >= 2.5 ? 'var(--rate-mid)' : 'var(--rate-bad)'
+                }"
+              />{{ item.value }}
+            </template>
+            <template v-else>{{ item.value }}</template>
+          </dd>
+        </div>
       </dl>
 
       <section class="mt-4">
