@@ -13,7 +13,7 @@ import {
   toggleLrOff,
   toggleLrOn,
 } from '../domain/rating';
-import type { Category, Side, Tier, Trick } from '../domain/types';
+import type { Category, Side, Tier, Trick, TrickStatus } from '../domain/types';
 
 export type SortKey = 'name' | 'best' | 'worst';
 
@@ -23,6 +23,7 @@ export interface FilterOpts {
   search?: string;
   sort?: SortKey;
   practicedOnly?: boolean;
+  status?: TrickStatus | null;
 }
 
 const sorters: Record<SortKey, (a: Trick, b: Trick) => number> = {
@@ -67,6 +68,7 @@ export const useTricksStore = defineStore('tricks', {
           search = '',
           sort = 'name',
           practicedOnly = false,
+          status = null,
         } = opts;
         let list = state.tricks.slice();
         if (tier != null) list = list.filter((t) => t.tier === tier);
@@ -74,6 +76,7 @@ export const useTricksStore = defineStore('tricks', {
           list = list.filter((t) => t.category === category);
         if (search) list = list.filter((t) => matchesQuery(t, search));
         if (practicedOnly) list = list.filter((t) => hasRate(t));
+        if (status != null) list = list.filter((t) => t.status === status);
         list.sort(sorters[sort]);
         return list;
       };
