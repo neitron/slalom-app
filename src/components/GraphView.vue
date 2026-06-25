@@ -559,6 +559,9 @@ const gridDots = computed<GridDot[]>(() => {
       @click="onSvgClick"
     >
       <defs>
+        <filter id="gw-edge-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
+        </filter>
         <marker
           v-for="m in [
             { id: 'slalom-arr-l', color: sideColor('L') },
@@ -603,24 +606,31 @@ const gridDots = computed<GridDot[]>(() => {
           />
         </g>
         <g class="slalom-edges">
-          <g v-for="r in edgeRenders" :key="(r.edge.id ?? '') + ':' + r.d" class="slalom-edge">
+          <template v-for="r in edgeRenders" :key="(r.edge.id ?? '') + ':' + r.d">
+            <!-- Glow layer: soft brand halo behind highlighted edge -->
             <path
               v-if="r.edge.id && r.edge.id === highlightEdgeId"
               :d="r.d"
               fill="none"
-              stroke="#ffffff"
-              stroke-opacity="0.35"
-              :stroke-width="9"
+              stroke="var(--color-g-brand)"
+              stroke-width="6"
+              stroke-opacity="0.5"
               stroke-linecap="round"
+              filter="url(#gw-edge-glow)"
+              pointer-events="none"
             />
+            <!-- Crisp line -->
             <path
               :d="r.d"
               fill="none"
-              :stroke="r.stroke"
-              :stroke-width="r.edge.id === highlightEdgeId ? 3 : 2"
+              :stroke="r.edge.id === highlightEdgeId ? 'var(--color-g-brand)' : 'var(--color-g-fg)'"
+              :stroke-width="r.edge.id === highlightEdgeId ? 2 : 1.5"
+              :stroke-opacity="r.edge.id === highlightEdgeId ? 1 : 0.25"
+              stroke-linecap="round"
               :marker-end="`url(#${r.markerEnd})`"
               :marker-start="r.edge.bidi ? `url(#${r.markerStart})` : undefined"
             />
+            <!-- Wide transparent hit-target for click -->
             <path
               :d="r.d"
               fill="none"
@@ -629,7 +639,7 @@ const gridDots = computed<GridDot[]>(() => {
               style="cursor: pointer"
               @click="onEdgeClick($event, r)"
             />
-          </g>
+          </template>
         </g>
         <g class="slalom-nodes">
           <g
