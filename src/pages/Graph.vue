@@ -419,16 +419,32 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
 
     <div
       v-if="linkSourceId"
-      class="fixed top-2 left-2 right-2 z-40 bg-card border border-accent rounded-lg px-3 py-2 flex items-center gap-2 shadow-lg text-sm"
+      class="fixed z-40 flex items-center gap-2 shadow-lg"
+      :style="{
+        top: 'calc(env(safe-area-inset-top) + 56px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        maxWidth: 'min(calc(100vw - 1.5rem), 420px)',
+        width: 'max-content',
+        borderRadius: 'var(--radius-g-chip)',
+        padding: '8px 12px',
+        background: 'rgba(255, 255, 255, 0.10)',
+        backdropFilter: 'blur(12px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+        border: '1px solid var(--color-g-brand)',
+        color: 'var(--color-g-fg)',
+        fontSize: 'var(--text-g-body)',
+      }"
     >
-      <span class="flex-1 truncate text-fg">
+      <span class="flex-1 truncate">
         Linking from
-        <span class="font-semibold">{{ linkingHintName }}</span>.
+        <span :style="{ fontWeight: 600 }">{{ linkingHintName }}</span>.
         Tap target trick.
       </span>
       <button
         type="button"
-        class="text-muted hover:text-fg px-1"
+        :style="{ color: 'var(--color-g-fg-muted)' }"
+        class="px-1"
         aria-label="Cancel linking"
         @click="cancelLinking"
       >✕ cancel</button>
@@ -490,8 +506,11 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       v-if="sequenceMode"
       class="fixed z-40 gw-glass-strong"
       :style="{
-        left: 'calc(env(safe-area-inset-left) + 0.75rem)',
-        right: 'calc(env(safe-area-inset-right) + 0.75rem)',
+        left: '50%',
+        right: 'auto',
+        transform: 'translateX(-50%)',
+        maxWidth: 'min(calc(100vw - 1.5rem), 420px)',
+        width: 'max-content',
         bottom: 'calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 0.5rem + 0.5rem)',
         borderRadius: 'var(--radius-g-panel)',
         padding: '12px 14px',

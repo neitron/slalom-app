@@ -575,7 +575,13 @@ function resetView(): void {
   const svg = svgRef.value;
   const z = zoomBehavior.value;
   if (!svg || !z) return;
-  select(svg).transition().duration(180).call(z.transform, zoomIdentity);
+  const rect = svg.getBoundingClientRect();
+  const cx = (rect?.width ?? 0) / 2;
+  const cy = (rect?.height ?? 0) / 2;
+  select(svg).transition().duration(180).call(
+    z.transform,
+    zoomIdentity.translate(cx, cy).scale(1),
+  );
 }
 
 onMounted(() => {
@@ -630,7 +636,10 @@ const GRID_DOT_R = 1.0           // uniform dot radius
 const GOLDEN_ANGLE_RAD = Math.PI * (3 - Math.sqrt(5)) // ≈ 137.508° in radians
 
 const gridPath = computed<string>(() => {
-  const parts: string[] = []
+  // Origin dot — ensures the visual centre of the spiral is occupied
+  const parts: string[] = [
+    `M 0 0 m ${-GRID_DOT_R} 0 a ${GRID_DOT_R} ${GRID_DOT_R} 0 1 0 ${GRID_DOT_R * 2} 0 a ${GRID_DOT_R} ${GRID_DOT_R} 0 1 0 ${-GRID_DOT_R * 2} 0`,
+  ]
   for (let i = 1; i <= GRID_DOT_COUNT; i++) {
     const angle = i * GOLDEN_ANGLE_RAD
     const radius = GRID_SCALE * Math.sqrt(i)
@@ -858,6 +867,17 @@ function nextSpawnPosition(): { x: number; y: number } {
                 stroke="url(#gw-node-stroke)"
                 stroke-width="1"
               />
+              <!-- S3 selected: thin brand border on the node circle itself -->
+              <circle
+                v-if="t.id === highlightNodeId"
+                :cx="positions[t.id].x"
+                :cy="positions[t.id].y"
+                :r="NODE_R"
+                fill="none"
+                stroke="var(--color-g-brand)"
+                stroke-width="1.5"
+                pointer-events="none"
+              />
 
               <!-- W6 rate semicircles -->
               <template v-if="t.lr">
@@ -995,7 +1015,12 @@ function nextSpawnPosition(): { x: number; y: number } {
         </g>
       </g>
     </svg>
-    <div class="absolute bottom-3 right-3 flex flex-col gap-1.5">
+    <div
+      class="absolute right-3 flex flex-col gap-1.5"
+      :style="{
+        bottom: 'calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 1.5rem)',
+      }"
+    >
       <button
         type="button"
         class="w-9 h-9 rounded-md bg-card border border-border text-fg text-lg leading-none flex items-center justify-center active:opacity-70"
