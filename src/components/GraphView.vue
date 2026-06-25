@@ -178,19 +178,6 @@ const markerIdFor = (c: string): string => {
   return 'slalom-arr-n';
 };
 
-function midpointX(r: EdgeRender): number {
-  const a = positions.value[r.edge.from];
-  const b = positions.value[r.edge.to];
-  if (!a || !b) return 0;
-  return (a.x + b.x) / 2;
-}
-
-function midpointY(r: EdgeRender): number {
-  const a = positions.value[r.edge.from];
-  const b = positions.value[r.edge.to];
-  if (!a || !b) return 0;
-  return (a.y + b.y) / 2;
-}
 
 const edgeRenders = computed<EdgeRender[]>(() => {
   const list = graphEdges.value;
@@ -786,17 +773,6 @@ function nextSpawnPosition(): { x: number; y: number } {
               :marker-end="r.edge.bidi ? undefined : `url(#${r.markerEnd})`"
               :marker-start="undefined"
             />
-            <!-- Bidi midpoint diamond -->
-            <g
-              v-if="r.edge.bidi && r.edge.from !== r.edge.to"
-              :transform="`translate(${midpointX(r)}, ${midpointY(r)}) rotate(45)`"
-              pointer-events="none"
-            >
-              <rect x="-3" y="-3" width="6" height="6"
-                :fill="legSideColor(r.edge.fromSide)"
-                fill-opacity="0.7"
-              />
-            </g>
             <!-- Wide transparent hit-target for click -->
             <path
               :d="r.d"
