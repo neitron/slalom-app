@@ -12,6 +12,7 @@ import RateButtons from './RateButtons.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
 
 const panelRef = ref<HTMLElement | null>(null)
+const scrollAreaRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
 const dragging = ref(false)
 let startY = 0
@@ -20,7 +21,7 @@ let active = false
 const CLOSE_THRESHOLD = 100
 
 function onTouchStart(e: TouchEvent) {
-  startScrollTop = panelRef.value?.scrollTop ?? 0
+  startScrollTop = scrollAreaRef.value?.scrollTop ?? 0
   startY = e.touches[0].clientY
   active = false
   dragY.value = 0
@@ -59,7 +60,7 @@ const isOpen = computed(() => !!trick.value)
 
 useSheetViewport(panelRef, isOpen)
 
-const editingEmoji = ref(false)
+const editMode = ref(false)
 const emojiDraft = ref('')
 const aliasDraft = ref('')
 const tagDraft = ref('')
@@ -98,7 +99,7 @@ async function doReset() {
 watch(
   () => trick.value?.id,
   (id) => {
-    editingEmoji.value = false
+    editMode.value = false
     emojiDraft.value = trick.value?.icon ?? ''
     aliasDraft.value = ''
     tagDraft.value = ''
@@ -152,7 +153,6 @@ async function saveEmoji() {
   if (!trick.value?.id) return
   const v = emojiDraft.value.trim()
   await tricksStore.updateEmoji(trick.value.id, v || null)
-  editingEmoji.value = false
 }
 
 async function clearEmoji() {
@@ -241,7 +241,7 @@ const detailItems = computed(() => {
 
       <div
         ref="panelRef"
-        class="sheet-panel relative w-full gw-glass-strong p-4 pt-2 max-h-[90dvh] overflow-y-auto touch-pan-y overscroll-contain"
+        class="sheet-panel relative w-full gw-glass-strong max-h-[90dvh] flex flex-col touch-pan-y overscroll-contain"
         :style="{
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.2s ease-out',
@@ -253,274 +253,303 @@ const detailItems = computed(() => {
         @touchend="onTouchEnd"
         @touchcancel="onTouchEnd"
       >
-      <div class="flex justify-center pb-2 -mt-1 cursor-grab active:cursor-grabbing">
-        <div class="w-10 h-1 rounded-full bg-border-2" />
-      </div>
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="p-1 text-lg"
-          :class="trick.fav ? 'text-fav' : 'text-muted hover:text-fav'"
-          :aria-label="trick.fav ? 'Unfavorite' : 'Favorite'"
-          @click="toggleFav"
-        >★</button>
-        <span v-if="trick.icon" class="text-xl leading-none">{{ trick.icon }}</span>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-semibold truncate">{{ displayName(trick) }}</h2>
-          <p
-            v-if="trick.mainAlias && trick.mainAlias !== trick.name"
-            class="text-[11px] text-muted truncate"
-          >Original: {{ trick.name }}</p>
-        </div>
-        <button
-          type="button"
-          class="p-1 text-muted hover:text-fg"
-          aria-label="Edit emoji"
-          @click="editingEmoji = !editingEmoji"
-        >✎</button>
-        <button
-          type="button"
-          class="p-1 text-muted hover:text-fg"
-          aria-label="Close"
-          @click="close"
-        >✕</button>
-      </div>
-
-      <div
-        v-if="editingEmoji"
-        class="mt-2 flex gap-2 items-center"
-      >
-        <input
-          v-model="emojiDraft"
-          type="text"
-          maxlength="4"
-          placeholder="emoji"
-          class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
-        >
-        <button
-          type="button"
-          class="px-2.5 py-1.5 rounded bg-accent text-bg text-xs font-semibold"
-          @click="saveEmoji"
-        >Save</button>
-        <button
-          type="button"
-          class="px-2.5 py-1.5 rounded border border-border-2 text-muted text-xs"
-          @click="clearEmoji"
-        >Clear</button>
-      </div>
-
-      <dl
-        class="grid grid-cols-2 mt-3"
-        :style="{
-          borderRadius: 'var(--radius-g-chip)',
-          overflow: 'hidden',
-        }"
-      >
-        <div
-          v-for="(item, idx) in detailItems"
-          :key="item.label"
-          class="px-3 py-2"
-          :style="{
-            borderTop: idx >= 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-            borderLeft: idx % 2 === 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-          }"
-        >
-          <dt
-            class="uppercase tracking-wide"
-            :style="{
-              fontSize: '10px',
-              color: 'var(--color-g-fg-muted)',
-              letterSpacing: '0.04em',
-            }"
-          >{{ item.label }}</dt>
-          <dd
-            class="mt-0.5 truncate"
-            :style="{
-              fontSize: 'var(--text-g-body)',
-              color: 'var(--color-g-fg)',
-            }"
-          >
-            <template v-if="item.isStatus">
-              <span
-                class="inline-block w-1.5 h-1.5 rounded-full align-middle mr-1"
-                :style="{
-                  background:
-                    effRate(trick) == null ? 'var(--rate-none)' :
-                    (effRate(trick) ?? 0) >= 4 ? 'var(--rate-good)' :
-                    (effRate(trick) ?? 0) >= 2.5 ? 'var(--rate-mid)' : 'var(--rate-bad)'
-                }"
-              />{{ item.value }}
-            </template>
-            <template v-else>{{ item.value }}</template>
-          </dd>
-        </div>
-      </dl>
-
-      <section class="mt-4">
-        <div class="flex items-center justify-between mb-1">
-          <h3 class="text-xs uppercase tracking-wide text-muted">Aliases</h3>
-          <span class="text-[10px] text-muted">tap ★ to set display name</span>
-        </div>
-        <div class="flex flex-wrap gap-1.5 mb-2">
-          <span
-            v-for="a in trick.aliases"
-            :key="a"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs"
-            :class="trick.mainAlias === a
-              ? 'bg-accent/15 border-accent text-fg'
-              : 'bg-card-2 border-border-2'"
-          >
+        <!-- Scrollable body -->
+        <div ref="scrollAreaRef" class="flex-1 overflow-y-auto p-4 pt-2">
+          <div class="flex justify-center pb-2 -mt-1 cursor-grab active:cursor-grabbing">
+            <div class="w-10 h-1 rounded-full bg-border-2" />
+          </div>
+          <div class="flex items-center gap-2">
             <button
               type="button"
-              class="leading-none"
-              :class="trick.mainAlias === a ? 'text-accent' : 'text-muted hover:text-fg'"
-              :aria-label="trick.mainAlias === a ? `clear main alias` : `set ${a} as main`"
-              @click="toggleMainAlias(a)"
-            >{{ trick.mainAlias === a ? '★' : '☆' }}</button>
-            {{ a }}
+              class="p-1 text-lg"
+              :class="trick.fav ? 'text-fav' : 'text-muted hover:text-fav'"
+              :aria-label="trick.fav ? 'Unfavorite' : 'Favorite'"
+              @click="toggleFav"
+            >★</button>
+            <span v-if="trick.icon" class="text-xl leading-none">{{ trick.icon }}</span>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-lg font-semibold truncate">{{ displayName(trick) }}</h2>
+              <p
+                v-if="trick.mainAlias && trick.mainAlias !== trick.name"
+                class="text-[11px] text-muted truncate"
+              >Original: {{ trick.name }}</p>
+            </div>
             <button
               type="button"
-              class="text-muted hover:text-danger"
-              :aria-label="`remove ${a}`"
-              @click="removeAlias(a)"
-            >×</button>
-          </span>
-          <span v-if="!trick.aliases.length" class="text-xs text-muted">none</span>
-        </div>
-        <div class="flex gap-2">
-          <input
-            v-model="aliasDraft"
-            type="text"
-            placeholder="add alias"
-            class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
-            @keydown.enter.prevent="addAlias"
-          >
-          <button
-            type="button"
-            class="px-2.5 py-1.5 rounded border border-border-2 text-xs"
-            @click="addAlias"
-          >Add</button>
-        </div>
-      </section>
-
-      <section class="mt-4">
-        <h3 class="text-xs uppercase tracking-wide text-muted mb-1">Tags</h3>
-        <div class="flex flex-wrap gap-1.5 mb-2">
-          <span
-            v-for="tg in trick.tags"
-            :key="tg"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-card-2 border border-border-2 text-xs text-accent"
-          >
-            #{{ tg }}
-            <button
-              type="button"
-              class="text-muted hover:text-danger"
-              :aria-label="`remove ${tg}`"
-              @click="removeTag(tg)"
-            >×</button>
-          </span>
-          <span v-if="!trick.tags.length" class="text-xs text-muted">none</span>
-        </div>
-        <div class="flex gap-2">
-          <input
-            v-model="tagDraft"
-            type="text"
-            placeholder="add tag"
-            class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
-            @keydown.enter.prevent="addTag"
-          >
-          <button
-            type="button"
-            class="px-2.5 py-1.5 rounded border border-border-2 text-xs"
-            @click="addTag"
-          >Add</button>
-        </div>
-      </section>
-
-      <section class="mt-4">
-        <h3 class="text-xs uppercase tracking-wide text-muted mb-1">Pinned video</h3>
-        <div class="flex gap-2">
-          <input
-            v-model="videoDraft"
-            type="url"
-            placeholder="https://youtube.com/…"
-            class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
-          >
-          <button
-            type="button"
-            class="px-2.5 py-1.5 rounded border border-border-2 text-xs"
-            @click="saveVideo"
-          >Save</button>
-          <button
-            type="button"
-            class="px-2.5 py-1.5 rounded text-xs"
-            :class="video?.concrete ? 'bg-accent text-bg font-semibold' : 'border border-border-2 text-muted'"
-            @click="openVideo"
-          >{{ video?.concrete ? 'Watch' : 'Search' }}</button>
-        </div>
-      </section>
-
-      <section class="mt-5">
-        <RateDots
-          :rate="trick.rate"
-          :rate-l="trick.rateL"
-          :rate-r="trick.rateR"
-          :lr="trick.lr"
-          size="md"
-        />
-      </section>
-
-      <section class="mt-3">
-        <div class="flex flex-col gap-2">
-          <div
-            class="gw-glass-strong flex p-0.5 self-start"
-            :style="{ borderRadius: 'var(--radius-g-chip)' }"
-            role="radiogroup"
-            aria-label="Rate mode"
-          >
-            <button
-              type="button"
-              class="px-3 py-1 transition-all duration-150 font-semibold"
+              class="p-1.5"
               :style="{
-                background: !trick.lr ? 'var(--color-g-fg)' : 'transparent',
-                color: !trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
-                borderRadius: 'calc(var(--radius-g-chip) - 2px)',
-                fontSize: 'var(--text-g-micro)',
+                borderRadius: 'var(--radius-g-chip)',
+                color: editMode ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                background: editMode ? 'var(--color-g-fg)' : 'transparent',
               }"
-              :aria-pressed="!trick.lr"
-              @click="onModeChange(false)"
-            >Both legs</button>
+              :aria-label="editMode ? 'Exit edit mode' : 'Edit trick'"
+              :aria-pressed="editMode"
+              @click="editMode = !editMode"
+            >✎</button>
             <button
               type="button"
-              class="px-3 py-1 transition-all duration-150 font-semibold"
-              :style="{
-                background: trick.lr ? 'var(--color-g-fg)' : 'transparent',
-                color: trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
-                borderRadius: 'calc(var(--radius-g-chip) - 2px)',
-                fontSize: 'var(--text-g-micro)',
-              }"
-              :aria-pressed="trick.lr"
-              @click="onModeChange(true)"
-            >Per leg</button>
+              class="p-1 text-muted hover:text-fg"
+              aria-label="Close"
+              @click="close"
+            >✕</button>
           </div>
 
-          <RateButtons
-            :lr="trick.lr"
-            @report="onReport"
-          />
-        </div>
-      </section>
+          <!-- Emoji edit — only in edit mode -->
+          <div
+            v-if="editMode"
+            class="mt-2 flex gap-2 items-center"
+          >
+            <input
+              v-model="emojiDraft"
+              type="text"
+              maxlength="4"
+              placeholder="emoji"
+              class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
+            >
+            <button
+              type="button"
+              class="px-2.5 py-1.5 rounded bg-accent text-bg text-xs font-semibold"
+              @click="saveEmoji"
+            >Save</button>
+            <button
+              type="button"
+              class="px-2.5 py-1.5 rounded border border-border-2 text-muted text-xs"
+              @click="clearEmoji"
+            >Clear</button>
+          </div>
 
-      <section class="mt-5 pt-3 border-t border-border">
-        <button
-          type="button"
-          class="w-full py-2 rounded-lg text-sm transition-colors"
-          :class="resetArmed
-            ? 'bg-danger text-fg font-semibold'
-            : 'border border-border-2 text-muted hover:text-danger'"
-          @click="armReset"
-        >{{ resetArmed ? 'Tap again to confirm reset' : 'Reset progress' }}</button>
-      </section>
+          <dl
+            class="grid grid-cols-2 mt-3"
+            :style="{
+              borderRadius: 'var(--radius-g-chip)',
+              overflow: 'hidden',
+            }"
+          >
+            <div
+              v-for="(item, idx) in detailItems"
+              :key="item.label"
+              class="px-3 py-2"
+              :style="{
+                borderTop: idx >= 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                borderLeft: idx % 2 === 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              }"
+            >
+              <dt
+                class="uppercase tracking-wide"
+                :style="{
+                  fontSize: '10px',
+                  color: 'var(--color-g-fg-muted)',
+                  letterSpacing: '0.04em',
+                }"
+              >{{ item.label }}</dt>
+              <dd
+                class="mt-0.5 truncate"
+                :style="{
+                  fontSize: 'var(--text-g-body)',
+                  color: 'var(--color-g-fg)',
+                }"
+              >
+                <template v-if="item.isStatus">
+                  <span
+                    class="inline-block w-1.5 h-1.5 rounded-full align-middle mr-1"
+                    :style="{
+                      background:
+                        effRate(trick) == null ? 'var(--rate-none)' :
+                        (effRate(trick) ?? 0) >= 4 ? 'var(--rate-good)' :
+                        (effRate(trick) ?? 0) >= 2.5 ? 'var(--rate-mid)' : 'var(--rate-bad)'
+                    }"
+                  />{{ item.value }}
+                </template>
+                <template v-else>{{ item.value }}</template>
+              </dd>
+            </div>
+          </dl>
+
+          <!-- Aliases — hidden in view mode when empty -->
+          <section v-if="trick.aliases.length > 0 || editMode" class="mt-4">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-xs uppercase tracking-wide text-muted">Aliases</h3>
+              <span v-if="editMode" class="text-[10px] text-muted">tap ★ to set display name</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span
+                v-for="a in trick.aliases"
+                :key="a"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs"
+                :class="trick.mainAlias === a
+                  ? 'bg-accent/15 border-accent text-fg'
+                  : 'bg-card-2 border-border-2'"
+              >
+                <!-- Star toggle: only in edit mode; static star marker in view mode -->
+                <button
+                  v-if="editMode"
+                  type="button"
+                  class="leading-none"
+                  :class="trick.mainAlias === a ? 'text-accent' : 'text-muted hover:text-fg'"
+                  :aria-label="trick.mainAlias === a ? `clear main alias` : `set ${a} as main`"
+                  @click="toggleMainAlias(a)"
+                >{{ trick.mainAlias === a ? '★' : '☆' }}</button>
+                <span v-else-if="trick.mainAlias === a" class="text-accent leading-none">★</span>
+                {{ a }}
+                <button
+                  v-if="editMode"
+                  type="button"
+                  class="text-muted hover:text-danger"
+                  :aria-label="`remove ${a}`"
+                  @click="removeAlias(a)"
+                >×</button>
+              </span>
+              <span v-if="editMode && !trick.aliases.length" class="text-xs text-muted">none</span>
+            </div>
+            <div v-if="editMode" class="flex gap-2">
+              <input
+                v-model="aliasDraft"
+                type="text"
+                placeholder="add alias"
+                class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
+                @keydown.enter.prevent="addAlias"
+              >
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded border border-border-2 text-xs"
+                @click="addAlias"
+              >Add</button>
+            </div>
+          </section>
+
+          <!-- Tags — hidden in view mode when empty -->
+          <section v-if="trick.tags.length > 0 || editMode" class="mt-4">
+            <h3 class="text-xs uppercase tracking-wide text-muted mb-1">Tags</h3>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span
+                v-for="tg in trick.tags"
+                :key="tg"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-card-2 border border-border-2 text-xs text-accent"
+              >
+                #{{ tg }}
+                <button
+                  v-if="editMode"
+                  type="button"
+                  class="text-muted hover:text-danger"
+                  :aria-label="`remove ${tg}`"
+                  @click="removeTag(tg)"
+                >×</button>
+              </span>
+              <span v-if="editMode && !trick.tags.length" class="text-xs text-muted">none</span>
+            </div>
+            <div v-if="editMode" class="flex gap-2">
+              <input
+                v-model="tagDraft"
+                type="text"
+                placeholder="add tag"
+                class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
+                @keydown.enter.prevent="addTag"
+              >
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded border border-border-2 text-xs"
+                @click="addTag"
+              >Add</button>
+            </div>
+          </section>
+
+          <!-- Video — in view mode show only if concrete; in edit mode always show -->
+          <section v-if="video?.concrete || editMode" class="mt-4">
+            <h3 class="text-xs uppercase tracking-wide text-muted mb-1">Pinned video</h3>
+            <div v-if="editMode" class="flex gap-2">
+              <input
+                v-model="videoDraft"
+                type="url"
+                placeholder="https://youtube.com/…"
+                class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
+              >
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded border border-border-2 text-xs"
+                @click="saveVideo"
+              >Save</button>
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded text-xs"
+                :class="video?.concrete ? 'bg-accent text-bg font-semibold' : 'border border-border-2 text-muted'"
+                @click="openVideo"
+              >{{ video?.concrete ? 'Watch' : 'Search' }}</button>
+            </div>
+            <div v-else>
+              <button
+                type="button"
+                class="px-2.5 py-1.5 rounded bg-accent text-bg text-xs font-semibold"
+                @click="openVideo"
+              >Watch</button>
+            </div>
+          </section>
+
+          <section class="mt-5 pt-3 border-t border-border">
+            <button
+              type="button"
+              class="w-full py-2 rounded-lg text-sm transition-colors"
+              :class="resetArmed
+                ? 'bg-danger text-fg font-semibold'
+                : 'border border-border-2 text-muted hover:text-danger'"
+              @click="armReset"
+            >{{ resetArmed ? 'Tap again to confirm reset' : 'Reset progress' }}</button>
+          </section>
+        </div>
+        <!-- /Scrollable body -->
+
+        <!-- Sticky rate island -->
+        <div class="shrink-0 px-4 pb-4 pt-2">
+          <div
+            class="gw-glass-strong p-3 flex flex-col gap-2"
+            :style="{ borderRadius: 'var(--radius-g-panel)' }"
+          >
+            <RateDots
+              :rate="trick.rate"
+              :rate-l="trick.rateL"
+              :rate-r="trick.rateR"
+              :lr="trick.lr"
+              size="md"
+            />
+
+            <div
+              class="gw-glass-strong flex p-0.5 self-start"
+              :style="{ borderRadius: 'var(--radius-g-chip)' }"
+              role="radiogroup"
+              aria-label="Rate mode"
+            >
+              <button
+                type="button"
+                class="px-3 py-1 transition-all duration-150 font-semibold"
+                :style="{
+                  background: !trick.lr ? 'var(--color-g-fg)' : 'transparent',
+                  color: !trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                  borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+                  fontSize: 'var(--text-g-micro)',
+                }"
+                :aria-pressed="!trick.lr"
+                @click="onModeChange(false)"
+              >Both legs</button>
+              <button
+                type="button"
+                class="px-3 py-1 transition-all duration-150 font-semibold"
+                :style="{
+                  background: trick.lr ? 'var(--color-g-fg)' : 'transparent',
+                  color: trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                  borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+                  fontSize: 'var(--text-g-micro)',
+                }"
+                :aria-pressed="trick.lr"
+                @click="onModeChange(true)"
+              >Per leg</button>
+            </div>
+
+            <RateButtons
+              :lr="trick.lr"
+              @report="onReport"
+            />
+          </div>
+        </div>
+        <!-- /Sticky rate island -->
       </div>
     </div>
   </Teleport>
