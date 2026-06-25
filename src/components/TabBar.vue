@@ -34,7 +34,7 @@ function isActive(to: string): boolean {
       class="tabbar-fixed gw-glass-strong grid grid-cols-4 gap-1 px-1 pt-1"
       :class="{ 'is-hidden': kbOpen }"
       :style="{
-        paddingBottom: 'max(env(safe-area-inset-bottom), 0.25rem)',
+        paddingBottom: '0.25rem',
       }"
     >
       <RouterLink
