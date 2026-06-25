@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { gw } from '../../design/tokens'
 
-type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I'
+type Variant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
-  { id: 'D', title: 'Hero numeral', desc: 'Rate as a bold number in a leg-tinted glass pill. Number is the brand.' },
-  { id: 'E', title: 'Apple-Watch radial arc', desc: 'A small ring fills around the circle. Kinetic, iOS-native.' },
+  { id: 'J', title: 'Liquid stripe', desc: 'A glass capsule fills with leg color from left. Unfilled portion is a soft blurred wash.' },
+  { id: 'K', title: 'Constellation', desc: '5 dots in a small star cluster, not a row. Rated dots glow softly.' },
   { id: 'F', title: 'Tally / slash marks', desc: '1–5 diagonal slashes in leg color. Skate-tag energy.' },
-  { id: 'G', title: 'Dots filled with leg color', desc: '5 dots, count = rate, fill = leg hue. No separate rate-hue.' },
-  { id: 'H', title: 'Bare leg dots (no border)', desc: 'Like F coloring, in dots. Rated = bright leg color; unrated = same color at 0.30 opacity.' },
-  { id: 'I', title: 'Blurred ghost dots', desc: 'Same as H but unrated dots are heavily blurred — "ghost" steps you haven\'t reached.' },
+  { id: 'H', title: 'Bare leg dots (no border)', desc: 'Rated = bright leg color; unrated = same color at 0.30 opacity.' },
+  { id: 'I', title: 'Blurred ghost dots', desc: 'Unrated dots blurred strongly — they blend at the edges.' },
+  { id: 'G', title: 'Leg-filled dots (border)', desc: 'Familiar 5 dots, leg color fill + border on unrated.' },
+  { id: 'D', title: 'Hero numeral', desc: 'Rate as a bold number in a leg-tinted glass pill.' },
+  { id: 'E', title: 'Apple-Watch radial arc', desc: 'A small ring fills around the circle.' },
   { id: 'A', title: '(rejected) 5-dot strip, leg ring + density fill', desc: 'Original Option A — for reference.' },
   { id: 'B', title: '(rejected) Single ordinal chip', desc: 'Original Option B — for reference.' },
   { id: 'C', title: '(rejected) Weighted vertical bars', desc: 'Original Option C — for reference.' },
@@ -94,8 +96,71 @@ function arcDashOffset(rate: number | null): number {
           >{{ leg.label }}</span>
           <div class="flex items-center gap-3">
             <div v-for="r in sampleRates" :key="String(r)" class="flex flex-col items-center gap-1">
+              <!-- Option J: Liquid stripe -->
+              <template v-if="v.id === 'J'">
+                <div
+                  :style="{
+                    width: '64px',
+                    height: '10px',
+                    borderRadius: '999px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    background: `${leg.tint}15`,
+                  }"
+                >
+                  <div
+                    :style="{
+                      position: 'absolute',
+                      inset: '0',
+                      width: r != null ? `${(Math.min(r, 5) / 5) * 100}%` : '0%',
+                      background: `linear-gradient(to bottom, ${leg.tint}, ${leg.tint}cc)`,
+                      borderRadius: '999px',
+                    }"
+                  />
+                  <div
+                    v-if="r != null && r < 5"
+                    :style="{
+                      position: 'absolute',
+                      top: '0',
+                      bottom: '0',
+                      left: `${(Math.min(r, 5) / 5) * 100}%`,
+                      right: '0',
+                      background: `${leg.tint}33`,
+                      filter: 'blur(3px)',
+                    }"
+                  />
+                </div>
+              </template>
+
+              <!-- Option K: Constellation cluster -->
+              <template v-else-if="v.id === 'K'">
+                <div
+                  style="
+                    width: 38px;
+                    height: 24px;
+                    position: relative;
+                  "
+                >
+                  <span
+                    v-for="i in 5"
+                    :key="i"
+                    :style="{
+                      position: 'absolute',
+                      width: '5px',
+                      height: '5px',
+                      borderRadius: '50%',
+                      background: leg.tint,
+                      opacity: r != null && i <= Math.round(r) ? 1 : 0.25,
+                      boxShadow: r != null && i <= Math.round(r) ? `0 0 6px ${leg.tint}80` : 'none',
+                      left: [4, 14, 26, 18, 32][i - 1] + 'px',
+                      top: [12, 4, 8, 16, 18][i - 1] + 'px',
+                    }"
+                  />
+                </div>
+              </template>
+
               <!-- Option D: Hero numeral -->
-              <template v-if="v.id === 'D'">
+              <template v-else-if="v.id === 'D'">
                 <span
                   :style="{
                     minWidth: '48px',
@@ -168,13 +233,13 @@ function arcDashOffset(rate: number | null): number {
 
               <!-- Option G: Dots filled with leg color -->
               <template v-else-if="v.id === 'G'">
-                <div class="flex" style="gap: 4px;">
+                <div class="flex" style="gap: 3px;">
                   <span
                     v-for="i in 5"
                     :key="i"
                     :style="{
-                      width: '9px',
-                      height: '9px',
+                      width: '6px',
+                      height: '6px',
                       borderRadius: '50%',
                       background: r != null && i <= Math.round(r) ? leg.tint : 'transparent',
                       border: `1.5px solid ${leg.tint}`,
@@ -187,13 +252,13 @@ function arcDashOffset(rate: number | null): number {
 
               <!-- Option H: Bare leg dots, no border -->
               <template v-else-if="v.id === 'H'">
-                <div class="flex" style="gap: 4px;">
+                <div class="flex" style="gap: 3px;">
                   <span
                     v-for="i in 5"
                     :key="i"
                     :style="{
-                      width: '9px',
-                      height: '9px',
+                      width: '6px',
+                      height: '6px',
                       borderRadius: '50%',
                       background: leg.tint,
                       opacity: r != null && i <= Math.round(r) ? 1 : 0.30,
@@ -204,17 +269,17 @@ function arcDashOffset(rate: number | null): number {
 
               <!-- Option I: Blurred ghost dots -->
               <template v-else-if="v.id === 'I'">
-                <div class="flex" style="gap: 4px;">
+                <div class="flex" style="gap: 3px;">
                   <span
                     v-for="i in 5"
                     :key="i"
                     :style="{
-                      width: '9px',
-                      height: '9px',
+                      width: '6px',
+                      height: '6px',
                       borderRadius: '50%',
                       background: leg.tint,
                       opacity: r != null && i <= Math.round(r) ? 1 : 0.45,
-                      filter: r != null && i <= Math.round(r) ? 'none' : 'blur(2px)',
+                      filter: r != null && i <= Math.round(r) ? 'none' : 'blur(5px)',
                     }"
                   />
                 </div>
