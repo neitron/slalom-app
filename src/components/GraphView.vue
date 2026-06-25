@@ -13,7 +13,7 @@ import {
 } from 'd3-force';
 import { useTricksStore } from '../stores/tricks';
 import { useTransitionsStore } from '../stores/transitions';
-import { effectiveRate, sideColor } from '../domain/rating';
+import { effectiveRate } from '../domain/rating';
 import { loadView, saveView, type NodePosition } from '../utils/graphView';
 import { displayName } from '../domain/display';
 import type { Transition, Trick } from '../domain/types';
@@ -141,10 +141,10 @@ const computeEdgeRender = (edge: Transition, index: number, off: number, flip: b
     const signed = off * (flip ? -1 : 1);
     const nx = -uy * signed;
     const ny = ux * signed;
-    const x1 = p1.x + ux * (NODE_R + 2) + nx;
-    const y1 = p1.y + uy * (NODE_R + 2) + ny;
-    const x2 = p2.x - ux * (NODE_R + 6) + nx;
-    const y2 = p2.y - uy * (NODE_R + 6) + ny;
+    const x1 = p1.x + ux * NODE_R + nx;
+    const y1 = p1.y + uy * NODE_R + ny;
+    const x2 = p2.x - ux * NODE_R + nx;
+    const y2 = p2.y - uy * NODE_R + ny;
     d = `M ${x1} ${y1} L ${x2} ${y2}`;
     midX = (x1 + x2) / 2;
     midY = (y1 + y2) / 2;
@@ -173,10 +173,24 @@ const computeEdgeRender = (edge: Transition, index: number, off: number, flip: b
 };
 
 const markerIdFor = (c: string): string => {
-  if (c === sideColor('L')) return 'slalom-arr-l';
-  if (c === sideColor('R')) return 'slalom-arr-r';
+  if (c === legSideColor('L')) return 'slalom-arr-l';
+  if (c === legSideColor('R')) return 'slalom-arr-r';
   return 'slalom-arr-n';
 };
+
+function midpointX(r: EdgeRender): number {
+  const a = positions.value[r.edge.from];
+  const b = positions.value[r.edge.to];
+  if (!a || !b) return 0;
+  return (a.x + b.x) / 2;
+}
+
+function midpointY(r: EdgeRender): number {
+  const a = positions.value[r.edge.from];
+  const b = positions.value[r.edge.to];
+  if (!a || !b) return 0;
+  return (a.y + b.y) / 2;
+}
 
 const edgeRenders = computed<EdgeRender[]>(() => {
   const list = graphEdges.value;
@@ -668,10 +682,18 @@ function nextSpawnPosition(): { x: number; y: number } {
       @click="onSvgClick"
     >
       <defs>
-        <filter id="gw-edge-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <filter id="gw-edge-glow"
+          filterUnits="userSpaceOnUse"
+          x="-2000" y="-2000"
+          width="4000" height="4000"
+        >
           <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" />
         </filter>
-        <filter id="gw-node-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <filter id="gw-node-glow"
+          filterUnits="userSpaceOnUse"
+          x="-2000" y="-2000"
+          width="4000" height="4000"
+        >
           <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
         </filter>
         <linearGradient id="gw-node-stroke" x1="0" y1="0" x2="1" y2="1">
@@ -682,20 +704,27 @@ function nextSpawnPosition(): { x: number; y: number } {
         </linearGradient>
         <marker
           v-for="m in [
-            { id: 'slalom-arr-l', color: sideColor('L') },
-            { id: 'slalom-arr-r', color: sideColor('R') },
-            { id: 'slalom-arr-n', color: sideColor(null) },
+            { id: 'slalom-arr-l', color: legSideColor('L') },
+            { id: 'slalom-arr-r', color: legSideColor('R') },
+            { id: 'slalom-arr-n', color: legSideColor(null) },
           ]"
           :key="m.id"
           :id="m.id"
           viewBox="0 0 10 10"
-          refX="8"
+          refX="9"
           refY="5"
-          markerWidth="4.5"
-          markerHeight="4.5"
+          markerWidth="6"
+          markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M0,0 L10,5 L0,10 z" :fill="m.color" />
+          <path
+            d="M1 1 L9 5 L1 9"
+            fill="none"
+            :stroke="m.color"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </marker>
         <linearGradient
           v-for="r in edgeRenders.filter((r) => r.useGradient)"
@@ -754,9 +783,20 @@ function nextSpawnPosition(): { x: number; y: number } {
               :stroke-width="r.edge.id === highlightEdgeId ? 1.5 : 1"
               :stroke-opacity="r.edge.id === highlightEdgeId ? 1 : edgeOpacity(r.edge.rate)"
               stroke-linecap="round"
-              :marker-end="`url(#${r.markerEnd})`"
-              :marker-start="r.edge.bidi ? `url(#${r.markerStart})` : undefined"
+              :marker-end="r.edge.bidi ? undefined : `url(#${r.markerEnd})`"
+              :marker-start="undefined"
             />
+            <!-- Bidi midpoint diamond -->
+            <g
+              v-if="r.edge.bidi && r.edge.from !== r.edge.to"
+              :transform="`translate(${midpointX(r)}, ${midpointY(r)}) rotate(45)`"
+              pointer-events="none"
+            >
+              <rect x="-3" y="-3" width="6" height="6"
+                :fill="legSideColor(r.edge.fromSide)"
+                fill-opacity="0.7"
+              />
+            </g>
             <!-- Wide transparent hit-target for click -->
             <path
               :d="r.d"
