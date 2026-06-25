@@ -9,8 +9,8 @@ the recent slalom-app session.
 ## State right now
 
 - **Branch**: `main`, **78 commits ahead of `origin/main`**, **NOT pushed**.
-- 100/100 tests pass, build clean.
-- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4c shipped locally**. Phases 4a/b/d/e/f/g/h/i + 5 + 6 + 7 still open.
+- 131/131 tests pass, build clean.
+- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4c shipped locally**. Phases 4b/d/e/f/g/h/i + 5 + 6 + 7 still open.
 - Old handoff state (M3.5 social layer) is still in commit `ebf7fec`. This document supersedes it.
 
 ## How to push (when ready)
@@ -61,6 +61,22 @@ motion + screen-by-screen IA polish.
 - Home avatar dropdown fix (Teleport removal later in 4c iterations)
 - ForeignLearningList sticky banner: rebased on `env(safe-area-inset-top)` (was reading removed `--header-h`)
 
+### Phase 4a — Home
+- IA decisions for Home v1 honoured: Quick-jumps row → 14-day intensity heatmap → top-5 Working-on list → 7-day granular activity feed.
+- Spec: `spec/2026-06-26-glasswork-phase-4a-home-design.md`
+- Plan: `docs/superpowers/plans/2026-06-26-glasswork-phase-4a-home.md`
+- New code:
+  - `src/utils/dates.ts` — local-day primitives (`todayLocalIso`, `daysAgoLocalIso`, `groupByLocalDay`, `streakDays`).
+  - `src/composables/homeDataCompute.ts` — pure helpers: `selectWorkingOn`, `countWorkingOn`, `buildHeatmap14`, `joinActivityRows`, `pickCurrentSequence`, `nextCycleScore`, `sessionsInWindow`, `streakFromLogs`.
+  - `src/composables/useHomeData.ts` — reactive wrapper over the helpers + Dexie `liveQuery` subscription (28-day window covers current + delta-previous periods).
+  - `src/components/{QuickJumps,Heatmap14,WorkingOnList,ActivityFeed,HomeEmpty}.vue`.
+  - `src/pages/Home.vue` — full rewrite composing the above; reads `useUiStore` for sheet wiring (`openSheet`, `openSequence`).
+- Cycle semantics (Home Working-on rows): tap dots cycles via discrete pill scores 1→3→5→1, mapped from current effective rate. LR tricks cycle the L-side rate only; per-side cycle deferred to Phase 4b.
+- Bridge to `/tricks`: `?status=in-progress` query param applies a Status filter on AllTricks + renders a dismissible glass chip above tier tabs. Phase 4b will fold Status into a broader filter sheet.
+- Heatmap intensity buckets: 0 / 1-2 / 3-5 / ≥6 → levels 0..3. Tuning against real data deferred.
+- Streak math: today counts as `+1` even if 0 sessions yet ("don't break yesterday's streak before you've started today").
+- Tests added: `dates.test.ts` (9), `homeDataCompute.test.ts` (18), `tricks.test.ts` (4). Components verified manually.
+
 ### Phase 4c — Graph
 - **W6 nodes**: glass circle (radius 28, gradient stroke) + hairline semicircle rate bars (L peach left, R teal right, both fills bottom-up; `u` for non-lr fills middle-out) + LED glow halo (color-dodge filter) + glyph (emoji or **ALL UPPERCASE letters from name** — "Backward Half-Lemon" → BHL — at scaled font size, dim color, `dominant-baseline="central"`) + name below circle
 - **Fibonacci anchor-dot grid** as single SVG path (160 dots + origin dot, GRID_SCALE=26, 0.10 fill opacity)
@@ -82,14 +98,6 @@ motion + screen-by-screen IA polish.
 ---
 
 ## What's NOT done
-
-### Phase 4a — Real Home surface
-Currently a stub with two big buttons. Per IA decisions, v1 Home should contain:
-- "Working on" list (status="Working" or recent rate edits; tap-to-cycle here)
-- "Recent activity" — last 7 days of rate changes / sequence runs
-- "Open Graph" + "Current Sequence" quick-jumps
-
-Start with brainstorming pass on layout + density.
 
 ### Phase 4b — Tricks
 Catalog still uses tier tabs. Per IA, drop tier tabs in favor of search-first + filter sheet. UX is the main work.
