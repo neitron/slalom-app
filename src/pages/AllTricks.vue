@@ -3,12 +3,13 @@ import { computed, onMounted, ref } from 'vue'
 import { useTricksStore, type SortKey } from '../stores/tricks'
 import { useUiStore } from '../stores/ui'
 import { CATEGORIES, TIER_NAMES } from '../domain/constants'
-import type { Category, Tier, Trick } from '../domain/types'
+import type { Category, Tier, Trick, TrickStatus } from '../domain/types'
 import { resolveVideoUrl } from '../domain/video'
 import TierTabs, { type TierOption } from '../components/TierTabs.vue'
 import ChipFilter, { type ChipOption } from '../components/ChipFilter.vue'
 import SearchSort, { type SortMode } from '../components/SearchSort.vue'
 import TrickCard from '../components/TrickCard.vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const tricksStore = useTricksStore()
 const uiStore = useUiStore()
@@ -18,6 +19,27 @@ onMounted(() => {
 })
 
 const sortMode = ref<SortMode>('')
+
+const route = useRoute()
+const router = useRouter()
+
+const STATUS_FROM_QUERY: Record<string, TrickStatus> = {
+  'in-progress': 'In Progress',
+  'complete': 'Complete',
+  'not-started': 'Not Started',
+}
+
+const statusFilter = computed<TrickStatus | null>(() => {
+  const raw = route.query.status
+  if (typeof raw !== 'string') return null
+  return STATUS_FROM_QUERY[raw] ?? null
+})
+
+function clearStatusFilter() {
+  const next = { ...route.query }
+  delete next.status
+  void router.replace({ path: route.path, query: next })
+}
 
 const tierOptions = computed<TierOption[]>(() =>
   TIER_NAMES.map((name, i) => {
@@ -44,6 +66,7 @@ const list = computed<Trick[]>(() =>
     category: uiStore.category,
     search: uiStore.search,
     sort: sortKey.value,
+    status: statusFilter.value,
   }),
 )
 
@@ -68,6 +91,25 @@ function onVideo(t: Trick) {
 <template>
   <div class="p-3 flex flex-col gap-3">
     <h1 class="text-lg font-semibold">All Tricks</h1>
+
+    <div
+      v-if="statusFilter"
+      class="flex justify-start"
+    >
+      <button
+        type="button"
+        class="gw-glass-strong flex items-center gap-2 px-3 py-1.5 active:scale-95 transition-transform"
+        :style="{
+          borderRadius: 'var(--radius-g-chip)',
+          color: 'var(--color-g-fg)',
+          fontSize: 'var(--text-g-micro)',
+        }"
+        @click="clearStatusFilter"
+      >
+        <span>{{ statusFilter }}</span>
+        <span :style="{ color: 'var(--color-g-fg-muted)', fontSize: '14px', lineHeight: 1 }">×</span>
+      </button>
+    </div>
 
     <TierTabs
       :tiers="tierOptions"
