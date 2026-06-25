@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { usePreferencesStore, type RateDotStyle } from '../stores/preferences'
+import RateDots from '../components/RateDots.vue'
 import { db } from '../storage/dexie'
 import { ensureSeeded } from '../storage/seed'
 import { exportJson, importJson, withoutOutbox } from '../storage/repo'
@@ -17,6 +19,18 @@ import { listOutbox } from '../storage/outbox'
 import { flushOutbox, pullAll, pushLocalAll, runStartupSync } from '../storage/sync'
 import { clearPositions } from '../utils/graphView'
 import { BUILD_SHA, buildLabel } from '../utils/buildInfo'
+
+const prefs = usePreferencesStore()
+
+const rateDotOptions: { id: RateDotStyle; label: string }[] = [
+  { id: 'dots',    label: 'Dots' },
+  { id: 'slashes', label: 'Slashes' },
+  { id: 'bars',    label: 'Bars' },
+]
+
+function pickRateDotStyle(id: RateDotStyle): void {
+  prefs.setRateDotStyle(id)
+}
 
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
@@ -536,6 +550,30 @@ function armImport() {
     </section>
 
     <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
+      <h2 class="text-xs uppercase tracking-wide text-muted">Display</h2>
+
+      <div class="flex flex-col gap-2">
+        <span class="text-sm text-fg">Rate indicator</span>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            v-for="opt in rateDotOptions"
+            :key="opt.id"
+            type="button"
+            class="flex flex-col items-center gap-2 py-3 px-2 rounded-lg transition-colors"
+            :class="prefs.rateDotStyle === opt.id ? 'rate-style-active' : 'rate-style-inactive'"
+            :style="{
+              borderRadius: 'var(--radius-g-chip)',
+            }"
+            @click="pickRateDotStyle(opt.id)"
+          >
+            <RateDots :rate="3" :rate-l="3" :rate-r="3" :lr="false" />
+            <span class="text-xs font-semibold">{{ opt.label }}</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-card border border-border rounded-xl p-3 flex flex-col gap-3">
       <h2 class="text-xs uppercase tracking-wide text-muted">Data</h2>
       <button
         type="button"
@@ -612,3 +650,15 @@ function armImport() {
     </p>
   </div>
 </template>
+
+<style scoped>
+.rate-style-active {
+  background: var(--color-g-fg);
+  color: var(--color-g-base);
+}
+.rate-style-inactive {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-g-fg-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+</style>
