@@ -10,6 +10,7 @@ import {
   groupByLocalDay,
   streakDays,
   todayLocalIso,
+  toLocalIso,
 } from '../utils/dates'
 
 export interface ActivityRow {
@@ -88,7 +89,7 @@ export function sessionsInWindow(logs: PracticeLog[], days: number): number {
   const cutoff = daysAgoLocalIso(days - 1)
   let n = 0
   for (const l of logs) {
-    const day = l.at.slice(0, 10)
+    const day = toLocalIso(new Date(l.at))
     if (day >= cutoff) n++
   }
   return n

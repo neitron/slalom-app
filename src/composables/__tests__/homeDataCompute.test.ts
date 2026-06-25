@@ -5,6 +5,7 @@ import {
   joinActivityRows,
   pickCurrentSequence,
   nextCycleScore,
+  sessionsInWindow,
   type ActivityRow,
 } from '../homeDataCompute'
 import type { Trick, Sequence, PracticeLog } from '../../domain/types'
@@ -211,5 +212,24 @@ describe('nextCycleScore', () => {
     expect(nextCycleScore(2.4)).toBe(3) // rounds to 2 → 3
     expect(nextCycleScore(2.6)).toBe(5) // rounds to 3 → 5
     expect(nextCycleScore(0.4)).toBe(1) // rounds to 0 → 1
+  })
+})
+
+describe('sessionsInWindow — timezone correctness', () => {
+  it('counts a UTC-Z timestamp by its LOCAL day, matching groupByLocalDay', () => {
+    setNow('2026-06-26T10:00:00')
+    // A session logged at local 23:30 on 2026-06-25 produces a UTC ISO whose
+    // calendar date depends on the local UTC offset. Across reasonable
+    // offsets (UTC-12 to UTC+14) the local calendar day is always 2026-06-25,
+    // and groupByLocalDay agrees. sessionsInWindow must agree too.
+    const localMidnightStraddler = new Date('2026-06-25T23:30:00').toISOString()
+    const logs: PracticeLog[] = [
+      { id: '1', entityType: 'trick', entityId: 't', side: null, score: 5, at: localMidnightStraddler },
+    ]
+    const inWindow = sessionsInWindow(logs, 14)
+    const heatmap = buildHeatmap14(logs)
+    const heatmapTotal = heatmap.reduce((acc, c) => acc + c.count, 0)
+    expect(inWindow).toBe(heatmapTotal)
+    expect(inWindow).toBe(1)
   })
 })
