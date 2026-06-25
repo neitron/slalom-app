@@ -28,6 +28,12 @@ const routes: RouteRecordRaw[] = [
           component: () => import('./pages/spec/RateOptions.vue'),
           meta: { hideTabs: true },
         } as RouteRecordRaw,
+        {
+          path: '/spec/node-options',
+          name: 'spec-node-options',
+          component: () => import('./pages/spec/NodeOptions.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
       ]
     : []),
 ]
