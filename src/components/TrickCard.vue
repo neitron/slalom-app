@@ -33,7 +33,11 @@ function onVideoClick(e: MouseEvent) {
 
 <template>
   <div
-    class="bg-card border border-border rounded-xl p-3 cursor-pointer active:bg-border/40 transition-colors"
+    class="gw-glass cursor-pointer active:opacity-90 transition-opacity"
+    :style="{
+      padding: '12px 14px',
+      borderRadius: 'var(--radius-g-panel)',
+    }"
     role="button"
     tabindex="0"
     @click="onCardClick"
@@ -44,19 +48,24 @@ function onVideoClick(e: MouseEvent) {
       <div class="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
         <span
           v-if="trick.fav"
-          class="text-fav"
+          :style="{ color: 'var(--color-g-brand)' }"
           aria-label="favorite"
         >★</span>
         <span
           v-if="trick.icon"
           class="text-base leading-none"
         >{{ trick.icon }}</span>
-        <span class="font-medium text-fg">{{ displayName(trick) }}</span>
+        <span
+          class="font-semibold"
+          :style="{ fontSize: 'var(--text-g-body)', color: 'var(--color-g-fg)' }"
+        >{{ displayName(trick) }}</span>
       </div>
       <button
         type="button"
-        class="shrink-0 -mt-0.5 -mr-1 p-1 rounded hover:bg-border/40"
-        :class="hasVideoLink ? 'text-accent' : 'text-muted'"
+        class="shrink-0 -mt-0.5 -mr-1 p-1.5 rounded transition-colors"
+        :style="{
+          color: hasVideoLink ? 'var(--color-g-brand)' : 'var(--color-g-fg-muted)',
+        }"
         :title="hasVideoLink ? 'Watch tutorial' : 'Search tutorial on YouTube'"
         :aria-label="hasVideoLink ? 'Watch tutorial' : 'Search tutorial'"
         @click="onVideoClick"
@@ -73,16 +82,19 @@ function onVideoClick(e: MouseEvent) {
       </button>
     </div>
 
-    <div class="text-muted text-xs mt-1 truncate">
+    <div
+      class="mt-1.5 truncate"
+      :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
+    >
       <span>{{ trick.category }}</span>
       <span v-if="otherAliases.length"> · aka {{ otherAliases.join(', ') }}</span>
       <span
         v-if="trick.tags.length"
-        class="text-accent/80"
+        :style="{ color: 'var(--color-g-brand-sky)' }"
       > · {{ trick.tags.map(t => '#' + t).join(' ') }}</span>
     </div>
 
-    <div class="mt-2">
+    <div class="mt-2.5">
       <RateDots
         :rate="trick.rate"
         :rate-l="trick.rateL"
