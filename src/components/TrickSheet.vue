@@ -142,9 +142,10 @@ async function toggleFav() {
   await tricksStore.toggleFav(trick.value.id)
 }
 
-async function toggleLr() {
+function onModeChange(toLr: boolean): void {
   if (!trick.value?.id) return
-  await tricksStore.toggleLr(trick.value.id)
+  if (trick.value.lr === toLr) return
+  void tricksStore.toggleLr(trick.value.id)
 }
 
 async function saveEmoji() {
@@ -315,21 +316,6 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
         <dt class="text-muted">Last</dt><dd>{{ trick.last ?? '—' }}</dd>
       </dl>
 
-      <label class="mt-3 flex items-center gap-2 text-sm cursor-pointer select-none">
-        <input
-          type="checkbox"
-          :checked="trick.lr"
-          class="accent-accent"
-          @change="toggleLr"
-        >
-        <span>Track
-          <span class="font-semibold" :style="{ color: trick.lr ? 'var(--side-l)' : undefined }">L</span>
-          /
-          <span class="font-semibold" :style="{ color: trick.lr ? 'var(--side-r)' : undefined }">R</span>
-          separately
-        </span>
-      </label>
-
       <section class="mt-4">
         <div class="flex items-center justify-between mb-1">
           <h3 class="text-xs uppercase tracking-wide text-muted">Aliases</h3>
@@ -445,10 +431,44 @@ const video = computed(() => (trick.value ? resolveVideoUrl(trick.value) : null)
       </section>
 
       <section class="mt-3">
-        <RateButtons
-          :lr="trick.lr"
-          @report="onReport"
-        />
+        <div class="flex flex-col gap-2">
+          <div
+            class="gw-glass-strong flex p-0.5 self-start"
+            :style="{ borderRadius: 'var(--radius-g-chip)' }"
+            role="radiogroup"
+            aria-label="Rate mode"
+          >
+            <button
+              type="button"
+              class="px-3 py-1 transition-all duration-150 font-semibold"
+              :style="{
+                background: !trick.lr ? 'var(--color-g-fg)' : 'transparent',
+                color: !trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+                fontSize: 'var(--text-g-micro)',
+              }"
+              :aria-pressed="!trick.lr"
+              @click="onModeChange(false)"
+            >Both legs</button>
+            <button
+              type="button"
+              class="px-3 py-1 transition-all duration-150 font-semibold"
+              :style="{
+                background: trick.lr ? 'var(--color-g-fg)' : 'transparent',
+                color: trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+                fontSize: 'var(--text-g-micro)',
+              }"
+              :aria-pressed="trick.lr"
+              @click="onModeChange(true)"
+            >Per leg</button>
+          </div>
+
+          <RateButtons
+            :lr="trick.lr"
+            @report="onReport"
+          />
+        </div>
       </section>
 
       <section class="mt-5 pt-3 border-t border-border">
