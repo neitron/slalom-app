@@ -332,7 +332,8 @@ Phases are strictly ordered. Within Phase 4, sub-screens (4a–4i) can ship inde
 |---|---|---|---|
 | 1 — IA + tokens | `docs/superpowers/plans/2026-06-24-glasswork-phase-1-ia-and-tokens.md` | Shipped | 2026-06-24 |
 | 2 — Nav/shell | `docs/superpowers/plans/2026-06-24-glasswork-phase-2-nav-shell.md` | Shipped | 2026-06-25 |
-| 3 — Core components | (not yet written) | — | — |
+| 3a — Core components (subset) | `docs/superpowers/plans/2026-06-25-glasswork-phase-3a-core-components.md` | Shipped | 2026-06-25 |
+| 3b — Core components (remaining) | (not yet written) | — | — |
 | 4 — Screen-by-screen | (not yet written) | — | — |
 | 5 — Motion language | (not yet written) | — | — |
 | 6 — Bespoke iconography | (not yet written) | — | — |
