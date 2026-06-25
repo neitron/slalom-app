@@ -488,8 +488,14 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
 
     <div
       v-if="sequenceMode"
-      class="fixed left-0 right-0 z-40 bg-card border-t border-border px-3 py-2"
-      :style="{ bottom: 'calc(var(--tabbar-h, 4rem) + 0.5rem)' }"
+      class="fixed z-40 gw-glass-strong"
+      :style="{
+        left: 'calc(env(safe-area-inset-left) + 0.75rem)',
+        right: 'calc(env(safe-area-inset-right) + 0.75rem)',
+        bottom: 'calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 0.5rem + 0.5rem)',
+        borderRadius: 'var(--radius-g-panel)',
+        padding: '12px 14px',
+      }"
     >
       <div class="mb-2 min-h-[1.5rem]">
         <SequenceChain
@@ -498,24 +504,40 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         />
         <div
           v-else
-          class="text-xs text-muted"
+          :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
         >Tap tricks on the graph to build a sequence.</div>
       </div>
       <div class="flex gap-2">
         <button
           type="button"
-          class="flex-1 py-1.5 rounded-lg border border-border-2 text-fg text-sm disabled:opacity-40"
+          class="flex-1 py-2 transition-colors gw-glass-strong disabled:opacity-40"
+          :style="{
+            color: 'var(--color-g-fg)',
+            borderRadius: 'var(--radius-g-chip)',
+            fontSize: 'var(--text-g-body)',
+          }"
           :disabled="!sequenceSteps.length"
           @click="undoSequenceStep"
         >Undo</button>
         <button
           type="button"
-          class="flex-1 py-1.5 rounded-lg border border-border-2 text-muted hover:text-fg text-sm"
+          class="flex-1 py-2 transition-colors gw-glass-strong"
+          :style="{
+            color: 'var(--color-g-fg-muted)',
+            borderRadius: 'var(--radius-g-chip)',
+            fontSize: 'var(--text-g-body)',
+          }"
           @click="cancelSequenceMode"
         >Cancel</button>
         <button
           type="button"
-          class="flex-1 py-1.5 rounded-lg bg-accent text-bg font-semibold text-sm disabled:opacity-40"
+          class="flex-1 py-2 font-semibold transition-colors disabled:opacity-40"
+          :style="{
+            background: 'var(--color-g-brand)',
+            color: 'var(--color-g-base)',
+            borderRadius: 'var(--radius-g-chip)',
+            fontSize: 'var(--text-g-body)',
+          }"
           :disabled="sequenceSteps.length < 2"
           @click="openSaveSheet"
         >Save</button>
