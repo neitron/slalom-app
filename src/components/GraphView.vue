@@ -267,7 +267,23 @@ function nodeLabel(t: Trick): string {
 }
 
 function glyphFor(t: Trick): string {
-  return t.icon || displayName(t).charAt(0).toUpperCase();
+  if (t.icon) return t.icon
+  // Extract all uppercase letters from the displayed name.
+  const name = displayName(t)
+  const caps = name.match(/[A-Z]/g)
+  if (caps && caps.length > 0) return caps.join('')
+  // Fallback: first character of name, uppercased.
+  return name.charAt(0).toUpperCase()
+}
+
+function glyphSize(t: Trick): number {
+  const g = glyphFor(t)
+  // Emoji (typically 1-2 chars): full size.
+  if (t.icon) return GLYPH_SIZE  // 16
+  // Multi-letter abbreviation: shrink to fit.
+  if (g.length >= 3) return 10
+  if (g.length === 2) return 12
+  return GLYPH_SIZE
 }
 
 // Edge rate encoding: opacity 0.30..0.85 grows linearly with rate (width is always hairline).
@@ -944,7 +960,9 @@ function nextSpawnPosition(): { x: number; y: number } {
                 :x="positions[t.id].x"
                 :y="positions[t.id].y + 5"
                 text-anchor="middle"
-                :font-size="GLYPH_SIZE"
+                :font-size="glyphSize(t)"
+                font-weight="700"
+                fill="var(--color-g-fg)"
                 pointer-events="none"
               >{{ glyphFor(t) }}</text>
 
