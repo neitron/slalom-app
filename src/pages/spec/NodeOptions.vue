@@ -5,7 +5,7 @@ type Variant = 'A2' | 'V1' | 'V2' | 'V3' | 'V4'
 
 const variants: { id: Variant; title: string; desc: string }[] = [
   { id: 'A2', title: 'Full ring — R outer + LED glow', desc: 'Refined Apple-Watch full ring. R is the outer concentric, L is inner. Filled arc gently glows.' },
-  { id: 'V1', title: 'Bold semicircles', desc: 'LR mode: "(" left = L, ")" right = R, filling from top down. Non-lr: "u" bottom half filling along arc.' },
+  { id: 'V1', title: 'Bold semicircles', desc: 'LR mode: "(" left = L, ")" right = R, filling from bottom up. Non-lr: "u" bottom half filling along arc.' },
   { id: 'V2', title: 'Thin semicircles', desc: 'Same shapes as V1, thinner stroke (1.5px).' },
   { id: 'V3', title: 'LED dashed semicircles', desc: '5 dashes per semicircle, lit/ghost with LED halo.' },
   { id: 'V4', title: 'LED dot semicircles', desc: '5 dots per semicircle, lit/ghost with LED halo.' },
@@ -63,10 +63,10 @@ function arcBetween(startDeg: number, endDeg: number, radius: number): string {
   return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} ${sweep} ${e.x} ${e.y}`
 }
 
-// LR semicircle ranges:
-//   L semicircle: from 360° (top, CW) going CCW to 180° (bottom) — i.e. left half
-//   R semicircle: from 0° going CW to 180° (bottom) — i.e. right half
-//   Non-lr u: bottom semi from 90° (3 o'clock) CW through 180° to 270° (9 o'clock)
+// LR semicircle ranges (5° gaps so L and R never merge at top/bottom):
+//   L semicircle: 185° → 355° (bottom-up via 9 o'clock, left half)
+//   R semicircle: 175° → 5°  (bottom-up via 3 o'clock, right half)
+//   Non-lr u: 95° → 265° (bottom semi with 5° gaps)
 
 function rateFrac(rate: number | null): number {
   if (rate == null) return 0
@@ -95,7 +95,7 @@ function semicirclePositions(startDeg: number, endDeg: number, count: number, ra
   return points
 }
 
-// Dashed segment: a small arc at the given center degree
+// Dashed segment: a small arc at the given center degree (span reduced to 16°)
 function dashAt(centerDeg: number, span: number, radius: number): string {
   return arcBetween(centerDeg - span / 2, centerDeg + span / 2, radius)
 }
@@ -107,7 +107,7 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
     :style="{ color: gw.fg, fontFamily: 'system-ui, -apple-system, sans-serif' }"
   >
     <h1 :style="{ fontSize: gw.type.display + 'px', fontWeight: 700, letterSpacing: '-0.02em' }">
-      Node options · v2
+      Node options · v3
     </h1>
     <p :style="{ color: gw.fgMuted, fontSize: gw.type.body + 'px' }">
       Glass circle nodes with rate bars. Pick one for the actual graph.
@@ -132,19 +132,30 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
           class="flex flex-col items-center gap-1.5"
           style="width: 84px;"
         >
+          <!-- Fix 1: block-level SVG inside overflow:hidden circle, no grid/absolute tricks -->
           <div
             class="gw-glass"
             :style="{
               width: '56px',
               height: '56px',
               borderRadius: '50%',
-              display: 'grid',
-              placeItems: 'center',
+              overflow: 'hidden',
               position: 'relative',
             }"
           >
-            <svg width="56" height="56" viewBox="-28 -28 56 56" style="position: absolute; inset: 0;">
+            <svg
+              :style="{ width: '100%', height: '100%', display: 'block' }"
+              viewBox="-28 -28 56 56"
+            >
+              <!-- Defs for LED glow filter — Fix 3: stdDeviation reduced to 1.5 -->
+              <defs>
+                <filter id="gw-node-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+                </filter>
+              </defs>
+
               <!-- A2: Full ring, R outer + LED glow on filled arc -->
+              <!-- Fix 3 (A2 glow tuning): stroke-width 4.5, opacity 0.35 -->
               <template v-if="v.id === 'A2'">
                 <template v-if="s.lr">
                   <!-- Outer R track -->
@@ -152,7 +163,7 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
                   <!-- Outer R glow -->
                   <path v-if="rateFrac(s.rateR) > 0"
                     :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rateR))"
-                    fill="none" :stroke="gw.leg.r" stroke-width="6.5" stroke-opacity="0.55"
+                    fill="none" :stroke="gw.leg.r" stroke-width="4.5" stroke-opacity="0.35"
                     stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
                   <!-- Outer R arc -->
                   <path :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rateR))"
@@ -162,7 +173,7 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
                   <!-- Inner L glow -->
                   <path v-if="rateFrac(s.rateL) > 0"
                     :d="arcPathFraction(FULL_RING_R_INNER, rateFrac(s.rateL))"
-                    fill="none" :stroke="gw.leg.l" stroke-width="6.5" stroke-opacity="0.55"
+                    fill="none" :stroke="gw.leg.l" stroke-width="4.5" stroke-opacity="0.35"
                     stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
                   <path :d="arcPathFraction(FULL_RING_R_INNER, rateFrac(s.rateL))"
                     fill="none" :stroke="gw.leg.l" stroke-width="3.5" stroke-linecap="round" />
@@ -171,7 +182,7 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
                   <path :d="fullCircleTrack(FULL_RING_R_OUTER)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="3.5" />
                   <path v-if="rateFrac(s.rate) > 0"
                     :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rate))"
-                    fill="none" :stroke="gw.fg" stroke-width="6.5" stroke-opacity="0.55"
+                    fill="none" :stroke="gw.fg" stroke-width="4.5" stroke-opacity="0.35"
                     stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
                   <path :d="arcPathFraction(FULL_RING_R_OUTER, rateFrac(s.rate))"
                     fill="none" :stroke="gw.fg" stroke-width="3.5" stroke-linecap="round" />
@@ -179,92 +190,186 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
               </template>
 
               <!-- V1: Bold semicircles -->
+              <!-- Fix 3 (V1 glow tuning): stroke-width 4, opacity 0.35 -->
+              <!-- Fix 4: L fills 185→355, R fills 175→5 (bottom-up) -->
+              <!-- Fix 5: 5° gaps applied to track and fill ranges -->
               <template v-else-if="v.id === 'V1'">
                 <template v-if="s.lr">
-                  <!-- L: left semi, from 0 (top) CCW to -180 (bottom) — express as start=360 → end=180 -->
-                  <path :d="arcBetween(360, 180, SEMI_R)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="3.5" />
+                  <!-- L: 185°→355°, bottom-up via 9 o'clock -->
+                  <path :d="arcBetween(185, 355, SEMI_R)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="3.5" />
                   <path v-if="rateFrac(s.rateL) > 0"
-                    :d="partialArc(360, 180, SEMI_R, rateFrac(s.rateL))"
-                    fill="none" :stroke="gw.leg.l" stroke-width="6" stroke-opacity="0.55"
+                    :d="partialArc(185, 355, SEMI_R, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="4" stroke-opacity="0.35"
                     stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
-                  <path :d="partialArc(360, 180, SEMI_R, rateFrac(s.rateL))"
+                  <path :d="partialArc(185, 355, SEMI_R, rateFrac(s.rateL))"
                     fill="none" :stroke="gw.leg.l" stroke-width="3.5" stroke-linecap="round" />
-                  <!-- R: right semi, from 0 CW to 180 -->
-                  <path :d="arcBetween(0, 180, SEMI_R)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="3.5" />
+                  <!-- R: 175°→5°, bottom-up via 3 o'clock -->
+                  <path :d="arcBetween(175, 5, SEMI_R)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="3.5" />
                   <path v-if="rateFrac(s.rateR) > 0"
-                    :d="partialArc(0, 180, SEMI_R, rateFrac(s.rateR))"
-                    fill="none" :stroke="gw.leg.r" stroke-width="6" stroke-opacity="0.55"
+                    :d="partialArc(175, 5, SEMI_R, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="4" stroke-opacity="0.35"
                     stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
-                  <path :d="partialArc(0, 180, SEMI_R, rateFrac(s.rateR))"
+                  <path :d="partialArc(175, 5, SEMI_R, rateFrac(s.rateR))"
                     fill="none" :stroke="gw.leg.r" stroke-width="3.5" stroke-linecap="round" />
                 </template>
                 <template v-else>
-                  <!-- u: bottom semi from 90 (3 o'clock) CW through 180 (bottom) to 270 (9 o'clock) -->
-                  <path :d="arcBetween(90, 270, SEMI_R)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="3.5" />
+                  <!-- u: 95°→265°, 5° gaps at each end -->
+                  <path :d="arcBetween(95, 265, SEMI_R)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="3.5" />
                   <path v-if="rateFrac(s.rate) > 0"
-                    :d="partialArc(90, 270, SEMI_R, rateFrac(s.rate))"
-                    fill="none" :stroke="gw.fg" stroke-width="6" stroke-opacity="0.55"
+                    :d="partialArc(95, 265, SEMI_R, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="4" stroke-opacity="0.35"
                     stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
-                  <path :d="partialArc(90, 270, SEMI_R, rateFrac(s.rate))"
+                  <path :d="partialArc(95, 265, SEMI_R, rateFrac(s.rate))"
                     fill="none" :stroke="gw.fg" stroke-width="3.5" stroke-linecap="round" />
                 </template>
               </template>
 
               <!-- V2: Thin semicircles (1.5px) -->
+              <!-- Fix 2: add glow layer -->
+              <!-- Fix 4 & 5: same bottom-up ranges + gaps -->
               <template v-else-if="v.id === 'V2'">
                 <template v-if="s.lr">
-                  <path :d="arcBetween(360, 180, SEMI_R)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="1.5" />
-                  <path :d="partialArc(360, 180, SEMI_R, rateFrac(s.rateL))"
+                  <!-- L track + glow + fill -->
+                  <path :d="arcBetween(185, 355, SEMI_R)" fill="none" :stroke="gw.leg.l" stroke-opacity="0.15" stroke-width="1.5" />
+                  <path v-if="rateFrac(s.rateL) > 0"
+                    :d="partialArc(185, 355, SEMI_R, rateFrac(s.rateL))"
+                    fill="none" :stroke="gw.leg.l" stroke-width="3" stroke-opacity="0.35"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="partialArc(185, 355, SEMI_R, rateFrac(s.rateL))"
                     fill="none" :stroke="gw.leg.l" stroke-width="1.5" stroke-linecap="round" />
-                  <path :d="arcBetween(0, 180, SEMI_R)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="1.5" />
-                  <path :d="partialArc(0, 180, SEMI_R, rateFrac(s.rateR))"
+                  <!-- R track + glow + fill -->
+                  <path :d="arcBetween(175, 5, SEMI_R)" fill="none" :stroke="gw.leg.r" stroke-opacity="0.15" stroke-width="1.5" />
+                  <path v-if="rateFrac(s.rateR) > 0"
+                    :d="partialArc(175, 5, SEMI_R, rateFrac(s.rateR))"
+                    fill="none" :stroke="gw.leg.r" stroke-width="3" stroke-opacity="0.35"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="partialArc(175, 5, SEMI_R, rateFrac(s.rateR))"
                     fill="none" :stroke="gw.leg.r" stroke-width="1.5" stroke-linecap="round" />
                 </template>
                 <template v-else>
-                  <path :d="arcBetween(90, 270, SEMI_R)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="1.5" />
-                  <path :d="partialArc(90, 270, SEMI_R, rateFrac(s.rate))"
+                  <!-- u track + glow + fill -->
+                  <path :d="arcBetween(95, 265, SEMI_R)" fill="none" :stroke="gw.fg" stroke-opacity="0.15" stroke-width="1.5" />
+                  <path v-if="rateFrac(s.rate) > 0"
+                    :d="partialArc(95, 265, SEMI_R, rateFrac(s.rate))"
+                    fill="none" :stroke="gw.fg" stroke-width="3" stroke-opacity="0.35"
+                    stroke-linecap="round" filter="url(#gw-node-glow)" pointer-events="none" />
+                  <path :d="partialArc(95, 265, SEMI_R, rateFrac(s.rate))"
                     fill="none" :stroke="gw.fg" stroke-width="1.5" stroke-linecap="round" />
                 </template>
               </template>
 
               <!-- V3: Dashed semicircles -->
+              <!-- Fix 2: add glow halo to lit dashes -->
+              <!-- Fix 4 & 5: bottom-up ranges + 5° gaps -->
+              <!-- Fix 6: stroke-width 2, dash span 16°, glow stroke-width 3 -->
               <template v-else-if="v.id === 'V3'">
                 <template v-if="s.lr">
-                  <template v-for="(p, i) in semicirclePositions(360, 180, 5, SEMI_R)" :key="'l' + i">
-                    <path :d="dashAt(p.deg, 20, SEMI_R)" fill="none"
+                  <!-- L dashes: 185°→355° -->
+                  <template v-for="(p, i) in semicirclePositions(185, 355, 5, SEMI_R)" :key="'l' + i">
+                    <!-- Glow halo (lit only) -->
+                    <path
+                      v-if="i < (s.rateL ?? 0)"
+                      :d="dashAt(p.deg, 16, SEMI_R)"
+                      fill="none"
+                      :stroke="gw.leg.l"
+                      stroke-width="3"
+                      stroke-opacity="0.35"
+                      stroke-linecap="round"
+                      filter="url(#gw-node-glow)"
+                      pointer-events="none"
+                    />
+                    <!-- Crisp dash -->
+                    <path :d="dashAt(p.deg, 16, SEMI_R)" fill="none"
                       :stroke="gw.leg.l"
                       :stroke-opacity="i < (s.rateL ?? 0) ? 1 : 0.1"
-                      stroke-width="3" stroke-linecap="round" />
+                      stroke-width="2" stroke-linecap="round" />
                   </template>
-                  <template v-for="(p, i) in semicirclePositions(0, 180, 5, SEMI_R)" :key="'r' + i">
-                    <path :d="dashAt(p.deg, 20, SEMI_R)" fill="none"
+                  <!-- R dashes: 175°→5° -->
+                  <template v-for="(p, i) in semicirclePositions(175, 5, 5, SEMI_R)" :key="'r' + i">
+                    <!-- Glow halo (lit only) -->
+                    <path
+                      v-if="i < (s.rateR ?? 0)"
+                      :d="dashAt(p.deg, 16, SEMI_R)"
+                      fill="none"
+                      :stroke="gw.leg.r"
+                      stroke-width="3"
+                      stroke-opacity="0.35"
+                      stroke-linecap="round"
+                      filter="url(#gw-node-glow)"
+                      pointer-events="none"
+                    />
+                    <!-- Crisp dash -->
+                    <path :d="dashAt(p.deg, 16, SEMI_R)" fill="none"
                       :stroke="gw.leg.r"
                       :stroke-opacity="i < (s.rateR ?? 0) ? 1 : 0.1"
-                      stroke-width="3" stroke-linecap="round" />
+                      stroke-width="2" stroke-linecap="round" />
                   </template>
                 </template>
                 <template v-else>
-                  <template v-for="(p, i) in semicirclePositions(90, 270, 5, SEMI_R)" :key="'u' + i">
-                    <path :d="dashAt(p.deg, 20, SEMI_R)" fill="none"
+                  <!-- u dashes: 95°→265° -->
+                  <template v-for="(p, i) in semicirclePositions(95, 265, 5, SEMI_R)" :key="'u' + i">
+                    <!-- Glow halo (lit only) -->
+                    <path
+                      v-if="i < (s.rate ?? 0)"
+                      :d="dashAt(p.deg, 16, SEMI_R)"
+                      fill="none"
+                      :stroke="gw.fg"
+                      stroke-width="3"
+                      stroke-opacity="0.35"
+                      stroke-linecap="round"
+                      filter="url(#gw-node-glow)"
+                      pointer-events="none"
+                    />
+                    <!-- Crisp dash -->
+                    <path :d="dashAt(p.deg, 16, SEMI_R)" fill="none"
                       :stroke="gw.fg"
                       :stroke-opacity="i < (s.rate ?? 0) ? 1 : 0.1"
-                      stroke-width="3" stroke-linecap="round" />
+                      stroke-width="2" stroke-linecap="round" />
                   </template>
                 </template>
               </template>
 
               <!-- V4: Dot semicircles -->
+              <!-- Fix 2: add glow halo circle to lit dots -->
+              <!-- Fix 4 & 5: bottom-up ranges + 5° gaps -->
               <template v-else-if="v.id === 'V4'">
                 <template v-if="s.lr">
-                  <template v-for="(p, i) in semicirclePositions(360, 180, 5, SEMI_R)" :key="'dl' + i">
+                  <!-- L dots: 185°→355° -->
+                  <template v-for="(p, i) in semicirclePositions(185, 355, 5, SEMI_R)" :key="'dl' + i">
+                    <!-- Glow halo (lit only) -->
+                    <circle
+                      v-if="i < (s.rateL ?? 0)"
+                      :cx="p.x" :cy="p.y" r="5"
+                      :fill="gw.leg.l" fill-opacity="0.35"
+                      filter="url(#gw-node-glow)"
+                      pointer-events="none"
+                    />
                     <circle :cx="p.x" :cy="p.y" r="2.5" :fill="gw.leg.l" :opacity="i < (s.rateL ?? 0) ? 1 : 0.1" />
                   </template>
-                  <template v-for="(p, i) in semicirclePositions(0, 180, 5, SEMI_R)" :key="'dr' + i">
+                  <!-- R dots: 175°→5° -->
+                  <template v-for="(p, i) in semicirclePositions(175, 5, 5, SEMI_R)" :key="'dr' + i">
+                    <!-- Glow halo (lit only) -->
+                    <circle
+                      v-if="i < (s.rateR ?? 0)"
+                      :cx="p.x" :cy="p.y" r="5"
+                      :fill="gw.leg.r" fill-opacity="0.35"
+                      filter="url(#gw-node-glow)"
+                      pointer-events="none"
+                    />
                     <circle :cx="p.x" :cy="p.y" r="2.5" :fill="gw.leg.r" :opacity="i < (s.rateR ?? 0) ? 1 : 0.1" />
                   </template>
                 </template>
                 <template v-else>
-                  <template v-for="(p, i) in semicirclePositions(90, 270, 5, SEMI_R)" :key="'du' + i">
+                  <!-- u dots: 95°→265° -->
+                  <template v-for="(p, i) in semicirclePositions(95, 265, 5, SEMI_R)" :key="'du' + i">
+                    <!-- Glow halo (lit only) -->
+                    <circle
+                      v-if="i < (s.rate ?? 0)"
+                      :cx="p.x" :cy="p.y" r="5"
+                      :fill="gw.fg" fill-opacity="0.35"
+                      filter="url(#gw-node-glow)"
+                      pointer-events="none"
+                    />
                     <circle :cx="p.x" :cy="p.y" r="2.5" :fill="gw.fg" :opacity="i < (s.rate ?? 0) ? 1 : 0.1" />
                   </template>
                 </template>
@@ -272,13 +377,6 @@ function dashAt(centerDeg: number, span: number, radius: number): string {
 
               <!-- Center glyph -->
               <text text-anchor="middle" dominant-baseline="central" :style="{ fontSize: '14px' }">{{ s.icon }}</text>
-
-              <!-- Defs for LED glow filter -->
-              <defs>
-                <filter id="gw-node-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
-                </filter>
-              </defs>
             </svg>
           </div>
           <span :style="{ fontSize: '11px', color: gw.fg, fontWeight: 600, textAlign: 'center', lineHeight: '1.2' }">{{ s.name }}</span>
