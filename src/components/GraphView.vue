@@ -112,8 +112,8 @@ const computeEdgeRender = (edge: Transition, index: number, off: number, flip: b
   const p1 = positions.value[a.id];
   const p2 = positions.value[b.id];
   if (!p1 || !p2) return null;
-  const c1 = sideColor(edge.fromSide);
-  const c2 = sideColor(edge.toSide);
+  const c1 = legSideColor(edge.fromSide);
+  const c2 = legSideColor(edge.toSide);
   const selfLoop = a.id === b.id;
   let d = '';
   let midX = 0;
@@ -150,7 +150,7 @@ const computeEdgeRender = (edge: Transition, index: number, off: number, flip: b
     midY = (y1 + y2) / 2;
     g1x = x1; g1y = y1; g2x = x2; g2y = y2;
   }
-  const useGradient = c1 !== c2;
+  const useGradient = !selfLoop;
   const gradientId = `slalom-edge-grad-${edge.id ?? `i${index}`}`;
   return {
     edge,
@@ -207,6 +207,17 @@ const edgeRenders = computed<EdgeRender[]>(() => {
 
 const sequenceSet = computed(() => new Set(props.sequenceIds ?? []));
 
+const sequencePositions = computed<Record<string, number>>(() => {
+  const m: Record<string, number> = {};
+  for (let i = 0; i < (props.sequenceIds ?? []).length; i++) {
+    const id = props.sequenceIds![i];
+    if (id && !(id in m)) {
+      m[id] = i + 1;
+    }
+  }
+  return m;
+});
+
 // W6 node geometry — semicircle rate arcs
 function w6PolarPoint(angleDeg: number, radius: number, cx: number, cy: number): { x: number; y: number } {
   const rad = (angleDeg - 90) * Math.PI / 180;
@@ -258,39 +269,10 @@ function glyphFor(t: Trick): string {
   return t.icon || displayName(t).charAt(0).toUpperCase();
 }
 
-// Edge rate encoding: width 1..3 and opacity 0.15..0.80 grow linearly with rate.
-function edgeWidth(rate: number | null | undefined): number {
-  if (rate == null) return 1;
-  return 1 + (Math.min(5, Math.max(0, rate)) / 5) * 2;
-}
-
+// Edge rate encoding: opacity 0.30..0.85 grows linearly with rate (width is always hairline).
 function edgeOpacity(rate: number | null | undefined): number {
-  if (rate == null) return 0.15;
-  return 0.15 + (Math.min(5, Math.max(0, rate)) / 5) * 0.65;
-}
-
-// Endpoint positions sit precisely on the node circle's edge, along the line
-// connecting the two node centers. Skipped for self-loops by the caller.
-function endpointFromPos(r: EdgeRender): { x: number; y: number } {
-  const fromPos = positions.value[r.edge.from];
-  const toPos = positions.value[r.edge.to];
-  if (!fromPos || !toPos) return { x: 0, y: 0 };
-  const dx = toPos.x - fromPos.x;
-  const dy = toPos.y - fromPos.y;
-  const len = Math.hypot(dx, dy);
-  if (len === 0) return { x: fromPos.x, y: fromPos.y };
-  return { x: fromPos.x + (dx / len) * NODE_R, y: fromPos.y + (dy / len) * NODE_R };
-}
-
-function endpointToPos(r: EdgeRender): { x: number; y: number } {
-  const fromPos = positions.value[r.edge.from];
-  const toPos = positions.value[r.edge.to];
-  if (!fromPos || !toPos) return { x: 0, y: 0 };
-  const dx = fromPos.x - toPos.x;
-  const dy = fromPos.y - toPos.y;
-  const len = Math.hypot(dx, dy);
-  if (len === 0) return { x: toPos.x, y: toPos.y };
-  return { x: toPos.x + (dx / len) * NODE_R, y: toPos.y + (dy / len) * NODE_R };
+  if (rate == null) return 0.30;
+  return 0.30 + (Math.min(5, Math.max(0, rate)) / 5) * 0.55; // 0.30..0.85
 }
 
 function legSideColor(side: 'L' | 'R' | null | undefined): string {
@@ -752,34 +734,29 @@ function nextSpawnPosition(): { x: number; y: number } {
               filter="url(#gw-edge-glow)"
               pointer-events="none"
             />
-            <!-- Crisp line: idle uses rate-encoded width + opacity; selected uses brand color -->
+            <!-- Always-on gentle glow halo (leg from-side color, 3px, behind crisp line) -->
+            <path
+              v-if="r.edge.id !== highlightEdgeId"
+              :d="r.d"
+              fill="none"
+              :stroke="legSideColor(r.edge.fromSide)"
+              stroke-width="3"
+              :stroke-opacity="edgeOpacity(r.edge.rate) * 0.4"
+              stroke-linecap="round"
+              filter="url(#gw-edge-glow)"
+              pointer-events="none"
+            />
+            <!-- Crisp hairline: idle uses leg-gradient + rate-encoded opacity; selected uses brand color -->
             <path
               :d="r.d"
               fill="none"
-              :stroke="r.edge.id === highlightEdgeId ? 'var(--color-g-brand)' : 'var(--color-g-fg)'"
-              :stroke-width="r.edge.id === highlightEdgeId ? 2 : edgeWidth(r.edge.rate)"
+              :stroke="r.edge.id === highlightEdgeId ? 'var(--color-g-brand)' : r.stroke"
+              :stroke-width="r.edge.id === highlightEdgeId ? 1.5 : 1"
               :stroke-opacity="r.edge.id === highlightEdgeId ? 1 : edgeOpacity(r.edge.rate)"
               stroke-linecap="round"
               :marker-end="`url(#${r.markerEnd})`"
               :marker-start="r.edge.bidi ? `url(#${r.markerStart})` : undefined"
             />
-            <!-- Endpoint dots: leg-colored, sit precisely on node-edge boundary. Skip self-loops. -->
-            <template v-if="r.edge.from !== r.edge.to">
-              <circle
-                :cx="endpointFromPos(r).x"
-                :cy="endpointFromPos(r).y"
-                r="3.5"
-                :fill="legSideColor(r.edge.fromSide)"
-                pointer-events="none"
-              />
-              <circle
-                :cx="endpointToPos(r).x"
-                :cy="endpointToPos(r).y"
-                r="3.5"
-                :fill="legSideColor(r.edge.toSide)"
-                pointer-events="none"
-              />
-            </template>
             <!-- Wide transparent hit-target for click -->
             <path
               :d="r.d"
@@ -965,6 +942,18 @@ function nextSpawnPosition(): { x: number; y: number } {
                 fill="var(--color-g-fg)"
                 pointer-events="none"
               >{{ nodeLabel(t) }}</text>
+              </g>
+              <!-- S4 sequence badge: 1-indexed position in chain, top-right corner of node -->
+              <g
+                v-if="sequencePositions[t.id]"
+                :transform="`translate(${positions[t.id].x + NODE_R * 0.7}, ${positions[t.id].y - NODE_R * 0.7})`"
+                pointer-events="none"
+              >
+                <!-- Glow halo behind badge -->
+                <circle r="11" fill="var(--color-g-brand)" opacity="0.45" filter="url(#gw-node-glow)" />
+                <!-- Solid badge -->
+                <circle r="9" fill="var(--color-g-brand)" />
+                <text x="0" y="3" text-anchor="middle" font-size="11" font-weight="700" fill="var(--color-g-base)">{{ sequencePositions[t.id] }}</text>
               </g>
             </template>
           </g>
