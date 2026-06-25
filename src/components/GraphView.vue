@@ -313,14 +313,34 @@ function ensureInitialLayout(): void {
     if (t.node_x != null && t.node_y != null) return { x: t.node_x, y: t.node_y, fixed: true };
     return { fixed: false };
   };
+  // Pre-assign fibonacci spawn positions for new nodes (no saved position, no node_x/y).
+  // We do this BEFORE the force sim so that nodes with fibonacci anchors are treated as
+  // fixed — preventing the sim from scattering them to the forceCenter target.
+  const newPositions: Record<string, NodePosition> = { ...positions.value }
+  for (const t of tricksList) {
+    if (!t.id) continue
+    if (newPositions[t.id]) continue  // already has a position
+    const sp = saved?.positions[t.id]
+    if (sp) continue  // will be picked up by initial()
+    if (t.node_x != null && t.node_y != null) continue  // fixed by node_x/y
+    const anchor = nextSpawnPosition()
+    newPositions[t.id] = { x: anchor.x, y: anchor.y }
+    // Update positions immediately so nextSpawnPosition() sees the new placement
+    positions.value = newPositions
+  }
   const nodes: SimNode[] = tricksList.map((t) => {
     const seed = initial(t);
+    // If we pre-assigned a fibonacci position, treat it as fixed for the sim
+    const fibPos = t.id ? newPositions[t.id] : undefined;
+    const x = seed.x ?? fibPos?.x;
+    const y = seed.y ?? fibPos?.y;
+    const fixed = seed.fixed || (fibPos != null && !seed.fixed && saved?.positions[t.id!] == null && t.node_x == null);
     return {
       id: t.id!,
-      x: seed.x,
-      y: seed.y,
-      fx: seed.fixed ? seed.x : undefined,
-      fy: seed.fixed ? seed.y : undefined,
+      x,
+      y,
+      fx: fixed ? x : undefined,
+      fy: fixed ? y : undefined,
     };
   });
   const needsLayout = nodes.some((n) => n.fx == null);
@@ -343,21 +363,28 @@ function ensureInitialLayout(): void {
   }
   const next: Record<string, NodePosition> = {};
   for (const n of nodes) {
-    next[n.id] = { x: n.x ?? w / 2, y: n.y ?? h / 2 };
+    next[n.id] = { x: n.x ?? newPositions[n.id]?.x ?? w / 2, y: n.y ?? newPositions[n.id]?.y ?? h / 2 };
   }
   positions.value = next;
   if (!saved) {
-    const xs = Object.values(next).map((p) => p.x);
-    const ys = Object.values(next).map((p) => p.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    const span = Math.max(maxX - minX, maxY - minY, 1);
-    const fit = Math.min(1, (Math.min(w, h) - 80) / (span + 80));
-    scale.value = fit;
-    tx.value = w / 2 - cx * fit;
-    ty.value = h / 2 - cy * fit;
+    // Center world origin (0,0) — which is the fibonacci spiral center — at screen center.
+    const rect2 = svgRef.value?.getBoundingClientRect()
+    if (rect2 && tx.value === 0 && ty.value === 0) {
+      tx.value = rect2.width / 2
+      ty.value = rect2.height / 2
+    } else {
+      const xs = Object.values(next).map((p) => p.x);
+      const ys = Object.values(next).map((p) => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      const span = Math.max(maxX - minX, maxY - minY, 1);
+      const fit = Math.min(1, (Math.min(w, h) - 80) / (span + 80));
+      scale.value = fit;
+      tx.value = w / 2 - cx * fit;
+      ty.value = h / 2 - cy * fit;
+    }
     applyZoomFromState();
   }
   if (saved) {
@@ -533,12 +560,10 @@ watch(
     for (const t of tricksList) {
       if (!t.id) continue;
       if (!next[t.id]) {
-        const svg = svgRef.value;
-        const rect = svg?.getBoundingClientRect();
-        const cx = rect ? rect.width / 2 : 200;
-        const cy = rect ? rect.height / 2 : 200;
-        const a = Math.random() * Math.PI * 2;
-        next[t.id] = { x: cx + Math.cos(a) * 80, y: cy + Math.sin(a) * 80 };
+        // Use fibonacci spawn anchor for dynamically-added tricks
+        positions.value = next; // update so nextSpawnPosition sees current placements
+        const anchor = nextSpawnPosition();
+        next[t.id] = { x: anchor.x, y: anchor.y };
         dirty = true;
       }
     }
@@ -559,27 +584,57 @@ defineExpose({ resetView, zoomIn, zoomOut });
 
 // Fibonacci anchor-dot grid — golden-spiral substrate behind the graph.
 // Subtle: low alpha, no animation in v1.
-const GRID_DOT_COUNT = 96
-const GRID_SCALE = 38 // controls overall density / size
+const GRID_DOT_COUNT = 160       // denser than before (was 96)
+const GRID_SCALE = 26            // denser than before (was 38)
+const GRID_DOT_R = 1.0           // uniform dot radius
 const GOLDEN_ANGLE_RAD = Math.PI * (3 - Math.sqrt(5)) // ≈ 137.508° in radians
 
-interface GridDot { x: number; y: number; r: number; opacity: number }
-
-const gridDots = computed<GridDot[]>(() => {
-  const dots: GridDot[] = []
+const gridPath = computed<string>(() => {
+  const parts: string[] = []
   for (let i = 1; i <= GRID_DOT_COUNT; i++) {
     const angle = i * GOLDEN_ANGLE_RAD
     const radius = GRID_SCALE * Math.sqrt(i)
-    const x = Math.cos(angle) * radius
-    const y = Math.sin(angle) * radius
-    // Dots farther from origin fade slightly, dots near origin a hair brighter.
-    const t = 1 - Math.min(i / GRID_DOT_COUNT, 1)
-    const opacity = 0.07 + 0.10 * t
-    const r = 1.2 + 0.6 * t
-    dots.push({ x, y, r, opacity })
+    const cx = Math.cos(angle) * radius
+    const cy = Math.sin(angle) * radius
+    parts.push(`M ${cx.toFixed(2)} ${cy.toFixed(2)} m ${-GRID_DOT_R} 0 a ${GRID_DOT_R} ${GRID_DOT_R} 0 1 0 ${GRID_DOT_R * 2} 0 a ${GRID_DOT_R} ${GRID_DOT_R} 0 1 0 ${-GRID_DOT_R * 2} 0`)
   }
-  return dots
+  return parts.join(' ')
 })
+
+// Spawn anchors — sparser fibonacci spiral used to position new nodes without overlap.
+const SPAWN_ANCHOR_COUNT = 400
+const SPAWN_SCALE = 72  // ~2.5 × NODE_R so adjacent anchors don't overlap when NODE_R = 28
+
+interface SpawnAnchor { x: number; y: number }
+
+const spawnAnchors: SpawnAnchor[] = (() => {
+  const arr: SpawnAnchor[] = []
+  for (let i = 1; i <= SPAWN_ANCHOR_COUNT; i++) {
+    const angle = i * GOLDEN_ANGLE_RAD
+    const radius = SPAWN_SCALE * Math.sqrt(i)
+    arr.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius })
+  }
+  return arr
+})()
+
+function nextSpawnPosition(): { x: number; y: number } {
+  const minDist = (NODE_R + 4) * 2  // collision buffer
+  const taken = Object.values(positions.value)
+  for (const anchor of spawnAnchors) {
+    let conflict = false
+    for (const p of taken) {
+      const dx = p.x - anchor.x
+      const dy = p.y - anchor.y
+      if (Math.sqrt(dx * dx + dy * dy) < minDist) {
+        conflict = true
+        break
+      }
+    }
+    if (!conflict) return { x: anchor.x, y: anchor.y }
+  }
+  // Fallback: pick the last anchor (out at the edge of the spiral)
+  return spawnAnchors[spawnAnchors.length - 1]
+}
 </script>
 
 <template>
@@ -635,14 +690,11 @@ const gridDots = computed<GridDot[]>(() => {
       </defs>
       <g :transform="`translate(${tx},${ty}) scale(${scale})`">
         <g class="gw-graph-grid" aria-hidden="true">
-          <circle
-            v-for="(d, i) in gridDots"
-            :key="i"
-            :cx="d.x"
-            :cy="d.y"
-            :r="d.r"
+          <path
+            :d="gridPath"
             fill="var(--color-g-brand)"
-            :opacity="d.opacity"
+            fill-opacity="0.10"
+            pointer-events="none"
           />
         </g>
         <g class="slalom-edges">
