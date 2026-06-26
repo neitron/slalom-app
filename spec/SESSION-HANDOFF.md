@@ -1,264 +1,220 @@
-# Session handoff — 2026-06-25
+# Session handoff — 2026-06-27
 
-Picking up next session: paste this into a fresh `claude` invocation at
-`/Users/kzubenko/Projects/slalom-app`. Or `claude --resume` and choose
-the recent slalom-app session.
+Picking up next session: paste the **"Prompt for new session"** at the bottom
+of this file into a fresh `claude` invocation at
+`/Users/kzubenko/Projects/slalom-app`. Or `claude --resume` and choose the
+recent slalom-app session.
 
 ---
 
 ## State right now
 
-- **Branch**: `main`, **78 commits ahead of `origin/main`**, **NOT pushed**.
-- 141/141 tests pass, build clean.
-- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h shipped locally**. Phases 4d/e/f/g/i + 5 + 6 + 7 still open.
-- Old handoff state (M3.5 social layer) is still in commit `ebf7fec`. This document supersedes it.
+- **Branch**: `main` at `b3c6480`, **pushed to `origin/main`** (GH Pages
+  redeploy on every push).
+- 144/144 tests pass, build clean.
+- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h shipped to
+  prod.** Phase 4d **DEFERRED** (doesn't fit the user's training procedure
+  — see Decisions log). Phases 4e/f/g/i + 5 + 6 + 7 still open.
+- Server-side: `transitions.rate`, `sequences.rate`, and
+  `user_trick_progress.{rate, rate_l, rate_r}` columns migrated from
+  `smallint` to `numeric(4, 2)` so the client's blended rates (e.g. `3.4`)
+  push cleanly.
 
-## How to push (when ready)
+## Recent commits worth scanning (most recent first)
 
 ```
-git push origin main
+b3c6480 Graph: pan starts from anywhere (including nodes); native click for tap
+7527850 ToastStack: place below safe-area-inset-top (notch was hiding errors)
+b0a251d SequenceSheet learn-transitions + Generator + Graph fixes
+dfb8da7 Multi-emoji per trick + rate UX overhaul
+2d622ca Sheets: form controls bypass scroll-lock + drag-to-close
+0208a43 Phase 4b polish: sheet UX hardening + Tricks page tweaks
+69ff98b Phase 4b (Tricks search-first) implementation plan
+1773381 Phase 4b (Tricks search-first) design spec
+4d0845b Phase 4h: Settings split
+86bc431 Phase 4a (Home) design spec
 ```
 
-GH Pages deploys via `.github/workflows/`. The redesign is dev-functional but
-**bespoke iconography (Phase 6) is the explicit SHIP GATE** for declaring the
-redesign "done." Pushing now ships everything except iconography +
-motion + screen-by-screen IA polish.
+`git push origin main` — when ready to ship.
 
 ---
 
-## What's shipped (Glasswork)
+## What's shipped since the 2026-06-26 handoff (additive)
 
-### Phase 1 — IA + tokens
-- IA decisions doc: `spec/2026-06-24-glasswork-ia-decisions.md`
-- Token system: `src/design/tokens.ts`, `src/design/glasswork.css`, `src/design/color.ts`
-- Contrast + ΔE invariants enforced in tests (`src/design/tokens.test.ts`, `src/design/color.test.ts`)
-- `/spec/tokens` dev preview route
-
-### Phase 2 — Nav/shell
-- New 4-tab IA: Home / Tricks / Graph / Sequences (`src/router.ts`)
-- App.vue rebuilt as a minimal shell (no global header)
-- TabBar: floating bottom glass island, asymmetric corner radius for first/last tabs
-- Home stub (`src/pages/Home.vue`) + Diagnostics placeholder (`src/pages/Diagnostics.vue`)
-- All 5 sheets re-skinned in glass (TrickSheet, TransitionSheet, SequenceSheet, GeneratorSheet, Graph save-sheet)
-- `useIosKeyboardReset` composable **deleted** (postponed-bug workaround removed)
-- HeaderProfileMenu re-skinned, eventually rewritten without `<Teleport>` and without `gw-glass-strong` due to iOS tap-handling issues
-
-### Phase 3a — Core components (focused subset)
-- TrickCard: glass tile, new typography
-- RateDots: multi-variant LED (Q dots default / S slashes / T bars), user-selectable in Settings → Display
-- New preferences store with localStorage (`src/stores/preferences.ts`)
-- RateButtons: pill bar (Bad / Mid / Good + Reset), unified glass treatment
-- ChipFilter: glass chips, white-pill active
-- SearchSort: glass input + select
-- `.gw-glass` / `.gw-glass-strong` utilities upgraded to gradient pseudo-element borders (135° top-left highlight, bottom-right secondary glint)
-
-### Phase 3b — Component sweep + iterative polish
-- Component re-skins: TransitionCard, SequenceCard, AvatarBadge, FriendButton, ProfileSearchResult, LegChooser, EdgeBubble, GraphBubble, SyncStatusDot, ToastStack, RateFeedback
-- TrickSheet: pencil ✎ toggles global edit mode (aliases/tags/video/emoji); rate section is a sticky inner glass island
-- TrickSheet metadata: 2-col pair grid with separators
-- L/R toggle in TrickSheet became a segmented mode switch, co-located with rate
-- TrickCard reverted to non-chevron layout (chevron was rejected; edit lives in the sheet)
-- Home avatar dropdown fix (Teleport removal later in 4c iterations)
-- ForeignLearningList sticky banner: rebased on `env(safe-area-inset-top)` (was reading removed `--header-h`)
-
-### Phase 4a — Home
+### Phase 4a — Home (shipped 2026-06-26)
 - IA decisions for Home v1 honoured: Quick-jumps row → 14-day intensity heatmap → top-5 Working-on list → 7-day granular activity feed.
-- Spec: `spec/2026-06-26-glasswork-phase-4a-home-design.md`
-- Plan: `docs/superpowers/plans/2026-06-26-glasswork-phase-4a-home.md`
-- New code:
-  - `src/utils/dates.ts` — local-day primitives (`todayLocalIso`, `daysAgoLocalIso`, `groupByLocalDay`, `streakDays`).
-  - `src/composables/homeDataCompute.ts` — pure helpers: `selectWorkingOn`, `countWorkingOn`, `buildHeatmap14`, `joinActivityRows`, `pickCurrentSequence`, `nextCycleScore`, `sessionsInWindow`, `streakFromLogs`.
-  - `src/composables/useHomeData.ts` — reactive wrapper over the helpers + Dexie `liveQuery` subscription (28-day window covers current + delta-previous periods).
-  - `src/components/{QuickJumps,Heatmap14,WorkingOnList,ActivityFeed,HomeEmpty}.vue`.
-  - `src/pages/Home.vue` — full rewrite composing the above; reads `useUiStore` for sheet wiring (`openSheet`, `openSequence`).
-- Cycle semantics (Home Working-on rows): tap dots cycles via discrete pill scores 1→3→5→1, mapped from current effective rate. LR tricks cycle the L-side rate only; per-side cycle deferred to Phase 4b.
-- Bridge to `/tricks`: `?status=in-progress` query param applies a Status filter on AllTricks + renders a dismissible glass chip above tier tabs. Phase 4b will fold Status into a broader filter sheet.
-- Heatmap intensity buckets: 0 / 1-2 / 3-5 / ≥6 → levels 0..3. Tuning against real data deferred.
-- Streak math: today counts as `+1` even if 0 sessions yet ("don't break yesterday's streak before you've started today").
-- Tests added: `dates.test.ts` (9), `homeDataCompute.test.ts` (18), `tricks.test.ts` (4). Components verified manually.
+- Spec: `spec/2026-06-26-glasswork-phase-4a-home-design.md`. Plan:
+  `docs/superpowers/plans/2026-06-26-glasswork-phase-4a-home.md`.
+- New code: `src/utils/dates.ts`, `src/composables/{homeDataCompute,useHomeData}.ts`, `src/components/{QuickJumps,Heatmap14,WorkingOnList,ActivityFeed,HomeEmpty}.vue`, Home.vue full rewrite.
+- Bridge to `/tricks?status=in-progress` — single-status URL round-trip preserved across phases.
 
-### Sheet UX hardening (during 4b iOS device pass)
-- New composable `src/composables/useBodyScrollLock.ts`: dual-mode body scroll lock. In standalone PWA, locks `html` + `body` with `overflow: hidden` + `overscroll-behavior: none` + a non-passive document-level `touchmove` blocker (smart-skipped if the touch originates inside a real scrollable descendant). In Safari tab, uses the classic `position: fixed; top: -scrollY` pattern. Refcounted so nested locks don't stomp each other.
-- Applied to TrickSheet, SequenceSheet, TransitionSheet, GeneratorSheet, TricksFilterSheet (replacing the prior `document.body.style.overflow` calls).
-- Backdrop overlays on all 5 sheets get `touch-action: none` to block backdrop-area scroll-through.
-- GeneratorSheet gains drag-to-close to match the other sheets.
-- TricksFilterSheet drag-to-close now works from anywhere on the panel (previously only from the tiny handle).
-- TabBar gets `transform: translateZ(0)` in standalone mode so iOS keeps it pinned during rubber-band overscroll instead of dragging along.
+### Phase 4b — Tricks (search-first) (shipped 2026-06-26)
+- Spec / plan: `spec/2026-06-26-glasswork-phase-4b-tricks-design.md` / `docs/superpowers/plans/2026-06-26-glasswork-phase-4b-tricks.md`.
+- `Tricks.vue` (renamed from `AllTricks.vue` in 4b-coda) is driven by a sticky search header (hide-on-scroll-down, reveal-on-scroll-up).
+- Sticky header: search input + inline sort cycle (`Name → Best → Worst`) + filter button with `Filters · N` badge.
+- `TricksFilterSheet.vue` — bottom sheet with drag-to-dismiss, four sections: **Tier**, **Category**, **Status**, **Favorites**. Footer shows live result count. No Apply button — changes are live.
+- Plural `FilterOpts` (`tiers[]`, `categories[]`, `statuses[]`, `favOnly`); deprecated singulars removed in 4b-coda. `useUiStore` switched to plural fields + setters + `resetTricksFilters`.
+- New composable `useScrollDirection`. New helpers + tests.
+- Phase 4b polish (committed `0208a43`): icon-only sliders filter button with corner badge, dismissible chip per active filter, GeneratorSheet mode picker → 3-segment switcher, slider drag fix.
 
-### Tricks page polish (during 4b iOS device pass)
-- Sticky bar search input now shrinks (`min-w-0`) so the sort pill + filter button hold their width as the filter count grows.
-- Filter button is icon-only (3-line slider SVG) with a small numbered badge in the top-right corner — width constant regardless of how many filters are active.
-- Active-filter strip below the search bar now renders chips for EVERY active filter (Tier · Category · Status · Favorites), each individually dismissible. The Status chip dismissal cleans up the URL via the `tricksStatuses` watcher.
+### Sheet UX hardening (during 4b)
+- `src/composables/useBodyScrollLock.ts` — dual-mode body scroll lock. Standalone PWA: `html`+`body` overflow + overscroll lock + non-passive document-level `touchmove` blocker (whitelists form controls and scrollable descendants). Safari tab: classic `position: fixed; top: -scrollY`. Refcounted.
+- Applied to TrickSheet, SequenceSheet, TransitionSheet, GeneratorSheet, TricksFilterSheet (replaced previous `body.style.overflow` calls).
+- All 5 sheets: backdrop `touch-action: none`; drag-to-close skipped when touch starts on a form control; GeneratorSheet gains drag-to-close.
+- TabBar gets `transform: translateZ(0)` in standalone so iOS keeps it pinned during rubber-band overscroll.
 
-### Phase 4b — Tricks (search-first)
-- Spec: `spec/2026-06-26-glasswork-phase-4b-tricks-design.md`
-- Plan: `docs/superpowers/plans/2026-06-26-glasswork-phase-4b-tricks.md`
-- `/tricks` (renamed `AllTricks.vue` → `Tricks.vue` in coda) is now driven by a sticky search header that hides on scroll-down and reveals on scroll-up.
-- Sticky header contents: search `<input>` bound to `ui.tricksSearch`; sort-cycle pill (`Name → Best → Worst → Name`); filter button with active-count badge (`Filters · N`).
-- Filter sheet (`TricksFilterSheet.vue`) is a bottom sheet with drag-to-dismiss, four sections: **Tier** (multi-select 1–6), **Category** (multi-select 9 categories), **Status** (multi-select 3), **Favorites only** (toggle). Footer shows live result count. No Apply button — changes are live.
-- `FilterOpts` switched to plural fields (`tiers[]`, `categories[]`, `statuses[]`, `favOnly`); deprecated singulars (`tier`, `category`, `status`, `practicedOnly`) removed in 4b-coda.
-- `useUiStore` switched to plural fields (`tricksTiers`, `tricksCategories`, `tricksStatuses`, `tricksFavOnly`, `tricksSearch`, `tricksSort` + setters + `resetTricksFilters`); legacy singulars (`tier`, `category`, `search`, `sort` + setters) deleted.
-- URL contract for `?status=in-progress` preserved (single status round-trips through the URL; multi/none drops the param). Home's "See all" link still works.
-- `TierTabs.vue` deleted (no consumers). `SearchSort.vue` kept (still used by `Learning.vue`).
-- New composable: `useScrollDirection({ target?, threshold? = 8 }): { hidden, stop }`. Pure-enough — tested via FakeScroller.
-- Tests added: `useScrollDirection.test.ts` (6), `tricks.test.ts` plural-field cases (6 net, +8 added in T2, -5 deprecated-singular removed in T8-coda + 3 already existed).
+### Phase 4h — Settings split (shipped 2026-06-26)
+- `/settings` keeps user-facing: Profile, Cloud sign-in, App, Display. Bottom links to Diagnostics.
+- `/diagnostics` owns engineering: Sync, Storage, Data (Export JSON), Danger zone (Push to cloud, Reset graph layout, Re-seed, Import), Build (SHA + commit + built-at). Header has a "← Settings" back button.
+- Sign-out stays in /settings — auth UX, not engineering.
 
-### Phase 4h — Settings split
-- `/settings` keeps user-facing: Profile (nickname/displayName/bio/emoji/visibility), Cloud sign-in (magic link + Google + Sign out), App (Install link + force-reload), Display (rate dot variant). Bottom of page links to Diagnostics.
-- `/diagnostics` owns engineering surface: Sync (last-sync timestamp, online/offline dot, queue length, "Sync now" button, "↻ Refresh sync"), Storage (mode indicator), Data (Export JSON), Danger zone (Push local to cloud, Reset graph layout, Re-seed from bundle, Import JSON), Build (SHA + commit link + built-at). Header has a "← Settings" back button.
-- Sign-out stays in /settings because it's a user-facing auth action; sync/push are engineering.
+### Multi-emoji per trick + rate UX overhaul (committed `dfb8da7`)
+- `src/utils/graphemes.ts` — `Intl.Segmenter`-backed `countGraphemes / splitGraphemes / takeGraphemes` + three sizing helpers:
+  - `autosizeIcon(base)` — gentle inline shrink (1→base, 2→0.9×, 3→0.82×). Used by TrickCard inline emoji + sheet headers.
+  - `autosizeIconTight(base)` — aggressive shrink (0.75× / 0.6×). Used by Graph node circle (must fit inside).
+  - `autosizeIconSlot(slot, font)` — grow-slot variant: slot widens 1× / 1.43× / 1.93×, font 1× / 0.89× / 0.78×, with proportional letter-spacing. Used by WorkingOnList rows and ActivityFeed rows.
+- `MAX_TRICK_EMOJIS = 3`. TrickSheet emoji input maxlength 32, clamped to 3 graphemes on save.
+- WorkingOnList acronym fallback now extracts uppercase letters only (matches GraphView's `glyphFor`): "Alternating Cross (Advanced)" → ACA.
+- TrickCard: rate dots moved into the meta row (right-edge, `shrink-0`) — saves a row of vertical space (option C).
+- TrickSheet rate island redesign (option A):
+  - "Progress" header (`text-xs uppercase tracking-wide text-muted`, matches existing TrickSheet label pattern) + leg switch in the right slot.
+  - Per-leg view: tinted leg name + "— how was it today?" + `<RateDots side="L|R">` on the right; Bad/Mid/Good/Reset pills below.
+  - Both-legs view: "How was it today?" + RateDots; same pill row.
+  - **`RateDots` gained a `side?: 'L' | 'R' | null` prop** — when set in `lr=true` mode, renders only that side's row.
+- Reset rewrite:
+  - Removed the bottom "Reset progress" button.
+  - Each pill row has its own Reset pill with two-tap arm (1st tap → red `bg-danger` + "Confirm?"; 2nd tap → `tricksStore.resetTrickSide(id, side)` which nulls only that side's rate, then recomputes status). Auto-disarm after 3s. Three independent armed states (L/R/none).
+- WorkingOnList tap-to-cycle on dots: for LR tricks now opens the sheet (was silently logging only L — confusing). Non-LR tricks still cycle in place.
+- RateDots iOS Safari residual-glow fix: distinct `key` props for lit vs off so Vue fully unmounts the lit element (releases GPU compositing layer). Off-state background switched from leg tint to `gw.fg` (neutral near-white) so reset doesn't leave faint leg-colored ghosts.
 
-### Phase 4c — Graph
-- **W6 nodes**: glass circle (radius 28, gradient stroke) + hairline semicircle rate bars (L peach left, R teal right, both fills bottom-up; `u` for non-lr fills middle-out) + LED glow halo (color-dodge filter) + glyph (emoji or **ALL UPPERCASE letters from name** — "Backward Half-Lemon" → BHL — at scaled font size, dim color, `dominant-baseline="central"`) + name below circle
-- **Fibonacci anchor-dot grid** as single SVG path (160 dots + origin dot, GRID_SCALE=26, 0.10 fill opacity)
-- **Fibonacci node-spawn anchors** (separate sparser spiral, SPAWN_SCALE=72): new tricks placed at next-free anchor with collision check
-- **Initial camera centers on world origin** when no saved view; `⌂` reset button always recenters
-- **Edges**: hairline 1px crisp + 3px gentle glow halo + leg-based linearGradient stroke (from-side color → to-side color) + rate-encoded opacity (0.30 unrated → 0.85 rate-5) + open chevron arrowheads for direction + no markers on bidi (bare gradient line)
-- **Edge endpoints reach the node circle exactly** (offset = NODE_R)
-- **Glow filter region**: `userSpaceOnUse` 4000×4000 (no clamping on axis-aligned edges)
-- **S3 selection** on both nodes and edges (unified language):
-  - Selected node: outer brand glow ring at `NODE_R+2` (sits just outside lilac border) + thin brand border on glass circle + body scale 1.06
-  - Link-source: dashed brand glow ring
-  - Selected edge: brand crisp 1.5px + 4.5px brand glow halo
-- **S4 numbered badges** on sequence-member nodes (1, 2, 3...) at top-right, unscaled
-- **Sequence-mode bottom bar**: centered floating glass island, max-width 420px
-- **Linking banner**: full-width glass card, multiline text, safe-area-aware top offset
-- **Zoom controls** moved above floating TabBar; glass + chip radius
-- Minimal `/transitions` link in Graph header (placeholder until real placement)
+### SequenceSheet "Learn N transitions" button (committed `b0a251d`)
+- Sits in the **Chain** section header, right-aligned. Hidden when there are no missing transitions.
+- For each missing pair: if a non-bidi inverse edge (B→A with sides swapped) exists, promote it to `bidi: true` via `transitionsStore.update`; otherwise create a fresh directional edge.
+
+### Generator fixes (committed `b0a251d`)
+- `graphWalk` resolves edges via a `byKey` map keyed by trick **id and** name. Production storage uses trick ids (seed converts at load; the graph UI stores ids on creation); the prior implementation only matched by name and returned `null` in production. Tests keep working because they fabricate edges using names.
+- All three generators (`graphWalk`, `knownShuffle`, `totallyRandom`) now assign a random L/R side to LR tricks via a `pickSide` helper. Non-LR tricks stay null. New tests cover both.
+
+### Graph fixes (committed `b0a251d` + `b3c6480`)
+- **Orphan-node persistence** — `graphTricks` filter also keeps tricks with explicit `node_x/y` OR an entry in the in-memory `positions` map (drag, persisted view, fibonacci spawn). Removing the last edge no longer hides the node.
+- **Move mode** — new `✥ Move` toggle in the Graph header. Default mode: node taps still work but drag never moves the node; pan starts from anywhere including a node (canvas pans from a node-originated drag). Move on: drag-to-reposition + tap (existing behavior).
+- **Tap vs pan disambiguation** — in default mode the node interaction is no longer attached via d3-drag; pan goes straight to d3-zoom on the SVG. A native `click` handler on each node fires only when pointerup lands within a few pixels of pointerdown (browser-defined), so drag-then-release outside the circle no longer opens a spurious bubble.
+- **GraphBubble + EdgeBubble** — `touch-action: none` on the root + `@touchstart.stop @touchmove.stop @touchend.stop` so dragging over an open bubble no longer pans the graph behind it.
+
+### Postgres rate column migration (applied 2026-06-27 via Supabase MCP)
+- `public.transitions.rate`, `public.sequences.rate`, `public.user_trick_progress.{rate, rate_l, rate_r}` all changed from `smallint` to `numeric(4, 2)`.
+- Fixes "Push transitions: invalid input syntax for type smallint: 3.4" on the Diagnostics → Push local to cloud button.
+
+### ToastStack notch fix (committed `7527850`)
+- Toasts now sit at `top: calc(env(safe-area-inset-top) + 0.5rem)` instead of `top: 0.5rem`. PWA notch was hiding errors.
 
 ---
 
 ## What's NOT done
 
-### Phase 4b — Tricks
-Catalog still uses tier tabs. Per IA, drop tier tabs in favor of search-first + filter sheet. UX is the main work.
-
-### Phase 4d — Sequences
-List uses re-skinned cards but SequenceSheet is not yet a "rehearsal script" (big readable steps, big side glyphs, rate-after-run sheet).
+### Phase 4d — Sequences (DEFERRED 2026-06-27)
+User decided the carousel rehearsal-script direction doesn't fit how they
+actually rehearse. The brainstorm was halted before the spec was written.
+The existing SequenceSheet keeps its compact list shape; the new
+"Learn N transitions" button is the only recent change here.
 
 ### Phase 4e — Transitions
-Only a placeholder `↔ Transitions` link in Graph header. Real placement (list view inside Graph? separate route?) undecided.
+Only a placeholder `↔ Transitions` link in Graph header. Real placement
+(list view inside Graph? separate route?) undecided.
 
 ### Phase 4f — Learning
-Subsumed into Home per IA — depends on 4a.
+Subsumed into Home per IA — depends on 4a (now shipped, so this can pick up).
 
 ### Phase 4g — People + ForeignProfile
 Components re-skinned, pages not redesigned.
-
 
 ### Phase 4i — Install + onboarding
 Visual sweep not done.
 
 ### Phase 5 — Motion language
-- Spring physics presets
-- View Transitions API integration
-- Sheet choreography
-- Generator stagger
-- Fibonacci grid breathing animation (deferred from Phase 4c)
-- Tap-to-cycle pulse on RateDots
-- All with `prefers-reduced-motion: reduce` paths
+Spring physics presets, View Transitions API, sheet choreography,
+generator stagger, fibonacci grid breathing animation, tap-to-cycle
+pulse on RateDots — all with `prefers-reduced-motion: reduce` paths.
 
 ### Phase 6 — Bespoke iconography (SHIP GATE)
-Replace ALL Lucide-style icons + emoji fallback in TabBar, Graph, sheets, etc. with a bespoke set built around Slalom semantics (cone, chain, spiral, leg-L/R/both/none, rate, sync). The redesign is **not "done"** until this ships.
+Replace all Lucide-style icons + emoji fallback in TabBar, Graph,
+sheets, etc. with a bespoke Slalom-semantic set. **The redesign is not
+"done" until this ships.**
 
 ### Phase 7 — PWA polish
-- New app icon at all sizes
-- iOS PWA splash images
-- `index.html` meta refinements (theme-color, viewport)
-- Install funnel polish on `/install`
-- Final iOS Safari perf budget pass (LCP, scroll fps, INP)
+App icons at all sizes, iOS PWA splash images, theme-color + viewport
+refinements, install funnel polish, final iOS Safari perf budget pass.
 
 ---
 
 ## Open bugs / things to verify next session
 
-1. **Home avatar menu interactability** — Just rewritten (commit `65f1c5a`) without `<Teleport>` and without `gw-glass-strong`. User reported it still wasn't opening in the prior version. **Smoke-test on real iPhone before any other Home work.** If still broken, deeper investigation needed (event listener attached? open ref actually toggling? Vue dev tools to inspect).
+1. **iOS keyboard drift — ACCEPTED LIMITATION (2026-06-26)**. Unsolvable on iOS Safari after exhausting the visualViewport-fallback playbook. Reference: Bram.us *"Prevent items from being hidden underneath the virtual keyboard…"* article — the article's `interactive-widget=resizes-content` viewport meta (already in `index.html`) and `env(keyboard-inset-height)` are Chromium-only. Code lives in `src/composables/useIosKeyboardReset.ts` and `src/composables/useBodyScrollLock.ts`. **Do not re-attempt without a fundamentally new mechanism** (VirtualKeyboard API landing in WebKit, or a native wrapper).
 
-2. **iOS keyboard drift — ACCEPTED LIMITATION (2026-06-26)**. Confirmed unsolvable on iOS Safari after exhausting the visualViewport-fallback playbook. Reference: Bram.us *"Prevent items from being hidden underneath the virtual keyboard…"* article — the author himself says iOS has no clean solution; the article's `interactive-widget=resizes-content` viewport meta (already in our `index.html`) and `env(keyboard-inset-height)` are Chromium-only. We've tried: `useKeyboardOpen` (visualViewport-based detection), `useIosKeyboardReset` (focusin/focusout with scroll save/restore and viewport-recompute kick), GPU-compositing the TabBar (`translateZ(0)`), document-level non-passive touchmove blockers, dual-mode body lock (standalone vs Safari tab). The drift is narrower than before but not eliminated. Code lives in `src/composables/useIosKeyboardReset.ts` and `src/composables/useBodyScrollLock.ts`. **Do not re-attempt without a fundamentally new mechanism** (e.g. the VirtualKeyboard API landing in WebKit, or a native wrapper).
+2. **Saved graph views don't recenter on origin** — `tryInit()` only centers when no saved view exists. Users with a saved view from before the centering fix will still see misalignment until they hit `⌂` (reset view). Decide: nuke stale saved views proactively, or trust the reset button.
 
-3. **Saved graph views don't recenter on origin** — `tryInit()` only centers when no saved view exists. Users with a saved view from before the centering fix will still see misalignment until they hit `⌂` (reset view). Decide: nuke stale saved views proactively, or trust the reset button.
-
-4. **Build-sha/diagnostics still mixed into Settings page** — Phase 4h owns the split; until then, Settings page has both user-facing + engineering content.
+3. **iOS PWA tested touchpoints from the most recent device pass** that should keep getting eyes:
+   - Working-on row tap-to-cycle (LR tricks open the sheet; non-LR cycles inline)
+   - Rate island per-side Reset pills two-tap arm
+   - Graph: tap a node from default mode → bubble; drag from a node → pan; toggle Move on → drag repositions
+   - Generator: Graph mode actually produces sequences with LR tricks getting L/R sides
+   - SequenceSheet: "Learn N transitions" button creates or promotes-to-bidi correctly
 
 ---
 
-## Key files & dev-only preview routes
+## Key files (most-touched recently)
 
-### Documents (read first)
-- `spec/2026-06-24-redesign-glasswork-design.md` — direction spec (still current)
-- `spec/2026-06-24-redesign-glasswork-roadmap.md` — phase map + status table
-- `spec/2026-06-24-glasswork-ia-decisions.md` — IA decisions (route map, tab map, Home v1)
-- `docs/superpowers/plans/2026-06-24-glasswork-phase-1-ia-and-tokens.md`
-- `docs/superpowers/plans/2026-06-24-glasswork-phase-2-nav-shell.md`
-- `docs/superpowers/plans/2026-06-25-glasswork-phase-3a-core-components.md`
-- (No detailed plan for 3b and 4c — they were dispatched task-by-task. Commit log is the record.)
+- `src/components/RateDots.vue` — gained `side?: 'L' | 'R' | null` prop; key-per-state to fix iOS compositing leak; neutral fg-tinted off state.
+- `src/components/TrickSheet.vue` — rewritten rate island (Progress header + per-leg rows + per-side reset pills + RateDots integration).
+- `src/components/TrickCard.vue` — rate dots in meta row; gentler emoji autosize.
+- `src/components/WorkingOnList.vue` — `autosizeIconSlot` grow-slot; tap-to-cycle now opens sheet for LR; acronym fallback uppercase-only.
+- `src/components/ActivityFeed.vue` — `autosizeIconSlot` grow-slot.
+- `src/components/GraphView.vue` — orphan persistence in `graphTricks`; `moveMode` prop; default-mode native click vs move-mode d3-drag; d3-zoom filter respects moveMode.
+- `src/pages/Graph.vue` — `✥ Move` toggle button in header; `moveMode` ref passed to GraphView.
+- `src/components/GraphBubble.vue` + `src/components/EdgeBubble.vue` — `touch-action: none` + touch-event propagation stop.
+- `src/components/SequenceSheet.vue` — "Learn N transitions" button + inverse-edge bidi promotion.
+- `src/components/ToastStack.vue` — safe-area-aware top.
+- `src/domain/generators.ts` — `pickSide` for LR; `buildTrickKeyMap` for id-or-name edge resolution.
+- `src/stores/tricks.ts` — `resetTrickSide(id, side)` action + tests for plural filter still hold.
+- `src/storage/fieldMap.ts` — `mapTransitionToServer` unchanged; the schema fix is server-side only.
+- `src/utils/graphemes.ts` — three autosize variants + `MAX_TRICK_EMOJIS = 3`.
 
-### Key source paths
-- `src/design/tokens.ts` — single source of truth for hex values
-- `src/design/glasswork.css` — CSS layer mirroring tokens.ts + glass/aurora/pattern utilities
-- `src/design/color.ts` — color math (contrast, ΔE2000, Lab conversion)
-- `src/router.ts` — route map (Home / Tricks / Graph / Sequences + dev `/spec/*` routes)
-- `src/App.vue` — minimal shell
-- `src/components/TabBar.vue` — floating island, 4 tabs
-- `src/components/HeaderProfileMenu.vue` — avatar dropdown (inline-rendered, no Teleport)
-- `src/components/RateDots.vue` — multi-variant LED, reads `preferences.rateDotStyle`
-- `src/components/RateButtons.vue` — pill bar
-- `src/components/TrickCard.vue` — glass tile
-- `src/components/TrickSheet.vue` — pencil edit-mode + sticky rate island + 2-col detail grid
-- `src/components/GraphView.vue` — W6 nodes, fibonacci grid, S3 selection, badges, all in pure SVG (NO foreignObject — caused iOS pan/zoom break)
-- `src/pages/Graph.vue` — page chrome, sequence-mode island, linking banner
-- `src/pages/Home.vue` — stub
-- `src/pages/Diagnostics.vue` — placeholder
-- `src/stores/preferences.ts` — localStorage-backed preferences (rateDotStyle only for now)
+---
 
-### Dev-only preview routes
+## Dev-only preview routes (gated on `import.meta.env.DEV`)
+
 | Route | Purpose |
 |---|---|
 | `/#/spec/tokens` | Color/type/material swatches |
-| `/#/spec/rate-options` | RateDots variant comparison (Q chosen, S/T selectable) |
-| `/#/spec/node-options` | Node visual variants (W6 chosen) |
+| `/#/spec/rate-options` | RateDots variant comparison |
+| `/#/spec/node-options` | Node visual variants |
 | `/#/spec/edge-options` | Transition leg-indication variants |
-| `/#/spec/selection-options` | Selection state language variants (S3 chosen) |
-
-These pages are gated on `import.meta.env.DEV` — won't ship to prod.
+| `/#/spec/selection-options` | Selection state language variants |
 
 ---
 
-## Decisions log (don't relitigate without reason)
+## Decisions log additions (don't relitigate)
 
-- DECIDED: 4 bottom tabs (Home / Tricks / Graph / Sequences).
-- DECIDED: People + Learning + Transitions are not tabs.
-- DECIDED: Settings split into `/settings` + `/diagnostics`; Diagnostics page is a placeholder until 4h implements the move.
-- DECIDED: Glasswork = lilac-on-frost, gradient borders, near-black warm-cool base.
-- DECIDED: Leg system = categorical hues (peach/teal/cream/none); rate = off-hue density.
-- DECIDED: RateDots default is Q (LED dots); S and T selectable in Settings → Display.
-- DECIDED: TrickSheet pencil = global edit-mode toggle (not just emoji).
-- DECIDED: TabBar is a floating glass island, not full-width.
-- DECIDED: Graph nodes = W6 (glass circle + hairline rate semicircles + LED glow + uppercase abbreviation when no emoji).
-- DECIDED: Graph edges = hairline + leg gradient + glow + rate-encoded opacity. Open chevrons for direction, no markers on bidi.
-- DECIDED: Selection language = S3 (glow + scale + thin brand border on node circle).
-- DECIDED: Sequence-member nodes get S4 numbered badges in addition to brand-tint fill.
-- DECIDED: HeaderProfileMenu renders inline (no Teleport, no gw-glass-strong) — iOS tap-handling issues with backdrop-filter + ::before.
-- DECIDED: NO `foreignObject` in graph SVG — breaks iOS pan/zoom.
-- DECIDED: Fibonacci anchor grid: 160 dots single-path render, denser at origin, world origin = home.
-- DECIDED: New nodes spawn at next-free fibonacci anchor (sparser spiral, no overlap).
-- DEFERRED: Custom typeface — still using system stack. Pick in Phase 5 or 6.
-- DEFERRED: Bespoke iconography to Phase 6 (ship gate).
-- ACCEPTED: iOS keyboard drift — not fully solvable on iOS Safari. visualViewport-fallback playbook exhausted (2026-06-26). See "Open bugs" item 2.
+- DECIDED 2026-06-26: Trick icons hold **up to 3 emojis** (`MAX_TRICK_EMOJIS`). Three autosize variants (`autosizeIcon` / `autosizeIconTight` / `autosizeIconSlot`) cover the three display contexts.
+- DECIDED 2026-06-26: WorkingOnList tap-to-cycle for LR tricks opens the sheet (per-side cycling is ambiguous and was confusing in practice).
+- DECIDED 2026-06-26: Rate island uses Progress header + per-leg rows + per-side Reset pills (two-tap arm). Single "Reset progress" button removed.
+- DECIDED 2026-06-26: Off-state RateDots use neutral `gw.fg` background (not leg tint) so reset truly looks reset.
+- DECIDED 2026-06-26: SequenceSheet shows "Learn N transitions" CTA when the chain has unlearned step pairs; promotes existing inverse to bidi when applicable.
+- DECIDED 2026-06-26: Graph adds `✥ Move` mode. Default mode: pan from anywhere; native `click` for tap. Move on: d3-drag for reposition.
+- DECIDED 2026-06-27: Postgres rate columns are `numeric(4, 2)`. Client computes blended floats and the server must store them.
+- DEFERRED 2026-06-27: Phase 4d rehearsal-script. Doesn't fit the user's training procedure as proposed (carousel + persistent current-step). Revisit if a new direction emerges.
 
 ---
 
 ## Recommended next moves
 
-In order of leverage:
-
-1. **Smoke-test the Home avatar menu fix on iPhone.** If broken, debug deeply before anything else.
-2. **Phase 4a (real Home)** — biggest user-visible gap. The in-session "what should I do right now" surface.
-3. **Phase 4h (Settings split)** — small, clean, frees up `/settings` from engineering content.
-4. **Phase 6 (iconography)** — ship-gate work; can run in parallel with screen redesigns since it's mostly design.
-5. **Phase 4b (Tricks search-first)** — IA shift but contained.
-6. **Phase 5 (motion)** — high impact polish, can happen at any time.
-7. **Phase 4d (Sequences rehearsal-script)** — central to "build & rehearse sequences" job.
+1. **Phase 6 (Bespoke iconography) — SHIP GATE.** Mostly design + asset work. Can run in parallel with screen redesigns. Required before declaring the redesign "done."
+2. **Phase 5 (Motion language).** Spring physics + View Transitions + sheet choreography. High-leverage polish moment; can happen any time.
+3. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
+4. **Phase 4g (People + ForeignProfile pages).** Visual coherence sweep.
+5. **Phase 4e (Transitions placement).** Decide list view vs route; small IA call.
+6. **Phase 4i (Install + onboarding).** Visual sweep.
+7. **Phase 7 (PWA polish).** App icon, splash, perf budget pass. Best done last.
 
 ---
 
@@ -270,3 +226,49 @@ In order of leverage:
 - Auth storage key: `slalom.sb.auth`
 - Dexie name: `slalom`, current version 4
 - Preferences localStorage key: `slalom.prefs.v1`
+- Postgres: `transitions.rate`, `sequences.rate`, `user_trick_progress.{rate, rate_l, rate_r}` are all `numeric(4, 2)` as of 2026-06-27.
+
+---
+
+## Prompt for new session
+
+Paste this into a fresh `claude` invocation:
+
+```
+Continue the Glasswork redesign. Branch is main at b3c6480, on origin
+(pushed). 144/144 tests pass, build clean.
+
+READ FIRST (in this order):
+- spec/SESSION-HANDOFF.md  ← single source of truth for current state
+- spec/2026-06-24-redesign-glasswork-design.md  ← direction
+- spec/2026-06-24-redesign-glasswork-roadmap.md  ← phase map
+- spec/2026-06-24-glasswork-ia-decisions.md  ← IA
+
+Shipped: Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h. Phase 4d DEFERRED
+(carousel doesn't fit user's training procedure). Open: 4e, 4f, 4g, 4i,
+5, 6 (SHIP GATE), 7.
+
+The most recent device pass landed:
+- Multi-emoji per trick + rate UX overhaul (TrickSheet rate island,
+  per-side Reset pills, autosize across cards/rows/graph).
+- Generator fixes (Graph mode resolves edges by id; LR tricks get sides).
+- Graph "Move" mode toggle; default mode allows pan from anywhere on a
+  node and uses native click for tap.
+- Postgres rate columns smallint → numeric(4, 2).
+- ToastStack safe-area-aware top.
+
+Settled decisions are in spec/SESSION-HANDOFF.md "Decisions log" — don't
+relitigate without specific reason.
+
+Dev-only preview routes for design research:
+  /spec/tokens, /spec/rate-options, /spec/node-options,
+  /spec/edge-options, /spec/selection-options.
+
+Recommended next phases (in order): Phase 6 (iconography — SHIP GATE,
+design-heavy, can parallelize), Phase 5 (motion language), Phase 4f
+(Learning fold-in to Home), Phase 4g (People + ForeignProfile pages),
+Phase 4e (Transitions placement), Phase 4i (Install + onboarding),
+Phase 7 (PWA polish).
+
+What I want to do this session: [ describe the phase or specific issue ]
+```
