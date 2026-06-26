@@ -464,7 +464,9 @@ function setupZoom(): void {
     .filter((event) => {
       const target = event.target as Element | null;
       if (!target) return true;
-      if (target.closest('.slalom-node')) return false;
+      // In move mode, let d3-drag own node-originated touches. Outside
+      // move mode, allow pan to start from anywhere including a node.
+      if (props.moveMode && target.closest('.slalom-node')) return false;
       if (event.type === 'wheel') return true;
       if (event.type === 'mousedown' && (event as MouseEvent).button !== 0) return false;
       return true;
@@ -487,6 +489,27 @@ function setupNodeDrag(): void {
   if (!svg) return;
   const root = select(svg).select<SVGGElement>('g.slalom-nodes');
   if (root.empty()) return;
+  const sel = root.selectAll<SVGGElement, unknown>('g.slalom-node');
+  // Clear any prior bindings before re-attaching (mode toggle / re-render).
+  sel.on('.drag', null).on('click', null);
+
+  if (!props.moveMode) {
+    // Default mode: let touches on nodes bubble up to the SVG's pan/zoom
+    // handler so the canvas can pan from anywhere — including across a
+    // node. Tap detection uses the native `click` event, which browsers
+    // only dispatch when pointerup lands within a few pixels of
+    // pointerdown. That gives us exactly "tap = open bubble; drag = pan,
+    // no bubble" without any custom math.
+    sel.on('click', function (event: MouseEvent) {
+      const id = (this as SVGGElement).getAttribute('data-id');
+      if (!id) return;
+      event.stopPropagation();
+      emit('nodeTap', id, { x: event.clientX, y: event.clientY });
+    });
+    return;
+  }
+
+  // Move mode: drag-to-reposition + tap fallback via the d3-drag end event.
   let originX = 0;
   let originY = 0;
   let startScreenX = 0;
@@ -513,10 +536,6 @@ function setupNodeDrag(): void {
     })
     .on('drag', function (event) {
       if (!activeId) return;
-      // Outside move mode, tap detection still works (via the 'end'
-      // handler below) but node positions never update — so the node
-      // can never be dragged accidentally.
-      if (!props.moveMode) return;
       const dx = event.x - startScreenX;
       const dy = event.y - startScreenY;
       if (!moved && Math.hypot(dx, dy) > DRAG_THRESHOLD) moved = true;
@@ -538,7 +557,7 @@ function setupNodeDrag(): void {
         emit('nodeTap', id, screen);
       }
     });
-  root.selectAll<SVGGElement, unknown>('g.slalom-node').call(dragBehavior);
+  sel.call(dragBehavior);
 }
 
 function clientFromEvent(ev: Event | undefined): { x: number; y: number } {
@@ -606,6 +625,14 @@ onMounted(() => {
   }
   tryInit();
 });
+
+// Re-bind node interaction when move-mode toggles.
+watch(
+  () => props.moveMode,
+  () => {
+    if (initialized.value) requestAnimationFrame(() => setupNodeDrag());
+  },
+);
 
 watch(
   () => graphTricks.value.map((t) => t.id).join('|'),
