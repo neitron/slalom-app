@@ -9,8 +9,8 @@ the recent slalom-app session.
 ## State right now
 
 - **Branch**: `main`, **78 commits ahead of `origin/main`**, **NOT pushed**.
-- 131/131 tests pass, build clean.
-- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4c, 4h shipped locally**. Phases 4b/d/e/f/g/i + 5 + 6 + 7 still open.
+- 141/141 tests pass, build clean.
+- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h shipped locally**. Phases 4d/e/f/g/i + 5 + 6 + 7 still open.
 - Old handoff state (M3.5 social layer) is still in commit `ebf7fec`. This document supersedes it.
 
 ## How to push (when ready)
@@ -76,6 +76,19 @@ motion + screen-by-screen IA polish.
 - Heatmap intensity buckets: 0 / 1-2 / 3-5 / ≥6 → levels 0..3. Tuning against real data deferred.
 - Streak math: today counts as `+1` even if 0 sessions yet ("don't break yesterday's streak before you've started today").
 - Tests added: `dates.test.ts` (9), `homeDataCompute.test.ts` (18), `tricks.test.ts` (4). Components verified manually.
+
+### Phase 4b — Tricks (search-first)
+- Spec: `spec/2026-06-26-glasswork-phase-4b-tricks-design.md`
+- Plan: `docs/superpowers/plans/2026-06-26-glasswork-phase-4b-tricks.md`
+- `/tricks` (renamed `AllTricks.vue` → `Tricks.vue` in coda) is now driven by a sticky search header that hides on scroll-down and reveals on scroll-up.
+- Sticky header contents: search `<input>` bound to `ui.tricksSearch`; sort-cycle pill (`Name → Best → Worst → Name`); filter button with active-count badge (`Filters · N`).
+- Filter sheet (`TricksFilterSheet.vue`) is a bottom sheet with drag-to-dismiss, four sections: **Tier** (multi-select 1–6), **Category** (multi-select 9 categories), **Status** (multi-select 3), **Favorites only** (toggle). Footer shows live result count. No Apply button — changes are live.
+- `FilterOpts` switched to plural fields (`tiers[]`, `categories[]`, `statuses[]`, `favOnly`); deprecated singulars (`tier`, `category`, `status`, `practicedOnly`) removed in 4b-coda.
+- `useUiStore` switched to plural fields (`tricksTiers`, `tricksCategories`, `tricksStatuses`, `tricksFavOnly`, `tricksSearch`, `tricksSort` + setters + `resetTricksFilters`); legacy singulars (`tier`, `category`, `search`, `sort` + setters) deleted.
+- URL contract for `?status=in-progress` preserved (single status round-trips through the URL; multi/none drops the param). Home's "See all" link still works.
+- `TierTabs.vue` deleted (no consumers). `SearchSort.vue` kept (still used by `Learning.vue`).
+- New composable: `useScrollDirection({ target?, threshold? = 8 }): { hidden, stop }`. Pure-enough — tested via FakeScroller.
+- Tests added: `useScrollDirection.test.ts` (6), `tricks.test.ts` plural-field cases (6 net, +8 added in T2, -5 deprecated-singular removed in T8-coda + 3 already existed).
 
 ### Phase 4h — Settings split
 - `/settings` keeps user-facing: Profile (nickname/displayName/bio/emoji/visibility), Cloud sign-in (magic link + Google + Sign out), App (Install link + force-reload), Display (rate dot variant). Bottom of page links to Diagnostics.
