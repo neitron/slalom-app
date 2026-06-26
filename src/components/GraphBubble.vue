@@ -73,8 +73,11 @@ function startLink(side: 'L' | 'R' | null) {
       <div
         ref="root"
         class="fixed z-50 w-[240px]"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
+        :style="{ left: pos.left + 'px', top: pos.top + 'px', touchAction: 'none' }"
         @click.stop
+        @touchstart.stop
+        @touchmove.stop
+        @touchend.stop
       >
       <div
         class="gw-glass-strong p-3"

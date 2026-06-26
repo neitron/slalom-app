@@ -2,7 +2,10 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useSequencesStore } from '../stores/sequences'
 import { useTricksStore } from '../stores/tricks'
+import { useTransitionsStore } from '../stores/transitions'
 import { useUiStore } from '../stores/ui'
+import { edgeMatches } from '../domain/edges'
+import type { Transition } from '../domain/types'
 import { displayName } from '../domain/display'
 import type { Sequence, Side } from '../domain/types'
 import RateDots from './RateDots.vue'
@@ -59,6 +62,7 @@ function onTouchEnd() {
 
 const sequencesStore = useSequencesStore()
 const tricksStore = useTricksStore()
+const transitionsStore = useTransitionsStore()
 const uiStore = useUiStore()
 
 const seq = computed<Sequence | undefined>(() =>
@@ -190,6 +194,61 @@ const chainSteps = computed(() =>
   (seq.value?.steps ?? []).map((s) => ({ trickId: idByName(s.name), side: s.side })),
 )
 
+// Pairs (i, i+1) whose transition isn't in the transitions store yet.
+const missingTransitionPairs = computed<Array<{ from: StepView; to: StepView }>>(() => {
+  const steps = stepViews.value
+  if (steps.length < 2) return []
+  const out: Array<{ from: StepView; to: StepView }> = []
+  for (let i = 0; i < steps.length - 1; i++) {
+    const a = steps[i]
+    const b = steps[i + 1]
+    const exists = transitionsStore.edges.some((e) =>
+      edgeMatches(e, a.trickId, a.side, b.trickId, b.side),
+    )
+    if (!exists) out.push({ from: a, to: b })
+  }
+  return out
+})
+
+const missingCount = computed(() => missingTransitionPairs.value.length)
+const creatingMissing = ref(false)
+
+async function createMissingTransitions() {
+  if (creatingMissing.value) return
+  const pairs = missingTransitionPairs.value
+  if (pairs.length === 0) return
+  creatingMissing.value = true
+  try {
+    for (const p of pairs) {
+      // Look for an existing non-bidi inverse (B→A with sides swapped).
+      // If found, promote it to bidi instead of creating a duplicate.
+      const inverse = transitionsStore.edges.find((e) =>
+        !e.bidi &&
+        e.from === p.to.trickId &&
+        e.to === p.from.trickId &&
+        (e.fromSide ?? null) === (p.to.side ?? null) &&
+        (e.toSide ?? null) === (p.from.side ?? null),
+      )
+      if (inverse?.id) {
+        await transitionsStore.update({ id: inverse.id, bidi: true })
+        continue
+      }
+      const draft: Transition = {
+        from: p.from.trickId,
+        to: p.to.trickId,
+        fromSide: p.from.side,
+        toSide: p.to.side,
+        bidi: false,
+        rate: null,
+        last: null,
+      }
+      await transitionsStore.add(draft)
+    }
+  } finally {
+    creatingMissing.value = false
+  }
+}
+
 function sideColor(s: Side): string {
   if (s === 'L') return 'var(--side-l)'
   if (s === 'R') return 'var(--side-r)'
@@ -290,7 +349,21 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
       </dl>
 
       <section class="mt-4">
-        <h3 class="text-xs uppercase tracking-wide text-muted mb-1.5">Chain</h3>
+        <div class="flex items-center justify-between mb-1.5">
+          <h3 class="text-xs uppercase tracking-wide text-muted">Chain</h3>
+          <button
+            v-if="missingCount > 0"
+            type="button"
+            class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-50"
+            :style="{
+              background: 'var(--color-g-brand)',
+              color: 'var(--color-g-base)',
+              borderRadius: 'var(--radius-g-chip)',
+            }"
+            :disabled="creatingMissing"
+            @click="createMissingTransitions"
+          >{{ creatingMissing ? 'Adding…' : `Learn ${missingCount} transition${missingCount === 1 ? '' : 's'}` }}</button>
+        </div>
         <SequenceChain :steps="chainSteps" />
       </section>
 

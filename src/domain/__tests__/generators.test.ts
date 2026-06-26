@@ -184,4 +184,45 @@ describe('graphWalk', () => {
     const out = graphWalk({ n: 4, pool: tricks, edges, filter });
     expect(out).toBeNull();
   });
+
+  it('resolves edges keyed by trick id (matches production storage)', () => {
+    const a = mkTrick({ name: 'A', id: 'id-a' });
+    const b = mkTrick({ name: 'B', id: 'id-b' });
+    const edges: Transition[] = [{
+      from: 'id-a',
+      to: 'id-b',
+      fromSide: null,
+      toSide: null,
+      bidi: false,
+      rate: null,
+      last: null,
+    }];
+    const out = graphWalk({ n: 2, pool: [a, b], edges, filter: defaultFilter, rng: seqRng([0]) });
+    expect(out).not.toBeNull();
+    expect(out!.map((s) => s.name)).toEqual(['A', 'B']);
+  });
+});
+
+describe('LR side assignment across all generators', () => {
+  it('knownShuffle assigns L or R to LR tricks; null to non-LR', () => {
+    const lrTrick = mkTrick({ name: 'LR1', lr: true, rateL: 3, rateR: 4 });
+    const nonLr = mkTrick({ name: 'N1', rate: 3, lr: false });
+    const out = knownShuffle({ n: 2, tricks: [lrTrick, nonLr], filter: defaultFilter, rng: seqRng([0, 0]) });
+    expect(out).not.toBeNull();
+    const lrStep = out!.find((s) => s.name === 'LR1')!;
+    const nlrStep = out!.find((s) => s.name === 'N1')!;
+    expect(['L', 'R']).toContain(lrStep.side);
+    expect(nlrStep.side).toBeNull();
+  });
+
+  it('totallyRandom assigns L or R to LR tricks; null to non-LR', () => {
+    const lrTrick = mkTrick({ name: 'LR1', lr: true });
+    const nonLr = mkTrick({ name: 'N1', lr: false });
+    const out = totallyRandom({ n: 2, tricks: [lrTrick, nonLr], filter: defaultFilter, rng: seqRng([0, 0]) });
+    expect(out).not.toBeNull();
+    const lrStep = out!.find((s) => s.name === 'LR1')!;
+    const nlrStep = out!.find((s) => s.name === 'N1')!;
+    expect(['L', 'R']).toContain(lrStep.side);
+    expect(nlrStep.side).toBeNull();
+  });
 });

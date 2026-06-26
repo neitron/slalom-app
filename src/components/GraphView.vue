@@ -25,6 +25,8 @@ interface Props {
   linkSourceId?: string | null;
   sequenceMode?: boolean;
   sequenceIds?: string[];
+  /** When false (default), node taps still work but nodes don't move on drag. */
+  moveMode?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -33,6 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
   linkSourceId: null,
   sequenceMode: false,
   sequenceIds: () => [],
+  moveMode: false,
 });
 
 const emit = defineEmits<{
@@ -73,7 +76,12 @@ const graphTricks = computed<Trick[]>(() => {
   return tricks.tricks.filter((t) => {
     if (!t.id) return false;
     if (effectiveRate(t) != null || t.rate != null || t.rateL != null || t.rateR != null) return true;
-    return referenced.has(t.id);
+    if (referenced.has(t.id)) return true;
+    // Once a node has a position (dragged, persisted, or fibonacci-spawned),
+    // it stays on the graph even if its last edge is removed.
+    if (t.node_x != null && t.node_y != null) return true;
+    if (positions.value[t.id]) return true;
+    return false;
   });
 });
 
@@ -505,6 +513,10 @@ function setupNodeDrag(): void {
     })
     .on('drag', function (event) {
       if (!activeId) return;
+      // Outside move mode, tap detection still works (via the 'end'
+      // handler below) but node positions never update — so the node
+      // can never be dragged accidentally.
+      if (!props.moveMode) return;
       const dx = event.x - startScreenX;
       const dy = event.y - startScreenY;
       if (!moved && Math.hypot(dx, dy) > DRAG_THRESHOLD) moved = true;

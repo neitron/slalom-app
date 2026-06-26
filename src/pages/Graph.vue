@@ -44,6 +44,7 @@ const pendingSequenceLeg = ref<
 >(null)
 
 const sequenceMode = ref(false)
+const moveMode = ref(false)
 const sequenceSteps = ref<ChainStep[]>([])
 const showSaveSheet = ref(false)
 const saveName = ref('')
@@ -394,6 +395,15 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       <button
         type="button"
         class="px-3 py-1.5 rounded-full text-xs border transition-colors"
+        :class="moveMode
+          ? 'bg-accent text-bg border-accent font-semibold'
+          : 'bg-card border-border-2 text-muted hover:text-fg'"
+        :aria-pressed="moveMode"
+        @click="moveMode = !moveMode"
+      >✥ Move</button>
+      <button
+        type="button"
+        class="px-3 py-1.5 rounded-full text-xs border transition-colors"
         :class="sequenceMode
           ? 'bg-accent text-bg border-accent font-semibold'
           : 'bg-card border-border-2 text-muted hover:text-fg'"
@@ -409,6 +419,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         :link-source-id="linkSourceId"
         :sequence-mode="sequenceMode"
         :sequence-ids="sequenceIds"
+        :move-mode="moveMode"
         @node-tap="onNodeTap"
         @edge-tap="onEdgeTap"
         @bg-tap="onBgTap"
