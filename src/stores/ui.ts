@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { Category, Side, Tier } from '../domain/types';
+import type { Category, Side, Tier, TrickStatus } from '../domain/types';
 import type { SortKey } from './tricks';
 
 export type Tab = 'tricks' | 'learning' | 'graph' | 'transitions' | 'sequences' | 'settings';
@@ -30,6 +30,13 @@ export const useUiStore = defineStore('ui', {
     category: 'all' as Category | 'all',
     search: '',
     sort: 'name' as SortKey,
+    // Phase 4b — plural fields (legacy singulars above stay until Task 7)
+    tricksTiers: [] as Tier[],
+    tricksCategories: [] as Category[],
+    tricksStatuses: [] as TrickStatus[],
+    tricksFavOnly: false,
+    tricksSearch: '',
+    tricksSort: 'name' as SortKey,
     feedback: null as FeedbackReport | null,
     toasts: [] as Toast[],
   }),
@@ -67,6 +74,31 @@ export const useUiStore = defineStore('ui', {
     },
     setSort(sort: SortKey): void {
       this.sort = sort;
+    },
+    setTricksTiers(v: Tier[]): void {
+      this.tricksTiers = v;
+    },
+    setTricksCategories(v: Category[]): void {
+      this.tricksCategories = v;
+    },
+    setTricksStatuses(v: TrickStatus[]): void {
+      this.tricksStatuses = v;
+    },
+    setTricksFavOnly(v: boolean): void {
+      this.tricksFavOnly = v;
+    },
+    setTricksSearch(v: string): void {
+      this.tricksSearch = v;
+    },
+    setTricksSort(v: SortKey): void {
+      this.tricksSort = v;
+    },
+    resetTricksFilters(): void {
+      this.tricksTiers = [];
+      this.tricksCategories = [];
+      this.tricksStatuses = [];
+      this.tricksFavOnly = false;
+      // search + sort intentionally NOT reset by this action
     },
     triggerFeedback(report: FeedbackReport): void {
       this.feedback = { ...report };
