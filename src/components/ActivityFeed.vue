@@ -36,10 +36,7 @@ function sideColor(side: ActivityRow['side']): string {
       >Recent activity</h2>
     </header>
 
-    <div
-      class="flex flex-col gap-1.5 overflow-y-auto"
-      style="max-height: 360px;"
-    >
+    <div class="flex flex-col gap-1.5">
       <template v-if="isLoading">
         <div
           v-for="i in 3"

@@ -89,8 +89,10 @@ function onVideo(t: Trick) {
 </script>
 
 <template>
-  <div class="p-3 flex flex-col gap-3">
-    <h1 class="text-lg font-semibold">All Tricks</h1>
+  <div class="page-shell">
+    <div class="page-aurora gw-aurora-bg-sm" aria-hidden="true" />
+    <div class="page-scroll p-3 flex flex-col gap-3">
+      <h1 class="text-lg font-semibold">All Tricks</h1>
 
     <div
       v-if="statusFilter"
@@ -152,5 +154,17 @@ function onVideo(t: Trick) {
         @video="onVideo"
       />
     </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.page-shell { position: relative; }
+.page-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.page-scroll { position: relative; z-index: 1; }
+</style>

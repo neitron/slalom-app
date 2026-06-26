@@ -338,8 +338,10 @@ function armImport() {
 </script>
 
 <template>
-  <div class="p-4 flex flex-col gap-4">
-    <h1 class="text-xl font-semibold">Settings</h1>
+  <div class="page-shell">
+    <div class="page-aurora gw-aurora-bg-sm" aria-hidden="true" />
+    <div class="page-scroll p-4 flex flex-col gap-4">
+      <h1 class="text-xl font-semibold">Settings</h1>
 
     <section
       v-if="auth.isSignedIn"
@@ -648,10 +650,19 @@ function armImport() {
         class="hover:text-muted"
       >build {{ buildLabel() }}</a>
     </p>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.page-shell { position: relative; }
+.page-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.page-scroll { position: relative; z-index: 1; }
 .rate-style-active {
   background: var(--color-g-fg);
   color: var(--color-g-base);

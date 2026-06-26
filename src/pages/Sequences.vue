@@ -39,9 +39,11 @@ async function onRemove(id: string): Promise<void> {
 </script>
 
 <template>
-  <div class="p-3 flex flex-col gap-3">
-    <div class="flex items-center gap-2">
-      <h1 class="text-lg font-semibold flex-1">Sequences</h1>
+  <div class="page-shell">
+    <div class="page-aurora gw-aurora-bg-sm" aria-hidden="true" />
+    <div class="page-scroll p-3 flex flex-col gap-3">
+      <div class="flex items-center gap-2">
+        <h1 class="text-lg font-semibold flex-1">Sequences</h1>
       <select
         v-model="sort"
         class="px-2 py-1.5 bg-card border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
@@ -81,10 +83,22 @@ async function onRemove(id: string): Promise<void> {
       />
     </div>
 
-    <GeneratorSheet
-      :visible="generatorOpen"
-      @close="generatorOpen = false"
-      @save="onSave"
-    />
+      <GeneratorSheet
+        :visible="generatorOpen"
+        @close="generatorOpen = false"
+        @save="onSave"
+      />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.page-shell { position: relative; }
+.page-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.page-scroll { position: relative; z-index: 1; }
+</style>

@@ -5,7 +5,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./pages/Home.vue') },
   { path: '/tricks', name: 'tricks', component: AllTricks },
   { path: '/learning', name: 'learning', component: () => import('./pages/Learning.vue') },
-  { path: '/graph', name: 'graph', component: () => import('./pages/Graph.vue') },
+  { path: '/graph', name: 'graph', component: () => import('./pages/Graph.vue'), meta: { fullViewport: true } },
   { path: '/transitions', name: 'transitions', component: () => import('./pages/Transitions.vue') },
   { path: '/sequences', name: 'sequences', component: () => import('./pages/Sequences.vue') },
   { path: '/people', name: 'people', component: () => import('./pages/People.vue') },

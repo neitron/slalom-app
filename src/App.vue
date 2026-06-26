@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import TabBar from './components/TabBar.vue'
 import RateFeedback, { type Report as RateFeedbackReport } from './components/RateFeedback.vue'
 import TrickSheet from './components/TrickSheet.vue'
@@ -13,7 +14,15 @@ import { useSequencesStore } from './stores/sequences'
 import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
 
 const uiStore = useUiStore()
+const route = useRoute()
 const tricksStore = useTricksStore()
+const hideTabs = computed(() => !!route.meta.hideTabs)
+const fullViewport = computed(() => !!route.meta.fullViewport)
+const mainPaddingBottom = computed(() =>
+  hideTabs.value || fullViewport.value
+    ? '0px'
+    : 'calc(env(safe-area-inset-bottom) + 6.5rem)',
+)
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
 
@@ -66,7 +75,7 @@ function onFeedbackClose() {
       minHeight: '100dvh',
     }"
   >
-    <main>
+    <main :style="{ paddingBottom: mainPaddingBottom }">
       <RouterView />
     </main>
     <TabBar />
