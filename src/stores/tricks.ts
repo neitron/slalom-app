@@ -18,12 +18,21 @@ import type { Category, Side, Tier, Trick, TrickStatus } from '../domain/types';
 export type SortKey = 'name' | 'best' | 'worst';
 
 export interface FilterOpts {
-  tier?: Tier | null;
-  category?: Category | 'all';
+  // Multi-select (Phase 4b)
+  tiers?:      Tier[]        | null;
+  categories?: Category[]    | null;
+  statuses?:   TrickStatus[] | null;
+  favOnly?:    boolean;
+
+  // Existing — kept
   search?: string;
-  sort?: SortKey;
+  sort?:   SortKey;
+
+  // Deprecated singular forms — removed in Phase 4b-coda (Task 8).
+  tier?:          Tier | null;
+  category?:      Category | 'all';
+  status?:        TrickStatus | null;
   practicedOnly?: boolean;
-  status?: TrickStatus | null;
 }
 
 const sorters: Record<SortKey, (a: Trick, b: Trick) => number> = {
@@ -69,14 +78,42 @@ export const useTricksStore = defineStore('tricks', {
           sort = 'name',
           practicedOnly = false,
           status = null,
+          tiers = null,
+          categories = null,
+          statuses = null,
+          favOnly = false,
         } = opts;
         let list = state.tricks.slice();
-        if (tier != null) list = list.filter((t) => t.tier === tier);
-        if (category && category !== 'all')
+
+        // Tier — plural wins.
+        if (tiers != null && tiers.length > 0) {
+          const setT = new Set(tiers);
+          list = list.filter((t) => setT.has(t.tier));
+        } else if (tier != null) {
+          list = list.filter((t) => t.tier === tier);
+        }
+
+        // Category — plural wins.
+        if (categories != null && categories.length > 0) {
+          const setC = new Set(categories);
+          list = list.filter((t) => setC.has(t.category));
+        } else if (category && category !== 'all') {
           list = list.filter((t) => t.category === category);
+        }
+
         if (search) list = list.filter((t) => matchesQuery(t, search));
         if (practicedOnly) list = list.filter((t) => hasRate(t));
-        if (status != null) list = list.filter((t) => t.status === status);
+
+        // Status — plural wins.
+        if (statuses != null && statuses.length > 0) {
+          const setS = new Set(statuses);
+          list = list.filter((t) => setS.has(t.status));
+        } else if (status != null) {
+          list = list.filter((t) => t.status === status);
+        }
+
+        if (favOnly) list = list.filter((t) => t.fav);
+
         list.sort(sorters[sort]);
         return list;
       };
