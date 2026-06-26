@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Trick } from '../domain/types'
 import { displayName } from '../domain/display'
+import { autosizeIcon } from '../utils/graphemes'
 import RateDots from './RateDots.vue'
 
 type Props = {
@@ -53,7 +54,8 @@ function onVideoClick(e: MouseEvent) {
         >★</span>
         <span
           v-if="trick.icon"
-          class="text-base leading-none"
+          class="leading-none whitespace-nowrap"
+          :style="{ fontSize: autosizeIcon(trick.icon, 16) + 'px' }"
         >{{ trick.icon }}</span>
         <span
           class="font-semibold"
@@ -82,25 +84,26 @@ function onVideoClick(e: MouseEvent) {
       </button>
     </div>
 
-    <div
-      class="mt-1.5 truncate"
-      :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
-    >
-      <span>{{ trick.category }}</span>
-      <span v-if="otherAliases.length"> · aka {{ otherAliases.join(', ') }}</span>
-      <span
-        v-if="trick.tags.length"
-        :style="{ color: 'var(--color-g-brand-sky)' }"
-      > · {{ trick.tags.map(t => '#' + t).join(' ') }}</span>
-    </div>
-
-    <div class="mt-2.5">
-      <RateDots
-        :rate="trick.rate"
-        :rate-l="trick.rateL"
-        :rate-r="trick.rateR"
-        :lr="trick.lr"
-      />
+    <div class="mt-1.5 flex items-center gap-3">
+      <div
+        class="min-w-0 flex-1 truncate"
+        :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
+      >
+        <span>{{ trick.category }}</span>
+        <span v-if="otherAliases.length"> · aka {{ otherAliases.join(', ') }}</span>
+        <span
+          v-if="trick.tags.length"
+          :style="{ color: 'var(--color-g-brand-sky)' }"
+        > · {{ trick.tags.map(t => '#' + t).join(' ') }}</span>
+      </div>
+      <div class="shrink-0">
+        <RateDots
+          :rate="trick.rate"
+          :rate-l="trick.rateL"
+          :rate-r="trick.rateR"
+          :lr="trick.lr"
+        />
+      </div>
     </div>
   </div>
 </template>

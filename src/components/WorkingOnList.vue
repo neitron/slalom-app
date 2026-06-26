@@ -3,6 +3,7 @@ import RateDots from './RateDots.vue'
 import { nextCycleScore } from '../composables/homeDataCompute'
 import { useTricksStore } from '../stores/tricks'
 import type { Trick } from '../domain/types'
+import { autosizeIconSlot } from '../utils/graphemes'
 
 type Props = {
   tricks: Trick[]
@@ -20,16 +21,24 @@ const tricksStore = useTricksStore()
 
 function iconFor(t: Trick): string {
   if (t.icon) return t.icon
-  return t.name.split(/\s+/).map((w) => w[0]).join('').toUpperCase()
+  // Mirror GraphView's glyphFor: extract uppercase letters from the name.
+  // Ignores punctuation like "(Advanced)" so "Alternating Cross (Advanced)" → "ACA".
+  const caps = t.name.match(/[A-Z]/g)
+  if (caps && caps.length > 0) return caps.join('')
+  return t.name.charAt(0).toUpperCase()
 }
 
 function cycle(t: Trick, event: Event) {
   event.stopPropagation()
   if (!t.id) return
-  const side: 'L' | null = t.lr ? 'L' : null
-  const currentRate = t.lr ? t.rateL : t.rate
-  const next = nextCycleScore(currentRate)
-  void tricksStore.report(t.id, side, next)
+  if (t.lr) {
+    // LR cycling is ambiguous (which side?) — open the sheet so the
+    // user can pick L vs R explicitly. Avoids silently logging only L.
+    emit('open', t.id)
+    return
+  }
+  const next = nextCycleScore(t.rate)
+  void tricksStore.report(t.id, null, next)
 }
 
 function openSheet(t: Trick) {
@@ -85,11 +94,12 @@ function openSheet(t: Trick) {
         @click="openSheet(t)"
       >
         <span
-          class="flex items-center justify-center font-semibold w-7 h-7"
+          class="shrink-0 flex items-center justify-center font-semibold h-7 leading-none whitespace-nowrap"
           :style="{
             color: 'var(--color-g-fg)',
-            fontSize: t.icon ? '18px' : '12px',
-            letterSpacing: t.icon ? '0' : '0.04em',
+            width: (t.icon ? autosizeIconSlot(t.icon, 28, 18).slotWidth : 28) + 'px',
+            fontSize: (t.icon ? autosizeIconSlot(t.icon, 28, 18).fontSize : 12) + 'px',
+            letterSpacing: t.icon ? autosizeIconSlot(t.icon, 28, 18).letterSpacing + 'px' : '0.04em',
           }"
         >{{ iconFor(t) }}</span>
         <span

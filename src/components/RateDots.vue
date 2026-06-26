@@ -23,6 +23,7 @@ const RateRow = defineComponent({
         return h(
           'div',
           {
+            key: `lit-${i}`,
             style: {
               width: '3px',
               height: '3px',
@@ -40,7 +41,6 @@ const RateRow = defineComponent({
                 background: props.tint,
                 opacity: 0.3,
                 filter: 'blur(2.5px)',
-                mixBlendMode: 'color-dodge' as const,
                 position: 'relative',
                 top: '-1px',
                 left: '-1px',
@@ -50,11 +50,12 @@ const RateRow = defineComponent({
         )
       }
       return h('span', {
+        key: `off-${i}`,
         style: {
           width: '3px',
           height: '3px',
           borderRadius: '50%',
-          background: props.tint,
+          background: gw.fg,
           opacity: 0.08,
         },
       })
@@ -73,6 +74,7 @@ const RateRow = defineComponent({
         return h(
           'div',
           {
+            key: `lit-${i}`,
             style: { ...base, opacity: 1, position: 'relative' },
           },
           [
@@ -86,7 +88,6 @@ const RateRow = defineComponent({
                 background: props.tint,
                 opacity: 0.3,
                 filter: 'blur(3px)',
-                mixBlendMode: 'color-dodge' as const,
                 borderRadius: '4px',
               },
             }),
@@ -94,7 +95,8 @@ const RateRow = defineComponent({
         )
       }
       return h('span', {
-        style: { ...base, opacity: 0.1 },
+        key: `off-${i}`,
+        style: { ...base, background: gw.fg, opacity: 0.1 },
       })
     }
 
@@ -110,6 +112,7 @@ const RateRow = defineComponent({
         return h(
           'div',
           {
+            key: `lit-${i}`,
             style: { ...base, opacity: 1, position: 'relative' },
           },
           [
@@ -123,7 +126,6 @@ const RateRow = defineComponent({
                 background: props.tint,
                 opacity: 0.3,
                 filter: 'blur(2.5px)',
-                mixBlendMode: 'color-dodge' as const,
                 borderRadius: '999px',
               },
             }),
@@ -131,7 +133,8 @@ const RateRow = defineComponent({
         )
       }
       return h('span', {
-        style: { ...base, opacity: 0.1 },
+        key: `off-${i}`,
+        style: { ...base, background: gw.fg, opacity: 0.1 },
       })
     }
 
@@ -163,6 +166,8 @@ type Props = {
   rateR?: number | null
   lr?: boolean
   size?: 'sm' | 'md'
+  /** When set in lr=true mode, render only that side's row. */
+  side?: 'L' | 'R' | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -171,6 +176,7 @@ const props = withDefaults(defineProps<Props>(), {
   rateR: null,
   lr: false,
   size: 'sm',
+  side: null,
 })
 
 const prefs = usePreferencesStore()
@@ -194,9 +200,10 @@ function tintFor(side: 'single' | 'l' | 'r'): string {
       :size="props.size"
       aria-label="Rate"
     />
-    <!-- Per-leg L + R -->
+    <!-- Per-leg L + R (filtered by `side` if provided) -->
     <template v-else>
       <RateRow
+        v-if="props.side !== 'R'"
         :rate="props.rateL"
         :tint="tintFor('l')"
         :style-mode="style"
@@ -204,6 +211,7 @@ function tintFor(side: 'single' | 'l' | 'r'): string {
         aria-label="Rate L"
       />
       <RateRow
+        v-if="props.side !== 'L'"
         :rate="props.rateR"
         :tint="tintFor('r')"
         :style-mode="style"

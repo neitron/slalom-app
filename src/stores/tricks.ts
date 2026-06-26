@@ -146,6 +146,26 @@ export const useTricksStore = defineStore('tricks', {
       await upsertTrick(next);
     },
 
+    /** Reset a single side's rate (LR mode) or the single-side rate. */
+    async resetTrickSide(id: string, side: Side): Promise<void> {
+      const t = this.byId(id);
+      if (!t) return;
+      const next: Trick = { ...t };
+      if (side === 'L') next.rateL = null;
+      else if (side === 'R') next.rateR = null;
+      else next.rate = null;
+      // Recompute aggregate state from what remains.
+      const stillRated = next.lr
+        ? next.rateL != null || next.rateR != null
+        : next.rate != null;
+      if (!stillRated) {
+        next.last = null;
+        next.status = 'Not Started';
+      }
+      this.replaceLocal(next);
+      await upsertTrick(next);
+    },
+
     async updateAliases(id: string, aliases: string[]): Promise<void> {
       const t = this.byId(id);
       const patch: Partial<Trick> & { id: string } = { id, aliases };

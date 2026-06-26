@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ActivityRow } from '../composables/homeDataCompute'
+import { autosizeIconSlot } from '../utils/graphemes'
 
 type Props = {
   rows: ActivityRow[]
@@ -65,8 +66,13 @@ function sideColor(side: ActivityRow['side']): string {
           :style="{ borderRadius: 'var(--radius-g-chip)' }"
         >
           <span
-            class="flex items-center justify-center w-6 h-6"
-            :style="{ color: 'var(--color-g-fg-muted)', fontSize: '15px' }"
+            class="shrink-0 flex items-center justify-center h-6 leading-none whitespace-nowrap"
+            :style="{
+              color: 'var(--color-g-fg-muted)',
+              width: (r.icon ? autosizeIconSlot(r.icon, 24, 15).slotWidth : 24) + 'px',
+              fontSize: (r.icon ? autosizeIconSlot(r.icon, 24, 15).fontSize : 15) + 'px',
+              letterSpacing: r.icon ? autosizeIconSlot(r.icon, 24, 15).letterSpacing + 'px' : '0',
+            }"
           >{{ r.icon ?? '·' }}</span>
           <span
             class="flex-1 truncate"

@@ -8,7 +8,8 @@ import { resolveVideoUrl } from '../domain/video'
 import { displayName } from '../domain/display'
 import type { Side, Trick } from '../domain/types'
 import RateDots from './RateDots.vue'
-import RateButtons from './RateButtons.vue'
+import { gw } from '../design/tokens'
+import { MAX_TRICK_EMOJIS, takeGraphemes } from '../utils/graphemes'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
 
@@ -76,34 +77,32 @@ const aliasDraft = ref('')
 const tagDraft = ref('')
 const videoDraft = ref('')
 
-const resetArmed = ref(false)
-let resetTimer: number | null = null
+// Per-side two-tap reset arming for the rate-island Reset pills.
+type ResetKey = 'L' | 'R' | 'none'
+const resetArmed = ref<Record<ResetKey, boolean>>({ L: false, R: false, none: false })
+const resetTimers: Record<ResetKey, number | null> = { L: null, R: null, none: null }
 
-function clearResetTimer() {
-  if (resetTimer != null) {
-    window.clearTimeout(resetTimer)
-    resetTimer = null
+function sideKey(side: Side): ResetKey {
+  return side === 'L' ? 'L' : side === 'R' ? 'R' : 'none'
+}
+
+function clearResetTimer(side: Side) {
+  const k = sideKey(side)
+  if (resetTimers[k] != null) {
+    window.clearTimeout(resetTimers[k] as number)
+    resetTimers[k] = null
   }
 }
 
-function armReset() {
-  if (resetArmed.value) {
-    void doReset()
-    return
-  }
-  resetArmed.value = true
-  clearResetTimer()
-  resetTimer = window.setTimeout(() => {
-    resetArmed.value = false
-    resetTimer = null
-  }, 3000)
+function clearAllResetTimers() {
+  clearResetTimer('L')
+  clearResetTimer('R')
+  clearResetTimer(null)
 }
 
-async function doReset() {
-  clearResetTimer()
-  resetArmed.value = false
-  if (!trick.value?.id) return
-  await tricksStore.resetProgress(trick.value.id)
+function disarmAllResets() {
+  resetArmed.value = { L: false, R: false, none: false }
+  clearAllResetTimers()
 }
 
 watch(
@@ -114,8 +113,7 @@ watch(
     aliasDraft.value = ''
     tagDraft.value = ''
     videoDraft.value = trick.value?.video ?? ''
-    resetArmed.value = false
-    clearResetTimer()
+    disarmAllResets()
     uiStore.clearFeedback()
   },
 )
@@ -123,7 +121,7 @@ watch(
 useBodyScrollLock(isOpen)
 
 onBeforeUnmount(() => {
-  clearResetTimer()
+  clearAllResetTimers()
 })
 
 function close() {
@@ -144,6 +142,53 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
   await tricksStore.report(trick.value.id, payload.side, payload.score)
 }
 
+// Rate-island per-side highlight state. Clicking a pill highlights it.
+const lastL = ref<number | null>(null)
+const lastR = ref<number | null>(null)
+const lastNone = ref<number | null>(null)
+function lastFor(side: Side): number | null {
+  if (side === 'L') return lastL.value
+  if (side === 'R') return lastR.value
+  return lastNone.value
+}
+function setLastFor(side: Side, score: number | null) {
+  if (side === 'L') lastL.value = score
+  else if (side === 'R') lastR.value = score
+  else lastNone.value = score
+}
+async function tapPill(side: Side, score: 1 | 3 | 5) {
+  setLastFor(side, score)
+  await onReport({ score, side })
+}
+function armOrConfirmReset(side: Side) {
+  const k = sideKey(side)
+  if (resetArmed.value[k]) {
+    void confirmReset(side)
+    return
+  }
+  resetArmed.value[k] = true
+  clearResetTimer(side)
+  resetTimers[k] = window.setTimeout(() => {
+    resetArmed.value[k] = false
+    resetTimers[k] = null
+  }, 3000)
+}
+
+async function confirmReset(side: Side) {
+  clearResetTimer(side)
+  resetArmed.value[sideKey(side)] = false
+  setLastFor(side, null)
+  if (!trick.value?.id) return
+  await tricksStore.resetTrickSide(trick.value.id, side)
+}
+
+const PILLS = [
+  { id: 'bad' as const, label: 'Bad', score: 1 as const, fill: gw.rate.bad },
+  { id: 'mid' as const, label: 'Mid', score: 3 as const, fill: gw.rate.mid },
+  { id: 'good' as const, label: 'Good', score: 5 as const, fill: gw.rate.good },
+]
+
+
 async function toggleFav() {
   if (!trick.value?.id) return
   await tricksStore.toggleFav(trick.value.id)
@@ -157,7 +202,9 @@ function onModeChange(toLr: boolean): void {
 
 async function saveEmoji() {
   if (!trick.value?.id) return
-  const v = emojiDraft.value.trim()
+  const trimmed = emojiDraft.value.trim()
+  const v = takeGraphemes(trimmed, MAX_TRICK_EMOJIS)
+  emojiDraft.value = v
   await tricksStore.updateEmoji(trick.value.id, v || null)
 }
 
@@ -309,8 +356,8 @@ const detailItems = computed(() => {
             <input
               v-model="emojiDraft"
               type="text"
-              maxlength="4"
-              placeholder="emoji"
+              maxlength="32"
+              :placeholder="`up to ${MAX_TRICK_EMOJIS} emojis`"
               class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
             >
             <button
@@ -491,69 +538,154 @@ const detailItems = computed(() => {
             </div>
           </section>
 
-          <section class="mt-5 pt-3 border-t border-border">
-            <button
-              type="button"
-              class="w-full py-2 rounded-lg text-sm transition-colors"
-              :class="resetArmed
-                ? 'bg-danger text-fg font-semibold'
-                : 'border border-border-2 text-muted hover:text-danger'"
-              @click="armReset"
-            >{{ resetArmed ? 'Tap again to confirm reset' : 'Reset progress' }}</button>
-          </section>
         </div>
         <!-- /Scrollable body -->
 
         <!-- Sticky rate island -->
         <div class="shrink-0 px-4 pb-4 pt-2">
           <div
-            class="gw-glass-strong p-3 flex flex-col gap-2"
+            class="gw-glass-strong p-3 flex flex-col gap-3"
             :style="{ borderRadius: 'var(--radius-g-panel)' }"
           >
-            <RateDots
-              :rate="trick.rate"
-              :rate-l="trick.rateL"
-              :rate-r="trick.rateR"
-              :lr="trick.lr"
-              size="md"
-            />
-
-            <div
-              class="gw-glass-strong flex p-0.5 self-start"
-              :style="{ borderRadius: 'var(--radius-g-chip)' }"
-              role="radiogroup"
-              aria-label="Rate mode"
-            >
-              <button
-                type="button"
-                class="px-3 py-1 transition-all duration-150 font-semibold"
-                :style="{
-                  background: !trick.lr ? 'var(--color-g-fg)' : 'transparent',
-                  color: !trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
-                  borderRadius: 'calc(var(--radius-g-chip) - 2px)',
-                  fontSize: 'var(--text-g-micro)',
-                }"
-                :aria-pressed="!trick.lr"
-                @click="onModeChange(false)"
-              >Both legs</button>
-              <button
-                type="button"
-                class="px-3 py-1 transition-all duration-150 font-semibold"
-                :style="{
-                  background: trick.lr ? 'var(--color-g-fg)' : 'transparent',
-                  color: trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
-                  borderRadius: 'calc(var(--radius-g-chip) - 2px)',
-                  fontSize: 'var(--text-g-micro)',
-                }"
-                :aria-pressed="trick.lr"
-                @click="onModeChange(true)"
-              >Per leg</button>
+            <!-- Header: Progress label + leg switch -->
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs uppercase tracking-wide text-muted">Progress</h3>
+              <div
+                class="gw-glass-strong flex p-0.5"
+                :style="{ borderRadius: 'var(--radius-g-chip)' }"
+                role="radiogroup"
+                aria-label="Rate mode"
+              >
+                <button
+                  type="button"
+                  class="px-3 py-1 transition-all duration-150 font-semibold"
+                  :style="{
+                    background: !trick.lr ? 'var(--color-g-fg)' : 'transparent',
+                    color: !trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                    borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+                    fontSize: 'var(--text-g-micro)',
+                  }"
+                  :aria-pressed="!trick.lr"
+                  @click="onModeChange(false)"
+                >Both legs</button>
+                <button
+                  type="button"
+                  class="px-3 py-1 transition-all duration-150 font-semibold"
+                  :style="{
+                    background: trick.lr ? 'var(--color-g-fg)' : 'transparent',
+                    color: trick.lr ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+                    borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+                    fontSize: 'var(--text-g-micro)',
+                  }"
+                  :aria-pressed="trick.lr"
+                  @click="onModeChange(true)"
+                >Per leg</button>
+              </div>
             </div>
 
-            <RateButtons
-              :lr="trick.lr"
-              @report="onReport"
-            />
+            <!-- Per-leg view -->
+            <template v-if="trick.lr">
+              <div
+                v-for="side in (['L', 'R'] as const)"
+                :key="side"
+                class="flex flex-col gap-1.5"
+              >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="font-semibold"
+                    :style="{
+                      fontSize: '12px',
+                      color: side === 'L' ? 'var(--color-g-leg-l)' : 'var(--color-g-leg-r)',
+                    }"
+                  >{{ side === 'L' ? 'Left foot' : 'Right foot' }}</span>
+                  <span :style="{ fontSize: '12px', color: 'var(--color-g-fg-muted)' }">— how was it today?</span>
+                  <span class="ml-auto shrink-0">
+                    <RateDots
+                      :rate-l="trick.rateL"
+                      :rate-r="trick.rateR"
+                      :lr="true"
+                      :side="side"
+                    />
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    v-for="p in PILLS"
+                    :key="p.id"
+                    type="button"
+                    class="flex-1 py-1.5 font-semibold transition-all duration-150 active:scale-95 gw-glass-strong"
+                    :style="{
+                      background: lastFor(side) === p.score
+                        ? p.fill
+                        : `linear-gradient(135deg, ${p.fill}25 0%, ${p.fill}10 100%)`,
+                      color: lastFor(side) === p.score ? 'var(--color-g-base)' : 'var(--color-g-fg)',
+                      borderRadius: 'var(--radius-g-chip)',
+                      fontSize: 'var(--text-g-micro)',
+                      opacity: lastFor(side) !== null && lastFor(side) !== p.score ? 0.55 : 1,
+                    }"
+                    @click="tapPill(side, p.score)"
+                  >{{ p.label }}</button>
+                  <button
+                    type="button"
+                    class="py-1.5 px-3 transition-colors active:scale-95"
+                    :class="resetArmed[sideKey(side)] ? '' : 'gw-glass-strong'"
+                    :style="{
+                      background: resetArmed[sideKey(side)] ? 'var(--color-g-danger)' : 'transparent',
+                      color: resetArmed[sideKey(side)] ? 'var(--color-g-fg)' : 'var(--color-g-fg-muted)',
+                      borderRadius: 'var(--radius-g-chip)',
+                      fontSize: 'var(--text-g-micro)',
+                      fontWeight: resetArmed[sideKey(side)] ? 600 : 400,
+                    }"
+                    :aria-label="`Reset ${side} side rate`"
+                    @click="armOrConfirmReset(side)"
+                  >{{ resetArmed[sideKey(side)] ? 'Confirm?' : 'Reset' }}</button>
+                </div>
+              </div>
+            </template>
+
+            <!-- Both-legs view -->
+            <template v-else>
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-2">
+                  <span :style="{ fontSize: '12px', color: 'var(--color-g-fg-muted)' }">How was it today?</span>
+                  <span class="ml-auto shrink-0">
+                    <RateDots :rate="trick.rate" :lr="false" />
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    v-for="p in PILLS"
+                    :key="p.id"
+                    type="button"
+                    class="flex-1 py-1.5 font-semibold transition-all duration-150 active:scale-95 gw-glass-strong"
+                    :style="{
+                      background: lastFor(null) === p.score
+                        ? p.fill
+                        : `linear-gradient(135deg, ${p.fill}25 0%, ${p.fill}10 100%)`,
+                      color: lastFor(null) === p.score ? 'var(--color-g-base)' : 'var(--color-g-fg)',
+                      borderRadius: 'var(--radius-g-chip)',
+                      fontSize: 'var(--text-g-micro)',
+                      opacity: lastFor(null) !== null && lastFor(null) !== p.score ? 0.55 : 1,
+                    }"
+                    @click="tapPill(null, p.score)"
+                  >{{ p.label }}</button>
+                  <button
+                    type="button"
+                    class="py-1.5 px-3 transition-colors active:scale-95"
+                    :class="resetArmed.none ? '' : 'gw-glass-strong'"
+                    :style="{
+                      background: resetArmed.none ? 'var(--color-g-danger)' : 'transparent',
+                      color: resetArmed.none ? 'var(--color-g-fg)' : 'var(--color-g-fg-muted)',
+                      borderRadius: 'var(--radius-g-chip)',
+                      fontSize: 'var(--text-g-micro)',
+                      fontWeight: resetArmed.none ? 600 : 400,
+                    }"
+                    aria-label="Reset rate"
+                    @click="armOrConfirmReset(null)"
+                  >{{ resetArmed.none ? 'Confirm?' : 'Reset' }}</button>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
         <!-- /Sticky rate island -->

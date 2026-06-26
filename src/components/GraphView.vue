@@ -15,6 +15,7 @@ import { useTricksStore } from '../stores/tricks';
 import { useTransitionsStore } from '../stores/transitions';
 import { effectiveRate } from '../domain/rating';
 import { loadView, saveView, type NodePosition } from '../utils/graphView';
+import { autosizeIconTight } from '../utils/graphemes';
 import { displayName } from '../domain/display';
 import type { Transition, Trick } from '../domain/types';
 
@@ -278,8 +279,9 @@ function glyphFor(t: Trick): string {
 
 function glyphSize(t: Trick): number {
   const g = glyphFor(t)
-  // Emoji (typically 1-2 chars): full size.
-  if (t.icon) return GLYPH_SIZE  // 16
+  // Emoji: scale down to fit inside the node circle's hairline rate bars
+  // when the user has set 2 or 3 emojis.
+  if (t.icon) return autosizeIconTight(t.icon, GLYPH_SIZE)
   // Multi-letter abbreviation: shrink to fit.
   if (g.length >= 3) return 10
   if (g.length === 2) return 12
