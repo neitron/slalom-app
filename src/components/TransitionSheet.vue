@@ -9,6 +9,7 @@ import type { Side, Transition, Trick } from '../domain/types'
 import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
+import { useBodyScrollLock } from '../composables/useBodyScrollLock'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -109,18 +110,17 @@ watch(
     clearRemoveTimer()
     uiStore.clearFeedback()
     if (id) {
-      document.body.style.overflow = 'hidden'
       window.addEventListener('keydown', onKey)
     } else {
-      document.body.style.overflow = ''
       window.removeEventListener('keydown', onKey)
     }
   },
 )
 
+useBodyScrollLock(isOpen)
+
 onBeforeUnmount(() => {
   clearRemoveTimer()
-  document.body.style.overflow = ''
   window.removeEventListener('keydown', onKey)
 })
 
@@ -203,6 +203,7 @@ function sideChipBg(active: boolean, s: Side): string {
     >
       <div
         class="absolute inset-0 bg-black/60"
+        style="touch-action: none;"
         @click="close"
       />
 

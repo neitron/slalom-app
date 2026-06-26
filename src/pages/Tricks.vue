@@ -60,10 +60,45 @@ watch(() => ui.tricksStatuses.slice(), (next) => {
   }
 }, { deep: true })
 
-function clearStatusFromActiveStrip() {
-  // The tricksStatuses watcher owns URL cleanup; setting [] is enough.
-  ui.setTricksStatuses([])
+interface ActiveFilterChip {
+  key: string
+  label: string
+  remove: () => void
 }
+
+const activeFilterChips = computed<ActiveFilterChip[]>(() => {
+  const chips: ActiveFilterChip[] = []
+  for (const t of ui.tricksTiers) {
+    chips.push({
+      key: `tier-${t}`,
+      label: `T${t}`,
+      remove: () => ui.setTricksTiers(ui.tricksTiers.filter((x) => x !== t)),
+    })
+  }
+  for (const c of ui.tricksCategories) {
+    chips.push({
+      key: `cat-${c}`,
+      label: c,
+      remove: () => ui.setTricksCategories(ui.tricksCategories.filter((x) => x !== c)),
+    })
+  }
+  for (const s of ui.tricksStatuses) {
+    chips.push({
+      key: `status-${s}`,
+      label: s,
+      // The tricksStatuses watcher handles URL cleanup automatically.
+      remove: () => ui.setTricksStatuses(ui.tricksStatuses.filter((x) => x !== s)),
+    })
+  }
+  if (ui.tricksFavOnly) {
+    chips.push({
+      key: 'fav',
+      label: '★ Favorites',
+      remove: () => ui.setTricksFavOnly(false),
+    })
+  }
+  return chips
+})
 
 const filterSheetOpen = ref(false)
 
@@ -115,37 +150,46 @@ function onVideo(t: Trick) {
     >
       <div class="gw-glass px-3 py-2 flex items-center gap-2"
            :style="{ borderRadius: 'var(--radius-g-panel)' }">
-        <label class="flex-1 flex items-center gap-2 px-3 py-2"
+        <label class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2"
                :style="{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-g-chip)' }">
           <span aria-hidden="true" :style="{ color: 'var(--color-g-fg-muted)' }">⌕</span>
           <input
             :value="ui.tricksSearch"
             type="search"
-            placeholder="Search tricks…"
+            placeholder="Search…"
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
-            class="flex-1 bg-transparent outline-none"
+            class="flex-1 min-w-0 bg-transparent outline-none"
             :style="{ color: 'var(--color-g-fg)', fontSize: 'var(--text-g-body)' }"
             @input="ui.setTricksSearch(($event.target as HTMLInputElement).value)"
           >
         </label>
         <button
           type="button"
-          class="px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
+          class="shrink-0 px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
           :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
           @click="cycleSort"
         >{{ SORT_LABEL[ui.tricksSort] }}</button>
         <button
           type="button"
-          class="px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
-          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
+          class="shrink-0 relative w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
+          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
           aria-label="Open filters"
           @click="filterSheetOpen = true"
         >
-          Filters<span
+          <!-- 3-line slider/filter glyph -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>
+            <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>
+            <circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>
+          </svg>
+          <span
             v-if="filterCount > 0"
-            class="ml-1.5 px-1.5 rounded-full font-semibold"
+            class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
             :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
           >{{ filterCount }}</span>
         </button>
@@ -157,16 +201,18 @@ function onVideo(t: Trick) {
       <div aria-hidden="true" style="height: 72px;" />
 
       <div
-        v-if="statusFromUrl"
-        class="flex justify-start"
+        v-if="activeFilterChips.length > 0"
+        class="flex flex-wrap gap-1.5"
       >
         <button
+          v-for="chip in activeFilterChips"
+          :key="chip.key"
           type="button"
           class="gw-glass-strong flex items-center gap-2 px-3 py-1.5 active:scale-95 transition-transform"
           :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
-          @click="clearStatusFromActiveStrip"
+          @click="chip.remove"
         >
-          <span>{{ statusFromUrl }}</span>
+          <span>{{ chip.label }}</span>
           <span :style="{ color: 'var(--color-g-fg-muted)', fontSize: '14px', lineHeight: 1 }">×</span>
         </button>
       </div>

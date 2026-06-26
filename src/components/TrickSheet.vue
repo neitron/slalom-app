@@ -10,6 +10,7 @@ import type { Side, Trick } from '../domain/types'
 import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
+import { useBodyScrollLock } from '../composables/useBodyScrollLock'
 
 const panelRef = ref<HTMLElement | null>(null)
 const scrollAreaRef = ref<HTMLElement | null>(null)
@@ -98,7 +99,7 @@ async function doReset() {
 
 watch(
   () => trick.value?.id,
-  (id) => {
+  () => {
     editMode.value = false
     emojiDraft.value = trick.value?.icon ?? ''
     aliasDraft.value = ''
@@ -107,17 +108,13 @@ watch(
     resetArmed.value = false
     clearResetTimer()
     uiStore.clearFeedback()
-    if (id) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
   },
 )
 
+useBodyScrollLock(isOpen)
+
 onBeforeUnmount(() => {
   clearResetTimer()
-  document.body.style.overflow = ''
 })
 
 function close() {
@@ -236,6 +233,7 @@ const detailItems = computed(() => {
     >
       <div
         class="absolute inset-0 bg-black/60"
+        style="touch-action: none;"
         @click="close"
       />
 

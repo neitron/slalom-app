@@ -9,6 +9,7 @@ import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
 import SequenceChain from './SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
+import { useBodyScrollLock } from '../composables/useBodyScrollLock'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -97,23 +98,19 @@ async function doRemove() {
 
 watch(
   () => seq.value?.id,
-  (id) => {
+  () => {
     editingName.value = false
     nameDraft.value = seq.value?.name ?? ''
     removeArmed.value = false
     clearRemoveTimer()
     uiStore.clearFeedback()
-    if (id) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
   },
 )
 
+useBodyScrollLock(isOpen)
+
 onBeforeUnmount(() => {
   clearRemoveTimer()
-  document.body.style.overflow = ''
 })
 
 function close() {
@@ -212,6 +209,7 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
     >
       <div
         class="absolute inset-0 bg-black/60"
+        style="touch-action: none;"
         @click="close"
       />
 

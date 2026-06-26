@@ -12,6 +12,7 @@ import {
 import type { Sequence, SequenceStep, Tier } from '../domain/types'
 import SequenceChain from './SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
+import { useBodyScrollLock } from '../composables/useBodyScrollLock'
 
 type Mode = 'graph' | 'known' | 'random'
 
@@ -19,6 +20,36 @@ const props = defineProps<{ visible: boolean }>()
 const visibleRef = computed(() => props.visible)
 const panelRef = ref<HTMLElement | null>(null)
 useSheetViewport(panelRef, visibleRef)
+
+// Drag-to-close
+const dragY = ref(0)
+const dragging = ref(false)
+let startY = 0
+let startScrollTop = 0
+let active = false
+const CLOSE_THRESHOLD = 100
+
+function onTouchStart(e: TouchEvent) {
+  startScrollTop = panelRef.value?.scrollTop ?? 0
+  startY = e.touches[0].clientY
+  active = false
+  dragY.value = 0
+  dragging.value = false
+}
+function onTouchMove(e: TouchEvent) {
+  if (startScrollTop > 0) return
+  const dy = e.touches[0].clientY - startY
+  if (dy <= 0) return
+  active = true
+  dragging.value = true
+  dragY.value = dy
+}
+function onTouchEnd() {
+  dragging.value = false
+  if (!active) { dragY.value = 0; return }
+  if (dragY.value > CLOSE_THRESHOLD) emit('close')
+  else dragY.value = 0
+}
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -118,9 +149,6 @@ watch(
     if (v) {
       if (!name.value) name.value = defaultName()
       regenerate(true)
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
     }
   },
 )
@@ -134,9 +162,10 @@ watch(
   { deep: true },
 )
 
+useBodyScrollLock(visibleRef)
+
 onBeforeUnmount(() => {
   if (regenTimer != null) window.clearTimeout(regenTimer)
-  document.body.style.overflow = ''
 })
 
 function defaultName(): string {
@@ -180,12 +209,24 @@ function toggleArr(list: string[], v: string): string[] {
       role="dialog"
       aria-modal="true"
     >
-      <div class="absolute inset-0 bg-black/60" @click="close" />
+      <div
+        class="absolute inset-0 bg-black/60"
+        style="touch-action: none;"
+        @click="close"
+      />
 
       <div
         ref="panelRef"
-        class="sheet-panel relative w-full gw-glass-strong p-4 pt-2 max-h-[90dvh] overflow-y-auto"
-        :style="{ borderTopLeftRadius: 'var(--radius-g-panel)', borderTopRightRadius: 'var(--radius-g-panel)' }"
+        class="sheet-panel relative w-full gw-glass-strong p-4 pt-2 max-h-[90dvh] overflow-y-auto touch-pan-y overscroll-contain"
+        :style="{
+          borderTopLeftRadius: 'var(--radius-g-panel)',
+          borderTopRightRadius: 'var(--radius-g-panel)',
+          transform: `translateY(${dragY}px)`,
+          transition: dragging ? 'none' : 'transform 0.2s ease-out',
+        }"
+        @touchstart.passive="onTouchStart"
+        @touchmove.passive="onTouchMove"
+        @touchend="onTouchEnd"
       >
       <div class="flex justify-center pb-2 -mt-1">
         <div class="w-10 h-1 rounded-full bg-border-2" />

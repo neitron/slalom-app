@@ -79,4 +79,13 @@
   html, body {
     overscroll-behavior-y: none;
   }
+  /* GPU-composite the fixed TabBar so iOS keeps it pinned during
+     rubber-band overscroll instead of letting it follow the scroll. */
+  .tabbar-fixed {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+  .tabbar-fixed.is-hidden {
+    transform: translateZ(0) translateY(calc(100% + 1rem));
+  }
 }

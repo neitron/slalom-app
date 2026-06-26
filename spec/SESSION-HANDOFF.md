@@ -77,6 +77,19 @@ motion + screen-by-screen IA polish.
 - Streak math: today counts as `+1` even if 0 sessions yet ("don't break yesterday's streak before you've started today").
 - Tests added: `dates.test.ts` (9), `homeDataCompute.test.ts` (18), `tricks.test.ts` (4). Components verified manually.
 
+### Sheet UX hardening (during 4b iOS device pass)
+- New composable `src/composables/useBodyScrollLock.ts`: dual-mode body scroll lock. In standalone PWA, locks `html` + `body` with `overflow: hidden` + `overscroll-behavior: none` + a non-passive document-level `touchmove` blocker (smart-skipped if the touch originates inside a real scrollable descendant). In Safari tab, uses the classic `position: fixed; top: -scrollY` pattern. Refcounted so nested locks don't stomp each other.
+- Applied to TrickSheet, SequenceSheet, TransitionSheet, GeneratorSheet, TricksFilterSheet (replacing the prior `document.body.style.overflow` calls).
+- Backdrop overlays on all 5 sheets get `touch-action: none` to block backdrop-area scroll-through.
+- GeneratorSheet gains drag-to-close to match the other sheets.
+- TricksFilterSheet drag-to-close now works from anywhere on the panel (previously only from the tiny handle).
+- TabBar gets `transform: translateZ(0)` in standalone mode so iOS keeps it pinned during rubber-band overscroll instead of dragging along.
+
+### Tricks page polish (during 4b iOS device pass)
+- Sticky bar search input now shrinks (`min-w-0`) so the sort pill + filter button hold their width as the filter count grows.
+- Filter button is icon-only (3-line slider SVG) with a small numbered badge in the top-right corner — width constant regardless of how many filters are active.
+- Active-filter strip below the search bar now renders chips for EVERY active filter (Tier · Category · Status · Favorites), each individually dismissible. The Status chip dismissal cleans up the URL via the `tricksStatuses` watcher.
+
 ### Phase 4b — Tricks (search-first)
 - Spec: `spec/2026-06-26-glasswork-phase-4b-tricks-design.md`
 - Plan: `docs/superpowers/plans/2026-06-26-glasswork-phase-4b-tricks.md`
@@ -161,7 +174,7 @@ Replace ALL Lucide-style icons + emoji fallback in TabBar, Graph, sheets, etc. w
 
 1. **Home avatar menu interactability** — Just rewritten (commit `65f1c5a`) without `<Teleport>` and without `gw-glass-strong`. User reported it still wasn't opening in the prior version. **Smoke-test on real iPhone before any other Home work.** If still broken, deeper investigation needed (event listener attached? open ref actually toggling? Vue dev tools to inspect).
 
-2. **iOS keyboard drift on TabBar** — Originally postponed M3.5 bug (mechanisms T1–T6 tried, none stuck). The new floating-island TabBar with explicit `bottom` positioning may behave differently. Test by opening a sheet with a text input + dismissing keyboard. If drift survived the shell rewrite, this is the moment to escalate (new mechanism, OR accept the behavior).
+2. **iOS keyboard drift — ACCEPTED LIMITATION (2026-06-26)**. Confirmed unsolvable on iOS Safari after exhausting the visualViewport-fallback playbook. Reference: Bram.us *"Prevent items from being hidden underneath the virtual keyboard…"* article — the author himself says iOS has no clean solution; the article's `interactive-widget=resizes-content` viewport meta (already in our `index.html`) and `env(keyboard-inset-height)` are Chromium-only. We've tried: `useKeyboardOpen` (visualViewport-based detection), `useIosKeyboardReset` (focusin/focusout with scroll save/restore and viewport-recompute kick), GPU-compositing the TabBar (`translateZ(0)`), document-level non-passive touchmove blockers, dual-mode body lock (standalone vs Safari tab). The drift is narrower than before but not eliminated. Code lives in `src/composables/useIosKeyboardReset.ts` and `src/composables/useBodyScrollLock.ts`. **Do not re-attempt without a fundamentally new mechanism** (e.g. the VirtualKeyboard API landing in WebKit, or a native wrapper).
 
 3. **Saved graph views don't recenter on origin** — `tryInit()` only centers when no saved view exists. Users with a saved view from before the centering fix will still see misalignment until they hit `⌂` (reset view). Decide: nuke stale saved views proactively, or trust the reset button.
 
@@ -231,7 +244,7 @@ These pages are gated on `import.meta.env.DEV` — won't ship to prod.
 - DECIDED: New nodes spawn at next-free fibonacci anchor (sparser spiral, no overlap).
 - DEFERRED: Custom typeface — still using system stack. Pick in Phase 5 or 6.
 - DEFERRED: Bespoke iconography to Phase 6 (ship gate).
-- DEFERRED: iOS keyboard drift on TabBar — postponed since M3.5, re-evaluate in next session.
+- ACCEPTED: iOS keyboard drift — not fully solvable on iOS Safari. visualViewport-fallback playbook exhausted (2026-06-26). See "Open bugs" item 2.
 
 ---
 

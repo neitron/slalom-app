@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import { useUiStore } from '../stores/ui'
 import { useTricksStore } from '../stores/tricks'
 import { CATEGORIES, TIER_NAMES } from '../domain/constants'
 import type { Category, Tier, TrickStatus } from '../domain/types'
 import ChipFilter, { type ChipOption } from './ChipFilter.vue'
+import { useBodyScrollLock } from '../composables/useBodyScrollLock'
 
 type Props = { visible: boolean }
 const props = defineProps<Props>()
@@ -14,19 +15,23 @@ const ui = useUiStore()
 const tricksStore = useTricksStore()
 
 const panelRef = ref<HTMLElement | null>(null)
+const scrollAreaRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
 const dragging = ref(false)
 let startY = 0
+let startScrollTop = 0
 let active = false
 const CLOSE_THRESHOLD = 100
 
 function onTouchStart(e: TouchEvent) {
+  startScrollTop = scrollAreaRef.value?.scrollTop ?? 0
   startY = e.touches[0].clientY
   active = false
   dragY.value = 0
   dragging.value = false
 }
 function onTouchMove(e: TouchEvent) {
+  if (startScrollTop > 0) return
   const dy = e.touches[0].clientY - startY
   if (dy <= 0) return
   active = true
@@ -41,6 +46,8 @@ function onTouchEnd() {
 }
 
 watch(() => props.visible, (v) => { if (v) dragY.value = 0 })
+
+useBodyScrollLock(toRef(props, 'visible'))
 
 const tierOptions = computed<ChipOption[]>(() =>
   TIER_NAMES.map((_n, i) => ({ value: String(i + 1), label: `T${i + 1}` })),
@@ -92,24 +99,23 @@ function onResetAll() {
       >
         <div
           class="absolute inset-0 bg-black/60"
+          style="touch-action: none;"
           @click="emit('close')"
         />
         <div
           ref="panelRef"
-          class="relative w-full max-h-[85dvh] gw-glass flex flex-col"
+          class="relative w-full max-h-[85dvh] gw-glass flex flex-col touch-pan-y overscroll-contain"
           :style="{
             borderTopLeftRadius: 'var(--radius-g-panel)',
             borderTopRightRadius: 'var(--radius-g-panel)',
             transform: `translateY(${dragY}px)`,
             transition: dragging ? 'none' : 'transform 280ms ease',
           }"
+          @touchstart.passive="onTouchStart"
+          @touchmove.passive="onTouchMove"
+          @touchend="onTouchEnd"
         >
-          <div
-            class="pt-3 pb-1 flex justify-center cursor-grab"
-            @touchstart.passive="onTouchStart"
-            @touchmove.passive="onTouchMove"
-            @touchend="onTouchEnd"
-          >
+          <div class="pt-3 pb-1 flex justify-center">
             <div class="w-10 h-1 rounded-full" :style="{ background: 'rgba(255,255,255,0.18)' }" />
           </div>
 
@@ -132,7 +138,10 @@ function onResetAll() {
             </div>
           </header>
 
-          <div class="px-4 pb-4 flex flex-col gap-4 overflow-y-auto">
+          <div
+            ref="scrollAreaRef"
+            class="px-4 pb-4 flex flex-col gap-4 overflow-y-auto overscroll-contain"
+          >
             <section class="flex flex-col gap-2">
               <h3 class="text-xs uppercase tracking-wide" :style="{ color: 'var(--color-g-fg-muted)' }">Tier</h3>
               <ChipFilter :options="tierOptions" :model-value="tierModel" :multi="true" @update:model-value="tierModel = $event as string[]" />

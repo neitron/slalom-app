@@ -12,6 +12,7 @@ import { useTricksStore } from './stores/tricks'
 import { useTransitionsStore } from './stores/transitions'
 import { useSequencesStore } from './stores/sequences'
 import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
+import { useIosKeyboardReset } from './composables/useIosKeyboardReset'
 
 const uiStore = useUiStore()
 const route = useRoute()
@@ -25,6 +26,8 @@ const mainPaddingBottom = computed(() =>
 )
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
+
+useIosKeyboardReset()
 
 async function reloadStoresFromDexie() {
   const [tricks, edges, sequences] = await Promise.all([
