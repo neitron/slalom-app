@@ -10,7 +10,7 @@ the recent slalom-app session.
 
 - **Branch**: `main`, **78 commits ahead of `origin/main`**, **NOT pushed**.
 - 131/131 tests pass, build clean.
-- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4c shipped locally**. Phases 4b/d/e/f/g/h/i + 5 + 6 + 7 still open.
+- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4c, 4h shipped locally**. Phases 4b/d/e/f/g/i + 5 + 6 + 7 still open.
 - Old handoff state (M3.5 social layer) is still in commit `ebf7fec`. This document supersedes it.
 
 ## How to push (when ready)
@@ -77,6 +77,11 @@ motion + screen-by-screen IA polish.
 - Streak math: today counts as `+1` even if 0 sessions yet ("don't break yesterday's streak before you've started today").
 - Tests added: `dates.test.ts` (9), `homeDataCompute.test.ts` (18), `tricks.test.ts` (4). Components verified manually.
 
+### Phase 4h — Settings split
+- `/settings` keeps user-facing: Profile (nickname/displayName/bio/emoji/visibility), Cloud sign-in (magic link + Google + Sign out), App (Install link + force-reload), Display (rate dot variant). Bottom of page links to Diagnostics.
+- `/diagnostics` owns engineering surface: Sync (last-sync timestamp, online/offline dot, queue length, "Sync now" button, "↻ Refresh sync"), Storage (mode indicator), Data (Export JSON), Danger zone (Push local to cloud, Reset graph layout, Re-seed from bundle, Import JSON), Build (SHA + commit link + built-at). Header has a "← Settings" back button.
+- Sign-out stays in /settings because it's a user-facing auth action; sync/push are engineering.
+
 ### Phase 4c — Graph
 - **W6 nodes**: glass circle (radius 28, gradient stroke) + hairline semicircle rate bars (L peach left, R teal right, both fills bottom-up; `u` for non-lr fills middle-out) + LED glow halo (color-dodge filter) + glyph (emoji or **ALL UPPERCASE letters from name** — "Backward Half-Lemon" → BHL — at scaled font size, dim color, `dominant-baseline="central"`) + name below circle
 - **Fibonacci anchor-dot grid** as single SVG path (160 dots + origin dot, GRID_SCALE=26, 0.10 fill opacity)
@@ -114,8 +119,6 @@ Subsumed into Home per IA — depends on 4a.
 ### Phase 4g — People + ForeignProfile
 Components re-skinned, pages not redesigned.
 
-### Phase 4h — Settings split
-`/diagnostics` placeholder exists. Real split: move build-sha / storage / sync info from Settings into Diagnostics. Settings keeps profile / visibility / language / install.
 
 ### Phase 4i — Install + onboarding
 Visual sweep not done.
