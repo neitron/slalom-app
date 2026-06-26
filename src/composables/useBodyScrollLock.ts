@@ -28,10 +28,16 @@ function isStandalonePWA(): boolean {
 }
 
 function blockTouchMove(e: TouchEvent): void {
+  // Form controls handle their own touch sequences (range slider drag,
+  // text selection, etc.). Let them through unconditionally.
+  const target = e.target as HTMLElement | null
+  if (target?.closest('input, select, textarea, [role="slider"], [contenteditable="true"]')) {
+    return
+  }
   // Allow scrolling INSIDE a scrollable descendant (e.g. the sheet's
   // own overflow-y-auto panel). Walk up from the target and let the
   // event through if any ancestor up to body is actually scrollable.
-  let el = e.target as HTMLElement | null
+  let el = target
   while (el && el !== document.body) {
     if (el.scrollHeight > el.clientHeight) {
       const style = window.getComputedStyle(el)

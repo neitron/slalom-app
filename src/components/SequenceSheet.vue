@@ -17,9 +17,17 @@ const dragging = ref(false)
 let startY = 0
 let startScrollTop = 0
 let active = false
+let suppressDrag = false
 const CLOSE_THRESHOLD = 100
 
+const FORM_CONTROL_SELECTOR = 'input, select, textarea, [role="slider"]'
+function isOnFormControl(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return target.closest(FORM_CONTROL_SELECTOR) != null
+}
+
 function onTouchStart(e: TouchEvent) {
+  suppressDrag = isOnFormControl(e.target)
   startScrollTop = panelRef.value?.scrollTop ?? 0
   startY = e.touches[0].clientY
   active = false
@@ -28,6 +36,7 @@ function onTouchStart(e: TouchEvent) {
 }
 
 function onTouchMove(e: TouchEvent) {
+  if (suppressDrag) return
   if (startScrollTop > 0) return
   const dy = e.touches[0].clientY - startY
   if (dy <= 0) return

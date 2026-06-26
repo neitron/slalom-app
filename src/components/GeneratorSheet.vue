@@ -27,9 +27,18 @@ const dragging = ref(false)
 let startY = 0
 let startScrollTop = 0
 let active = false
+let suppressDrag = false
 const CLOSE_THRESHOLD = 100
 
+const FORM_CONTROL_SELECTOR = 'input, select, textarea, [role="slider"]'
+
+function isOnFormControl(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return target.closest(FORM_CONTROL_SELECTOR) != null
+}
+
 function onTouchStart(e: TouchEvent) {
+  suppressDrag = isOnFormControl(e.target)
   startScrollTop = panelRef.value?.scrollTop ?? 0
   startY = e.touches[0].clientY
   active = false
@@ -37,6 +46,7 @@ function onTouchStart(e: TouchEvent) {
   dragging.value = false
 }
 function onTouchMove(e: TouchEvent) {
+  if (suppressDrag) return
   if (startScrollTop > 0) return
   const dy = e.touches[0].clientY - startY
   if (dy <= 0) return
@@ -244,19 +254,28 @@ function toggleArr(list: string[], v: string): string[] {
 
       <section class="mt-3">
         <h3 class="text-xs uppercase tracking-wide text-muted mb-1">Mode</h3>
-        <div class="flex gap-1.5">
+        <div
+          class="gw-glass-strong flex p-0.5"
+          :style="{ borderRadius: 'var(--radius-g-chip)' }"
+          role="radiogroup"
+          aria-label="Generator mode"
+        >
           <button
             v-for="opt in [
-              { v: 'graph', label: 'Graph walk' },
-              { v: 'known', label: 'Known shuffle' },
+              { v: 'graph', label: 'Graph' },
+              { v: 'known', label: 'Known' },
               { v: 'random', label: 'Random' },
             ]"
             :key="opt.v"
             type="button"
-            class="flex-1 px-3 py-1.5 rounded-full text-xs border transition-colors"
-            :class="mode === opt.v
-              ? 'bg-accent text-bg border-accent font-semibold'
-              : 'bg-card border-border-2 text-muted hover:text-fg'"
+            class="flex-1 px-3 py-1 transition-all duration-150 font-semibold"
+            :style="{
+              background: mode === opt.v ? 'var(--color-g-fg)' : 'transparent',
+              color: mode === opt.v ? 'var(--color-g-base)' : 'var(--color-g-fg-muted)',
+              borderRadius: 'calc(var(--radius-g-chip) - 2px)',
+              fontSize: 'var(--text-g-micro)',
+            }"
+            :aria-pressed="mode === opt.v"
             @click="mode = opt.v as Mode"
           >{{ opt.label }}</button>
         </div>
