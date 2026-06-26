@@ -26,11 +26,7 @@ export const useUiStore = defineStore('ui', {
     openTransitionId: null as string | null,
     openSequenceId: null as string | null,
     currentTab: 'tricks' as Tab,
-    tier: 1 as Tier,
-    category: 'all' as Category | 'all',
-    search: '',
-    sort: 'name' as SortKey,
-    // Phase 4b — plural fields (legacy singulars above stay until Task 7)
+    // Phase 4b — plural fields
     tricksTiers: [] as Tier[],
     tricksCategories: [] as Category[],
     tricksStatuses: [] as TrickStatus[],
@@ -62,18 +58,6 @@ export const useUiStore = defineStore('ui', {
     },
     setTab(tab: Tab): void {
       this.currentTab = tab;
-    },
-    setTier(tier: Tier): void {
-      this.tier = tier;
-    },
-    setCategory(category: Category | 'all'): void {
-      this.category = category;
-    },
-    setSearch(search: string): void {
-      this.search = search;
-    },
-    setSort(sort: SortKey): void {
-      this.sort = sort;
     },
     setTricksTiers(v: Tier[]): void {
       this.tricksTiers = v;
