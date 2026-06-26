@@ -1,9 +1,9 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
-import AllTricks from './pages/AllTricks.vue'
+import Tricks from './pages/Tricks.vue'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./pages/Home.vue') },
-  { path: '/tricks', name: 'tricks', component: AllTricks },
+  { path: '/tricks', name: 'tricks', component: Tricks },
   { path: '/learning', name: 'learning', component: () => import('./pages/Learning.vue') },
   { path: '/graph', name: 'graph', component: () => import('./pages/Graph.vue'), meta: { fullViewport: true } },
   { path: '/transitions', name: 'transitions', component: () => import('./pages/Transitions.vue') },

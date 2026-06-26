@@ -8,7 +8,6 @@ import {
 import { ensureSeeded } from '../storage/seed';
 import {
   effectiveRate,
-  hasRate,
   resetTrick,
   toggleLrOff,
   toggleLrOn,
@@ -27,12 +26,6 @@ export interface FilterOpts {
   // Existing — kept
   search?: string;
   sort?:   SortKey;
-
-  // Deprecated singular forms — removed in Phase 4b-coda (Task 8).
-  tier?:          Tier | null;
-  category?:      Category | 'all';
-  status?:        TrickStatus | null;
-  practicedOnly?: boolean;
 }
 
 const sorters: Record<SortKey, (a: Trick, b: Trick) => number> = {
@@ -72,12 +65,8 @@ export const useTricksStore = defineStore('tricks', {
     filteredAndSorted(state) {
       return (opts: FilterOpts = {}): Trick[] => {
         const {
-          tier = null,
-          category = 'all',
           search = '',
           sort = 'name',
-          practicedOnly = false,
-          status = null,
           tiers = null,
           categories = null,
           statuses = null,
@@ -85,31 +74,21 @@ export const useTricksStore = defineStore('tricks', {
         } = opts;
         let list = state.tricks.slice();
 
-        // Tier — plural wins.
         if (tiers != null && tiers.length > 0) {
           const setT = new Set(tiers);
           list = list.filter((t) => setT.has(t.tier));
-        } else if (tier != null) {
-          list = list.filter((t) => t.tier === tier);
         }
 
-        // Category — plural wins.
         if (categories != null && categories.length > 0) {
           const setC = new Set(categories);
           list = list.filter((t) => setC.has(t.category));
-        } else if (category && category !== 'all') {
-          list = list.filter((t) => t.category === category);
         }
 
         if (search) list = list.filter((t) => matchesQuery(t, search));
-        if (practicedOnly) list = list.filter((t) => hasRate(t));
 
-        // Status — plural wins.
         if (statuses != null && statuses.length > 0) {
           const setS = new Set(statuses);
           list = list.filter((t) => setS.has(t.status));
-        } else if (status != null) {
-          list = list.filter((t) => t.status === status);
         }
 
         if (favOnly) list = list.filter((t) => t.fav);

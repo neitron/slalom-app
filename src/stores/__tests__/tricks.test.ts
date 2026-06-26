@@ -29,43 +29,9 @@ const tWithFav = (id: string, name: string, status: Trick['status'], fav: boolea
   status, aliases: [], video: null, icon: null, tags: [], fav,
 })
 
-describe('tricks store — status filter', () => {
+describe('tricks store — filteredAndSorted', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-  })
-
-  it('filteredAndSorted({ status: "In Progress" }) returns only In Progress', () => {
-    const store = useTricksStore()
-    store.tricks = [
-      t('1', 'Alpha', 'In Progress'),
-      t('2', 'Bravo', 'Not Started'),
-      t('3', 'Charlie', 'Complete'),
-      t('4', 'Delta', 'In Progress'),
-    ]
-    const result = store.filteredAndSorted({ status: 'In Progress' })
-    expect(result.map((x) => x.id)).toEqual(['1', '4'])
-  })
-
-  it('combines status with search', () => {
-    const store = useTricksStore()
-    store.tricks = [
-      t('1', 'Alpha', 'In Progress'),
-      t('2', 'Alphabravo', 'Not Started'),
-      t('3', 'Alphacharlie', 'In Progress'),
-    ]
-    const result = store.filteredAndSorted({ status: 'In Progress', search: 'alpha' })
-    expect(result.map((x) => x.id).sort()).toEqual(['1', '3'])
-  })
-
-  it('combines status with sort=best', () => {
-    const store = useTricksStore()
-    store.tricks = [
-      { ...t('1', 'A', 'In Progress'), rate: 2 },
-      { ...t('2', 'B', 'In Progress'), rate: 5 },
-      { ...t('3', 'C', 'Complete'), rate: 5 },
-    ]
-    const result = store.filteredAndSorted({ status: 'In Progress', sort: 'best' })
-    expect(result.map((x) => x.id)).toEqual(['2', '1'])
   })
 
   it('omitting status returns all tricks (no behavior change)', () => {
@@ -149,25 +115,4 @@ describe('tricks store — status filter', () => {
     expect(result.map((x) => x.id).sort()).toEqual(['1', '3'])
   })
 
-  it('deprecated singular `tier: 2` still narrows to tier 2', () => {
-    const store = useTricksStore()
-    store.tricks = [
-      tWithFav('1', 'A', 'Not Started', false, 1),
-      tWithFav('2', 'B', 'Not Started', false, 2),
-      tWithFav('3', 'C', 'Not Started', false, 3),
-    ]
-    const result = store.filteredAndSorted({ tier: 2 })
-    expect(result.map((x) => x.id)).toEqual(['2'])
-  })
-
-  it('plural wins when both singular and plural passed', () => {
-    const store = useTricksStore()
-    store.tricks = [
-      tWithFav('1', 'A', 'Not Started', false, 1),
-      tWithFav('2', 'B', 'Not Started', false, 2),
-      tWithFav('3', 'C', 'Not Started', false, 3),
-    ]
-    const result = store.filteredAndSorted({ tier: 2, tiers: [1, 3] })
-    expect(result.map((x) => x.id).sort()).toEqual(['1', '3'])
-  })
 })
