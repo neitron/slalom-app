@@ -6,7 +6,8 @@ const ui = useUiStore()
 
 <template>
   <div
-    class="fixed left-0 right-0 top-2 z-50 flex flex-col items-center gap-2 px-3 pointer-events-none"
+    class="fixed left-0 right-0 z-50 flex flex-col items-center gap-2 px-3 pointer-events-none"
+    :style="{ top: 'calc(env(safe-area-inset-top) + 0.5rem)' }"
   >
     <TransitionGroup name="toast">
       <div
