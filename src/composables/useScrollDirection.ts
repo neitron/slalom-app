@@ -1,4 +1,4 @@
-import { onScopeDispose, ref, type Ref } from 'vue'
+import { getCurrentScope, onScopeDispose, ref, type Ref } from 'vue'
 
 export interface UseScrollDirectionOptions {
   target?: Window | (EventTarget & { scrollY: number })
@@ -46,7 +46,7 @@ export function useScrollDirection(opts: UseScrollDirectionOptions = {}): UseScr
   function stop() {
     target?.removeEventListener('scroll', onScroll)
   }
-  onScopeDispose(stop)
+  if (getCurrentScope()) onScopeDispose(stop)
 
   return { hidden, stop }
 }

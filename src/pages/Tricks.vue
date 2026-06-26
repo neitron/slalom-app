@@ -61,10 +61,8 @@ watch(() => ui.tricksStatuses.slice(), (next) => {
 }, { deep: true })
 
 function clearStatusFromActiveStrip() {
+  // The tricksStatuses watcher owns URL cleanup; setting [] is enough.
   ui.setTricksStatuses([])
-  const next = { ...route.query }
-  delete next.status
-  void router.replace({ path: route.path, query: next })
 }
 
 const filterSheetOpen = ref(false)
