@@ -4,15 +4,16 @@ import { listOutbox, removeOutbox, type OutboxTable } from './outbox';
 import { withoutOutbox } from './repo';
 import { useAuthStore } from '../stores/auth';
 import {
-  mapTrickToServer,
-  mapTrickFromServer,
+  mapCanonicalTrickToServer,
+  mapCanonicalTrickFromServer,
+  mapTrickOverlayToServer,
+  mapTrickOverlayFromServer,
   mapTransitionToServer,
   mapTransitionFromServer,
   mapSequenceToServer,
   mapSequenceFromServer,
   mapPracticeLogToServer,
   mapPracticeLogFromServer,
-  mapUserTrickProgressFromServer,
   mapUserTrickProgressToServer,
   mapProfileToServer,
   type TrickRow,
@@ -21,13 +22,13 @@ import {
   type PracticeLogRow,
   type UserTrickProgressRow,
 } from './fieldMap';
-import { mergeTrick } from './progressMap';
 import type {
+  CanonicalTrick,
+  TrickOverlay,
   PracticeLog,
   Profile,
   Sequence,
   Transition,
-  Trick,
   UserTrickProgress,
 } from '../domain/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -160,16 +161,17 @@ export async function pullAll(): Promise<{
     fetchAll<PracticeLogRow>(sb, 'practice_log'),
   ]);
 
-  const trickProgressByTrickId = new Map<string, UserTrickProgress>();
+  // Map server rows to overlay objects (TrickOverlay, not UserTrickProgress)
+  const overlayByTrickId = new Map<string, TrickOverlay>();
   for (const r of trickProgressRows) {
-    const p = mapUserTrickProgressFromServer(r);
-    trickProgressByTrickId.set(p.trickId, p);
+    const o = mapTrickOverlayFromServer(r);
+    overlayByTrickId.set(o.trickId, o);
   }
 
-  const catalogTricks = trickRows.map(mapTrickFromServer);
-  const tricks: Trick[] = catalogTricks
-    .map((t) => mergeTrick(t, t.id ? trickProgressByTrickId.get(t.id) : null))
-    .filter((t) => t.id && !pending.tricks.has(t.id));
+  // Map canonical trick rows — keep as CanonicalTrick[] for db.tricks
+  const canonicalTricks: CanonicalTrick[] = trickRows
+    .map(mapCanonicalTrickFromServer)
+    .filter((t) => t.id && !pending.tricks.has(t.id!));
 
   const transitions: Transition[] = transitionRows
     .map(mapTransitionFromServer)
@@ -186,19 +188,18 @@ export async function pullAll(): Promise<{
   const serverTransitionIds = new Set(transitions.map((t) => t.id!));
   const serverSequenceIds = new Set(sequences.map((s) => s.id!));
   const serverLogIds = new Set(logs.map((l) => l.id!));
-  const serverTrickProgressIds = new Set(
-    [...trickProgressByTrickId.values()].map((p) => p.trickId),
-  );
+  const serverTrickProgressIds = new Set([...overlayByTrickId.keys()]);
 
-  const serverTrickIds = new Set(tricks.map((t) => t.id!));
-  const serverTrickNamesLc = new Set(tricks.map((t) => t.name.toLowerCase()));
+  const serverTrickIds = new Set(canonicalTricks.map((t) => t.id!));
+  const serverTrickNamesLc = new Set(canonicalTricks.map((t) => t.name.toLowerCase()));
 
   await withoutOutbox(async () => {
     await db.transaction(
       'rw',
       [db.tricks, db.transitions, db.sequences, db.practice_log, db.user_trick_progress],
       async () => {
-        if (tricks.length) {
+        // --- tricks (canonical) ---
+        if (canonicalTricks.length) {
           const localTricks = await db.tricks.toArray();
           const tricksToDrop = localTricks
             .filter((t) => t.id && !pending.tricks.has(t.id))
@@ -209,7 +210,7 @@ export async function pullAll(): Promise<{
             )
             .map((t) => t.id!);
           if (tricksToDrop.length) await db.tricks.bulkDelete(tricksToDrop);
-          await db.tricks.bulkPut(tricks);
+          await db.tricks.bulkPut(canonicalTricks);
         }
 
         const localTransitionIds = await db.transitions.toCollection().primaryKeys();
@@ -233,6 +234,7 @@ export async function pullAll(): Promise<{
         if (logsToDrop.length) await db.practice_log.bulkDelete(logsToDrop);
         if (logs.length) await db.practice_log.bulkPut(logs);
 
+        // --- user_trick_progress (overlay) ---
         if (!progressTablesMissing) {
           const localProgressKeys = (await db.user_trick_progress
             .toCollection()
@@ -245,11 +247,11 @@ export async function pullAll(): Promise<{
           );
           if (progressToDrop.length) await db.user_trick_progress.bulkDelete(progressToDrop);
 
-          const progressTricks: UserTrickProgress[] = [];
-          for (const p of trickProgressByTrickId.values()) {
-            if (!pending.user_trick_progress.has(p.trickId)) progressTricks.push(p);
+          const overlaysToPut: TrickOverlay[] = [];
+          for (const o of overlayByTrickId.values()) {
+            if (!pending.user_trick_progress.has(o.trickId)) overlaysToPut.push(o);
           }
-          if (progressTricks.length) await db.user_trick_progress.bulkPut(progressTricks);
+          if (overlaysToPut.length) await db.user_trick_progress.bulkPut(overlaysToPut);
         }
       },
     );
@@ -260,10 +262,72 @@ export async function pullAll(): Promise<{
   }
 
   return {
-    tricks: tricks.length,
+    tricks: canonicalTricks.length,
     transitions: transitions.length,
     sequences: sequences.length,
     practice_log: logs.length,
+  };
+}
+
+/**
+ * Canonical trick fields — these belong in the server `tricks` table.
+ * Used to filter outbox payloads that may have the old combined shape.
+ */
+const CANONICAL_TRICK_FIELDS = new Set([
+  'id',
+  'created_by',
+  'visibility',
+  'name',
+  'tier',
+  'category',
+  'entry',
+  'exit',
+  'lr',
+  'default_aliases',
+  'default_tags',
+  'default_icon',
+  'default_video',
+]);
+
+/**
+ * Filter an outbox tricks payload to canonical-only fields.
+ *
+ * Old outbox entries may have the pre-T4 combined shape (aliases, tags, icon,
+ * video, rate, fav, etc. all on the tricks row). After the migration the
+ * server tricks table only accepts canonical columns. We strip the per-user
+ * fields here; the user's current overlay state in user_trick_progress is
+ * authoritative for those values.
+ *
+ * If the payload already has the new shape (default_* keys) it passes through
+ * unchanged.
+ */
+function filterTricksPayloadToCanonical(payload: Record<string, unknown>): Record<string, unknown> {
+  // Check if payload uses new canonical shape (has any default_* key)
+  const hasNewShape = Object.keys(payload).some((k) => k.startsWith('default_') || k === 'created_by' || k === 'visibility');
+  if (hasNewShape) {
+    // New shape — filter to canonical fields only
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(payload)) {
+      if (CANONICAL_TRICK_FIELDS.has(k)) out[k] = v;
+    }
+    return out;
+  }
+
+  // Old combined shape: translate to canonical server columns, drop per-user fields
+  return {
+    id: payload.id,
+    created_by: payload.createdBy ?? null,
+    visibility: payload.visibility ?? 'public',
+    name: payload.name,
+    tier: payload.tier,
+    category: payload.category,
+    entry: payload.entry,
+    exit: payload.exit,
+    lr: payload.lr,
+    default_aliases: payload.aliases ?? payload.defaultAliases ?? [],
+    default_tags: payload.tags ?? payload.defaultTags ?? [],
+    default_icon: payload.icon ?? payload.defaultIcon ?? null,
+    default_video: payload.video ?? payload.defaultVideo ?? null,
   };
 }
 
@@ -273,7 +337,8 @@ function mapPayloadToServer(
 ): Record<string, unknown> {
   switch (table) {
     case 'tricks':
-      return mapTrickToServer(payload as unknown as Trick) as unknown as Record<string, unknown>;
+      // Use the canonical mapper with outbox migration for old combined-shape entries
+      return filterTricksPayloadToCanonical(payload);
     case 'transitions':
       return mapTransitionToServer(
         payload as unknown as Transition,
@@ -287,6 +352,10 @@ function mapPayloadToServer(
         payload as unknown as PracticeLog,
       ) as unknown as Record<string, unknown>;
     case 'user_trick_progress':
+      // Prefer overlay mapper if payload has overlay-shape fields; fall back to legacy progress mapper
+      if ('trickId' in payload && ('aliases' in payload || 'mainAlias' in payload || 'iconOverride' in payload)) {
+        return mapTrickOverlayToServer(payload as unknown as TrickOverlay) as unknown as Record<string, unknown>;
+      }
       return mapUserTrickProgressToServer(
         payload as unknown as UserTrickProgress,
       ) as unknown as Record<string, unknown>;
@@ -394,7 +463,7 @@ export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }
     return { pushed: { tricks: 0, transitions: 0, sequences: 0, practice_log: 0 } };
   }
 
-  const [tricks, transitions, sequences, logs] = await Promise.all([
+  const [canonicals, transitions, sequences, logs] = await Promise.all([
     db.tricks.toArray(),
     db.transitions.toArray(),
     db.sequences.toArray(),
@@ -402,8 +471,8 @@ export async function pushLocalAll(): Promise<{ pushed: Record<string, number> }
   ]);
 
   const pushed: Record<string, number> = {
-    tricks: await bulkUpsert(sb, 'tricks', tricks, (t) =>
-      mapTrickToServer(t) as unknown as Record<string, unknown>,
+    tricks: await bulkUpsert(sb, 'tricks', canonicals, (t) =>
+      mapCanonicalTrickToServer(t) as unknown as Record<string, unknown>,
     ),
     transitions: await bulkUpsert(sb, 'transitions', transitions, (t) =>
       mapTransitionToServer(t) as unknown as Record<string, unknown>,
@@ -425,34 +494,32 @@ export async function pushOwnProgressFromCatalog(): Promise<void> {
   const uid = await currentUserId();
   if (!uid) return;
 
-  const tricks = await db.tricks.toArray();
-
-  const trickProgress: UserTrickProgress[] = tricks
-    .filter((t) => t.id && (t.rate != null || t.rateL != null || t.rateR != null || t.last != null || t.fav))
-    .map((t) => ({
-      userId: uid,
-      trickId: t.id!,
-      rate: t.lr ? null : t.rate,
-      rateL: t.lr ? t.rateL : null,
-      rateR: t.lr ? t.rateR : null,
-      last: t.last,
-      status: t.status,
-      fav: t.fav,
-      lrEnabled: !!t.lr,
-      updatedAt: new Date().toISOString(),
-    }));
+  // Read per-user overlay rows directly — the canonical tricks table no
+  // longer carries rate/rateL/rateR/last/status/fav.
+  const overlays = await db.user_trick_progress
+    .where('userId')
+    .equals(uid)
+    .filter(
+      (o) =>
+        o.rate != null ||
+        o.rateL != null ||
+        o.rateR != null ||
+        o.last != null ||
+        o.fav,
+    )
+    .toArray();
 
   try {
     await bulkUpsert(
       sb,
       'user_trick_progress',
-      trickProgress,
-      (p) => mapUserTrickProgressToServer(p) as unknown as Record<string, unknown>,
+      overlays,
+      (o) => mapTrickOverlayToServer(o) as unknown as Record<string, unknown>,
       'user_id,trick_id',
     );
     await withoutOutbox(async () => {
       await db.transaction('rw', db.user_trick_progress, async () => {
-        if (trickProgress.length) await db.user_trick_progress.bulkPut(trickProgress);
+        if (overlays.length) await db.user_trick_progress.bulkPut(overlays);
       });
     });
     if (typeof localStorage !== 'undefined') {
