@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useUiStore } from '../stores/ui'
+import { IconClose } from '../icons'
 
 const ui = useUiStore()
 </script>
@@ -23,11 +24,11 @@ const ui = useUiStore()
         <span class="flex-1 break-words">{{ t.message }}</span>
         <button
           type="button"
-          class="opacity-60 hover:opacity-100 -mr-1 -mt-0.5 text-base leading-none"
+          class="opacity-60 hover:opacity-100 -mr-1 -mt-0.5 inline-flex items-center justify-center"
           :style="{ color: 'inherit' }"
           aria-label="Dismiss"
           @click.stop="ui.dismissToast(t.id)"
-        >×</button>
+        ><IconClose :size="16" stroke="1.75" /></button>
       </div>
     </TransitionGroup>
   </div>

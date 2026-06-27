@@ -8,7 +8,7 @@ import { resolveVideoUrl } from '../domain/video'
 import TrickCard from '../components/TrickCard.vue'
 import TricksFilterSheet from '../components/TricksFilterSheet.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
-import { IconFavOn, IconSearch, IconFilter } from '../icons'
+import { IconFavOn, IconSearch, IconFilter, IconClose } from '../icons'
 
 const tricksStore = useTricksStore()
 const ui = useUiStore()
@@ -207,7 +207,7 @@ function onVideo(t: Trick) {
         >
           <IconFavOn v-if="chip.key === 'fav'" :size="12" stroke="1.75" />
           <span>{{ chip.label }}</span>
-          <span :style="{ color: 'var(--color-g-fg-muted)', fontSize: '14px', lineHeight: 1 }">×</span>
+          <IconClose :size="14" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" />
         </button>
       </div>
 

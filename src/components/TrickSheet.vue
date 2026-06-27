@@ -452,7 +452,7 @@ const detailItems = computed(() => {
                   class="text-muted hover:text-danger"
                   :aria-label="`remove ${a}`"
                   @click="removeAlias(a)"
-                >×</button>
+                ><IconClose :size="14" stroke="1.75" /></button>
               </span>
               <span v-if="editMode && !trick.aliases.length" class="text-xs text-muted">none</span>
             </div>
@@ -488,7 +488,7 @@ const detailItems = computed(() => {
                   class="text-muted hover:text-danger"
                   :aria-label="`remove ${tg}`"
                   @click="removeTag(tg)"
-                >×</button>
+                ><IconClose :size="14" stroke="1.75" /></button>
               </span>
               <span v-if="editMode && !trick.tags.length" class="text-xs text-muted">none</span>
             </div>
