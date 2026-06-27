@@ -281,33 +281,35 @@ const detailItems = computed(() => {
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="isOpen && trick"
-      class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
-      style="inset: 0; height: auto"
-      role="dialog"
-      aria-modal="true"
-    >
+    <Transition name="sheet">
       <div
-        class="absolute inset-0 bg-black/60"
-        style="touch-action: none;"
-        @click="close"
-      />
-
-      <div
-        ref="panelRef"
-        class="sheet-panel relative w-full gw-glass-strong max-h-[90dvh] flex flex-col touch-pan-y overscroll-contain"
-        :style="{
-          transform: `translateY(${dragY}px)`,
-          transition: dragging ? 'none' : 'transform 0.2s ease-out',
-          borderTopLeftRadius: 'var(--radius-g-panel)',
-          borderTopRightRadius: 'var(--radius-g-panel)',
-        }"
-        @touchstart.passive="onTouchStart"
-        @touchmove.passive="onTouchMove"
-        @touchend="onTouchEnd"
-        @touchcancel="onTouchEnd"
+        v-if="isOpen && trick"
+        class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
+        style="inset: 0; height: auto"
+        role="dialog"
+        aria-modal="true"
       >
+        <div
+          class="absolute inset-0 bg-black/60"
+          style="touch-action: none;"
+          @click="close"
+        />
+
+        <div class="sheet-panel-anim w-full">
+          <div
+            ref="panelRef"
+            class="sheet-panel relative w-full gw-glass-strong max-h-[90dvh] flex flex-col touch-pan-y overscroll-contain"
+            :style="{
+              transform: `translateY(${dragY}px)`,
+              transition: dragging ? 'none' : 'transform var(--motion-g-slow) var(--ease-g-out)',
+              borderTopLeftRadius: 'var(--radius-g-panel)',
+              borderTopRightRadius: 'var(--radius-g-panel)',
+            }"
+            @touchstart.passive="onTouchStart"
+            @touchmove.passive="onTouchMove"
+            @touchend="onTouchEnd"
+            @touchcancel="onTouchEnd"
+          >
         <!-- Scrollable body -->
         <div ref="scrollAreaRef" class="flex-1 overflow-y-auto p-4 pt-2">
           <div class="flex justify-center pb-2 -mt-1 cursor-grab active:cursor-grabbing">
@@ -690,7 +692,37 @@ const detailItems = computed(() => {
           </div>
         </div>
         <!-- /Sticky rate island -->
+          </div>
+        </div>
+        <!-- /.sheet-panel-anim -->
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: opacity var(--motion-g-base) var(--ease-g-out);
+}
+.sheet-enter-active .sheet-panel-anim,
+.sheet-leave-active .sheet-panel-anim {
+  transition:
+    transform var(--motion-g-slow) var(--ease-g-spring),
+    opacity var(--motion-g-base) var(--ease-g-out);
+}
+.sheet-enter-from,
+.sheet-leave-to { opacity: 0; }
+.sheet-enter-from .sheet-panel-anim,
+.sheet-leave-to .sheet-panel-anim {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-from .sheet-panel-anim,
+  .sheet-leave-to .sheet-panel-anim {
+    transform: none !important;
+  }
+}
+</style>
