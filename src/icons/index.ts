@@ -24,6 +24,8 @@ export {
   IconDotsVertical as IconMenuV,
   IconCheck,
   IconPlus,
+  IconPencil as IconEdit,
+  IconRoute,
   IconDice5 as IconGenerate,
   IconFocusCentered as IconResetView,
   IconArrowsMove as IconMoveMode,
