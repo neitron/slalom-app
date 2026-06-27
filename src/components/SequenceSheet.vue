@@ -13,7 +13,7 @@ import RateButtons from './RateButtons.vue'
 import SequenceChain from './SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
-import { IconClose } from '../icons'
+import { IconClose, IconEdit, IconRoute } from '../icons'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -301,7 +301,7 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="text-xl leading-none">🔗</span>
+        <IconRoute :size="20" stroke="1.75" :style="{ color: 'var(--color-g-fg)' }" aria-hidden="true" />
         <template v-if="!editingName">
           <h2
             class="flex-1 text-lg font-semibold truncate cursor-text"
@@ -312,7 +312,7 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
             class="p-1 text-muted hover:text-fg"
             aria-label="Rename"
             @click="startEditName"
-          >✎</button>
+          ><IconEdit :size="14" stroke="1.75" /></button>
         </template>
         <template v-else>
           <input
