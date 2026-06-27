@@ -53,6 +53,18 @@ const routes: RouteRecordRaw[] = [
           component: () => import('./pages/spec/IconsPreview.vue'),
           meta: { hideTabs: true },
         } as RouteRecordRaw,
+        {
+          path: '/spec/fab-options',
+          name: 'spec-fab-options',
+          component: () => import('./pages/spec/FabOptions.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
+        {
+          path: '/spec/graph-mode-options',
+          name: 'spec-graph-mode-options',
+          component: () => import('./pages/spec/GraphModeOptions.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
       ]
     : []),
 ]
