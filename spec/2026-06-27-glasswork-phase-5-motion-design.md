@@ -90,11 +90,10 @@ Same pattern can be added for the bubble enter (`gb-enter-from`) — drop the `t
 ### Sheet choreography (unified across all 6 sheets)
 
 Today's state is inconsistent:
-- TricksFilterSheet, TransitionsFilterSheet: have the full `<Transition name="sheet">` with slide-up + fade.
-- TrickSheet, TransitionSheet, SequenceSheet, GeneratorSheet: most have only `<Teleport>` + `v-if`, no enter/leave transition wrapper. They appear/disappear instantly.
-- Some have manual `transition: transform 0.2s ease-out` set on the panel for the drag-to-close gesture but no enter animation.
+- TricksFilterSheet, TransitionsFilterSheet: have a `<Transition name="sheet">` wrapper. The CSS includes a slide-up rule on the panel — but it's **dead code**. The inline `:style="{ transform: translateY(${dragY}px) }"` for drag-to-close has higher specificity than the class-defined enter-from transform, so the slide never actually fires. Only opacity fades.
+- TrickSheet, TransitionSheet, SequenceSheet, GeneratorSheet: only `<Teleport>` + `v-if`, no enter/leave transition wrapper. They appear/disappear instantly.
 
-Target — all 6 sheets:
+Target — all 6 sheets adopt a **two-layer panel structure** so the enter/leave slide-up can coexist with the inline drag transform:
 
 ```vue
 <template>
@@ -106,20 +105,26 @@ Target — all 6 sheets:
         role="dialog"
         aria-modal="true"
       >
+        <!-- backdrop -->
         <div class="absolute inset-0 bg-black/60" @click="close" />
-        <div
-          ref="panelRef"
-          class="sheet-panel gw-glass-strong relative w-full ..."
-          :style="{
-            transform: `translateY(${dragY}px)`,
-            transition: dragging ? 'none' : 'transform var(--motion-g-slow) var(--ease-g-out)',
-            ...
-          }"
-          @touchstart.passive="..."
-          @touchmove.passive="..."
-          @touchend="..."
-        >
-          ...
+
+        <!-- OUTER: enter/leave slide-up + fade (class-based) -->
+        <div class="sheet-panel-anim w-full">
+          <!-- INNER: existing panel with drag transform (inline) -->
+          <div
+            ref="panelRef"
+            class="sheet-panel gw-glass-strong relative w-full ..."
+            :style="{
+              transform: `translateY(${dragY}px)`,
+              transition: dragging ? 'none' : 'transform var(--motion-g-slow) var(--ease-g-out)',
+              ...
+            }"
+            @touchstart.passive="..."
+            @touchmove.passive="..."
+            @touchend="..."
+          >
+            ... content ...
+          </div>
         </div>
       </div>
     </Transition>
@@ -131,23 +136,35 @@ Target — all 6 sheets:
 .sheet-leave-active {
   transition: opacity var(--motion-g-base) var(--ease-g-out);
 }
-.sheet-enter-active .sheet-panel,
-.sheet-leave-active .sheet-panel {
+.sheet-enter-active .sheet-panel-anim,
+.sheet-leave-active .sheet-panel-anim {
   transition:
     transform var(--motion-g-slow) var(--ease-g-spring),
     opacity var(--motion-g-base) var(--ease-g-out);
 }
 .sheet-enter-from,
 .sheet-leave-to { opacity: 0; }
-.sheet-enter-from .sheet-panel,
-.sheet-leave-to .sheet-panel { transform: translateY(100%); }
+.sheet-enter-from .sheet-panel-anim,
+.sheet-leave-to .sheet-panel-anim {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Reduced-motion fallback: kill the slide, keep the fade */
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-from .sheet-panel-anim,
+  .sheet-leave-to .sheet-panel-anim {
+    transform: none !important;
+  }
+}
 </style>
 ```
 
 Notes:
-- The `.sheet-panel` class is targeted directly (not `.relative`). The existing TricksFilterSheet pattern uses `.relative` as the panel selector; we tighten that to the semantic `sheet-panel` class which all sheets already use.
-- The drag-to-close `transition` (panel-only, fires on touchend snap-back) uses `--motion-g-slow` and the standard `--ease-g-out` so it matches the enter animation.
-- Spring easing on enter gives the sheet a subtle settle-in overshoot — feels "alive" without being playful.
+- **Outer `.sheet-panel-anim`**: bare wrapper, `w-full` only — no padding, no background, no constraints. Its only job is to carry the enter/leave slide. The transform is class-based (`.sheet-enter-from .sheet-panel-anim`), no inline transform competes.
+- **Inner `.sheet-panel`**: keeps all existing chrome (`gw-glass-strong`, `max-h-[Xdvh]`, `overflow-y-auto`, padding, `panelRef`, touch handlers, drag transform via inline `:style`). The two layers slide together visually because the outer carries them both.
+- The drag-to-close `transition` (panel-only, fires on touchend snap-back) uses `--motion-g-slow` + `--ease-g-out` so it matches the enter animation.
+- Spring easing on enter gives the sheet a subtle settle-in overshoot — feels "alive" without being playful. If the overshoot reads as too playful on device, swap `--ease-g-spring` for `--ease-g-out` (single edit per sheet).
 
 ### Micro-popover choreography (GraphBubble, EdgeBubble)
 
