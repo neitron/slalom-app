@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { Side } from '../domain/types'
+import { IconClose } from '../icons'
 
 type Score = 1 | 2 | 3 | 4 | 5
 
@@ -197,7 +198,7 @@ function close() {
                 style="transition: none"
               />
             </svg>
-            <span class="relative text-base leading-none" :style="{ color: 'var(--color-g-fg-muted)' }">✕</span>
+            <IconClose :size="16" stroke="1.75" class="relative" :style="{ color: 'var(--color-g-fg-muted)' }" />
           </button>
         </div>
       </div>
