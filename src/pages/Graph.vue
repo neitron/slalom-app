@@ -16,7 +16,7 @@ import EdgeBubble from '../components/EdgeBubble.vue'
 import LegChooser from '../components/LegChooser.vue'
 import SequenceChain from '../components/SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
-import { IconClose, IconTransition } from '../icons'
+import { IconClose, IconTransition, IconMoveMode } from '../icons'
 
 const saveSheetPanelRef = ref<HTMLElement | null>(null)
 
@@ -401,7 +401,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
           : 'bg-card border-border-2 text-muted hover:text-fg'"
         :aria-pressed="moveMode"
         @click="moveMode = !moveMode"
-      >✥ Move</button>
+      ><span class="inline-flex items-center gap-1"><IconMoveMode :size="14" stroke="1.75" /> Move</span></button>
       <button
         type="button"
         class="px-3 py-1.5 rounded-full text-xs border transition-colors"

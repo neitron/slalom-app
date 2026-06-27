@@ -18,6 +18,7 @@ import { loadView, saveView, type NodePosition } from '../utils/graphView';
 import { autosizeIconTight } from '../utils/graphemes';
 import { displayName } from '../domain/display';
 import type { Transition, Trick } from '../domain/types';
+import { IconResetView } from '../icons';
 
 interface Props {
   highlightNodeId?: string | null;
@@ -1079,7 +1080,7 @@ function nextSpawnPosition(): { x: number; y: number } {
         class="w-9 h-9 rounded-md bg-card border border-border text-fg text-base leading-none flex items-center justify-center active:opacity-70"
         aria-label="Reset view"
         @click="resetView"
-      >⌂</button>
+      ><IconResetView :size="18" stroke="1.75" /></button>
     </div>
   </div>
 </template>

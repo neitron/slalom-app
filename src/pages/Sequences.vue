@@ -7,6 +7,7 @@ import type { Sequence } from '../domain/types'
 import SequenceCard from '../components/SequenceCard.vue'
 import GeneratorSheet from '../components/GeneratorSheet.vue'
 import { useUiStore } from '../stores/ui'
+import { IconGenerate } from '../icons'
 
 const tricksStore = useTricksStore()
 const transitionsStore = useTransitionsStore()
@@ -56,7 +57,7 @@ async function onRemove(id: string): Promise<void> {
         type="button"
         class="px-3 py-1.5 rounded-full text-xs bg-accent text-bg font-semibold"
         @click="generatorOpen = true"
-      >🎲 Generate</button>
+      ><span class="inline-flex items-center gap-1.5"><IconGenerate :size="16" stroke="1.75" /> Generate</span></button>
     </div>
 
     <div
@@ -67,7 +68,7 @@ async function onRemove(id: string): Promise<void> {
     <div
       v-else-if="!list.length"
       class="text-muted text-sm py-8 text-center"
-    >No sequences yet — tap 🎲 Generate to build one.</div>
+    >No sequences yet — tap <strong>Generate</strong> to build one.</div>
 
     <div
       v-else
