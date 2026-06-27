@@ -13,7 +13,7 @@ import RateButtons from './RateButtons.vue'
 import SequenceChain from './SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
-import { IconClose, IconEdit, IconRoute } from '../icons'
+import { IconClose, IconEdit, IconRoute, LegL, LegR, LegNone } from '../icons'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -250,12 +250,6 @@ async function createMissingTransitions() {
   }
 }
 
-function sideColor(s: Side): string {
-  if (s === 'L') return 'var(--side-l)'
-  if (s === 'R') return 'var(--side-r)'
-  return 'var(--side-none)'
-}
-
 function openTrick(id: string) {
   uiStore.openSheet(id)
 }
@@ -374,22 +368,22 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
           <li
             v-for="step in stepViews"
             :key="step.key"
-            class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-card-2 border border-border-2"
           >
-            <span
-              v-if="step.icon"
-              class="text-base leading-none"
-            >{{ step.icon }}</span>
-            <span class="flex-1 text-sm text-fg truncate">{{ step.name }}</span>
-            <span
-              class="font-bold text-[11px] w-3 text-center"
-              :style="{ color: sideColor(step.side) }"
-            >{{ step.side ?? '·' }}</span>
             <button
               type="button"
-              class="shrink-0 px-2 py-0.5 rounded border border-border-2 text-[11px] text-muted hover:text-fg hover:border-accent"
+              class="w-full flex items-center gap-2 px-3 py-2 gw-glass-strong active:opacity-80 transition-opacity text-left"
+              :style="{ borderRadius: 'var(--radius-g-chip)' }"
               @click="openTrick(step.trickId)"
-            >Open</button>
+            >
+              <span
+                v-if="step.icon"
+                class="text-base leading-none shrink-0"
+              >{{ step.icon }}</span>
+              <span class="flex-1 text-sm text-fg truncate">{{ step.name }}</span>
+              <LegL v-if="step.side === 'L'" :size="14" />
+              <LegR v-else-if="step.side === 'R'" :size="14" />
+              <LegNone v-else :size="14" />
+            </button>
           </li>
           <li
             v-if="!stepViews.length"
