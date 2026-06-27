@@ -9,12 +9,12 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `b3c6480`, **pushed to `origin/main`** (GH Pages
+- **Branch**: `main` at `5a63fdd`, **pushed to `origin/main`** (GH Pages
   redeploy on every push).
 - 144/144 tests pass, build clean.
-- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h shipped to
+- Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6 shipped to
   prod.** Phase 4d **DEFERRED** (doesn't fit the user's training procedure
-  — see Decisions log). Phases 4e/f/g/i + 5 + 6 + 7 still open.
+  — see Decisions log). Phases 4e/f/g/i + 5 + 7 still open.
 - Server-side: `transitions.rate`, `sequences.rate`, and
   `user_trick_progress.{rate, rate_l, rate_r}` columns migrated from
   `smallint` to `numeric(4, 2)` so the client's blended rates (e.g. `3.4`)
@@ -23,16 +23,21 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+5a63fdd Phase 6 step 9: RateFeedback close ✕ → IconClose
+016d2c2 Phase 6 step 8 (sweep 5): inline SVGs → Tabler
+c923603 Phase 6 step 7 (sweep 4): button-icon emoji 🎲 ⌂ ✥ → Tabler
+e967b53 Phase 6 step 6 (sweep 3): chevrons / arrows / check / plus
+f3864fa Phase 6 step 5 (sweep 2): favorites ★/☆ → IconFavOn / IconFavOff
+99cd189 Phase 6 step 4 (sweep 1): close glyph -> IconClose
+f957709 Phase 6 step 3: /spec/icons preview route
+1303d71 Phase 6 step 2 fix: LegNone stroke-width 2 → 1.75 (TabBar cohesion)
+545f9e5 Phase 6 step 2: bespoke Leg glyph components (L / R / L·R / —)
+69e83bf Phase 6 step 1: install @tabler/icons-vue + create src/icons module
+afe7ec4 Phase 6 (Iconography) implementation plan
+f1d4442 Phase 6 (Iconography) design spec
+6e484cb Session handoff: 2026-06-27 — phases 4a/4b/4h shipped + recent polish, 4d deferred
 b3c6480 Graph: pan starts from anywhere (including nodes); native click for tap
 7527850 ToastStack: place below safe-area-inset-top (notch was hiding errors)
-b0a251d SequenceSheet learn-transitions + Generator + Graph fixes
-dfb8da7 Multi-emoji per trick + rate UX overhaul
-2d622ca Sheets: form controls bypass scroll-lock + drag-to-close
-0208a43 Phase 4b polish: sheet UX hardening + Tricks page tweaks
-69ff98b Phase 4b (Tricks search-first) implementation plan
-1773381 Phase 4b (Tricks search-first) design spec
-4d0845b Phase 4h: Settings split
-86bc431 Phase 4a (Home) design spec
 ```
 
 `git push origin main` — when ready to ship.
@@ -40,6 +45,15 @@ dfb8da7 Multi-emoji per trick + rate UX overhaul
 ---
 
 ## What's shipped since the 2026-06-26 handoff (additive)
+
+### Phase 6 — Iconography (shipped 2026-06-27) — SHIP GATE cleared
+- Library-first via `@tabler/icons-vue` (v3.x) re-exported under semantic names from `src/icons/index.ts`. TabBar 4 entity marks kept as-is (already custom and slalom-flavored). Bespoke `Leg*.vue` components in `src/icons/leg/` for L / R / both / none stance glyphs (no library carries these). Zero unicode glyphs used as UI affordances anywhere in `src/`.
+- Spec: `spec/2026-06-27-glasswork-phase-6-iconography-design.md`. Plan: `docs/superpowers/plans/2026-06-27-glasswork-phase-6-iconography.md`.
+- Notable spec amendments: §7.1 "no library defaults" → "Tabler is acceptable, sits cohesively with TabBar". §7.3 stroke language locked at 1.75 / round / round / 24 grid (matches existing TabBar SVGs 1:1).
+- Dev-only preview at `/#/spec/icons` (added to the existing spec-route block).
+- Cohesion convention: every consumer passes static `stroke="1.75"` attribute (NOT v-bind — Vue strict typing rejected the number-bind form). Documented in `src/icons/index.ts` and `src/icons/README.md`.
+- Addressed the brainstorm-time bug where `➕` on GraphBubble's leg buttons was barely visible on colored backgrounds — replaced with `IconPlus` at `stroke="2"` (heavier weight) for legibility.
+- Implementer also caught two omissions from the inventory during sweep 5: Tricks page had a filter SVG (now `IconFilter`) and a `⌕` unicode search glyph (now `IconSearch`).
 
 ### Phase 4a — Home (shipped 2026-06-26)
 - IA decisions for Home v1 honoured: Quick-jumps row → 14-day intensity heatmap → top-5 Working-on list → 7-day granular activity feed.
@@ -136,11 +150,6 @@ Spring physics presets, View Transitions API, sheet choreography,
 generator stagger, fibonacci grid breathing animation, tap-to-cycle
 pulse on RateDots — all with `prefers-reduced-motion: reduce` paths.
 
-### Phase 6 — Bespoke iconography (SHIP GATE)
-Replace all Lucide-style icons + emoji fallback in TabBar, Graph,
-sheets, etc. with a bespoke Slalom-semantic set. **The redesign is not
-"done" until this ships.**
-
 ### Phase 7 — PWA polish
 App icons at all sizes, iOS PWA splash images, theme-color + viewport
 refinements, install funnel polish, final iOS Safari perf budget pass.
@@ -164,6 +173,9 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 
 ## Key files (most-touched recently)
 
+- `src/icons/index.ts` — semantic re-export module for Tabler icons + bespoke Leg glyphs. Consumers import from here, never from `@tabler/icons-vue` directly.
+- `src/icons/leg/{LegL,LegR,LegBoth,LegNone}.vue` — bespoke typography-based stance glyphs.
+- `src/pages/spec/IconsPreview.vue` — dev-only preview at `/spec/icons`.
 - `src/components/RateDots.vue` — gained `side?: 'L' | 'R' | null` prop; key-per-state to fix iOS compositing leak; neutral fg-tinted off state.
 - `src/components/TrickSheet.vue` — rewritten rate island (Progress header + per-leg rows + per-side reset pills + RateDots integration).
 - `src/components/TrickCard.vue` — rate dots in meta row; gentler emoji autosize.
@@ -185,6 +197,7 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 
 | Route | Purpose |
 |---|---|
+| `/#/spec/icons` | Phase 6 icon set at 16/18/20/24, default + accent, plus TabBar cohesion check |
 | `/#/spec/tokens` | Color/type/material swatches |
 | `/#/spec/rate-options` | RateDots variant comparison |
 | `/#/spec/node-options` | Node visual variants |
@@ -203,18 +216,22 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 - DECIDED 2026-06-26: Graph adds `✥ Move` mode. Default mode: pan from anywhere; native `click` for tap. Move on: d3-drag for reposition.
 - DECIDED 2026-06-27: Postgres rate columns are `numeric(4, 2)`. Client computes blended floats and the server must store them.
 - DEFERRED 2026-06-27: Phase 4d rehearsal-script. Doesn't fit the user's training procedure as proposed (carousel + persistent current-step). Revisit if a new direction emerges.
+- DECIDED 2026-06-27: Phase 6 ships library-first via Tabler Icons re-exported under semantic names from `src/icons/index.ts`. The §7.3 "bespoke" stance softens: Tabler's house style matches the existing TabBar 1:1 (1.75 stroke / round / round / 24 grid) and is distinct enough from Lucide that the templated-tell concern does not recur. The semantic re-export layer leaves the door open for future bespoke swaps without touching consumers.
+- DECIDED 2026-06-27: Leg-L / Leg-R / Leg-both / Leg-none are bespoke SVG `<text>` components in `src/icons/leg/`. No library carries these typography-based stance glyphs.
+- DECIDED 2026-06-27: Tutorial buttons in TrickCard and ForeignLearningList use `IconBrandYoutube` (button title explicitly mentions YouTube). ForeignProfile back button uses `IconChevronLeft` (matches the visual character of the prior hand-drawn chevron, vs `IconBack` which is a full arrow).
+- DECIDED 2026-06-27: GraphBubble plus buttons use `IconPlus` at `stroke="2"` (heavier than the project-wide 1.75) for legibility on the colored leg-tint backgrounds.
+- DECIDED 2026-06-27: Icon consumers pass `stroke` as a static attribute, NEVER as a v-bind to number. Vue strict typing on Tabler's SVG attributes rejects `:stroke="1.75"`. Use `stroke="1.75"` instead.
 
 ---
 
 ## Recommended next moves
 
-1. **Phase 6 (Bespoke iconography) — SHIP GATE.** Mostly design + asset work. Can run in parallel with screen redesigns. Required before declaring the redesign "done."
-2. **Phase 5 (Motion language).** Spring physics + View Transitions + sheet choreography. High-leverage polish moment; can happen any time.
-3. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
-4. **Phase 4g (People + ForeignProfile pages).** Visual coherence sweep.
-5. **Phase 4e (Transitions placement).** Decide list view vs route; small IA call.
-6. **Phase 4i (Install + onboarding).** Visual sweep.
-7. **Phase 7 (PWA polish).** App icon, splash, perf budget pass. Best done last.
+1. **Phase 5 (Motion language).** Spring physics + View Transitions + sheet choreography. High-leverage polish moment; can happen any time.
+2. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
+3. **Phase 4g (People + ForeignProfile pages).** Visual coherence sweep.
+4. **Phase 4e (Transitions placement).** Decide list view vs route; small IA call.
+5. **Phase 4i (Install + onboarding).** Visual sweep.
+6. **Phase 7 (PWA polish).** App icon, splash, perf budget pass. Best done last.
 
 ---
 
@@ -235,7 +252,7 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at b3c6480, on origin
+Continue the Glasswork redesign. Branch is main at 5a63fdd, on origin
 (pushed). 144/144 tests pass, build clean.
 
 READ FIRST (in this order):
@@ -244,28 +261,24 @@ READ FIRST (in this order):
 - spec/2026-06-24-redesign-glasswork-roadmap.md  ← phase map
 - spec/2026-06-24-glasswork-ia-decisions.md  ← IA
 
-Shipped: Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h. Phase 4d DEFERRED
+Shipped: Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6. Phase 4d DEFERRED
 (carousel doesn't fit user's training procedure). Open: 4e, 4f, 4g, 4i,
-5, 6 (SHIP GATE), 7.
+5, 7.
 
-The most recent device pass landed:
-- Multi-emoji per trick + rate UX overhaul (TrickSheet rate island,
-  per-side Reset pills, autosize across cards/rows/graph).
-- Generator fixes (Graph mode resolves edges by id; LR tricks get sides).
-- Graph "Move" mode toggle; default mode allows pan from anywhere on a
-  node and uses native click for tap.
-- Postgres rate columns smallint → numeric(4, 2).
-- ToastStack safe-area-aware top.
+Phase 6 (Iconography — SHIP GATE) is now complete:
+- Library-first via @tabler/icons-vue re-exported from src/icons/index.ts.
+- Bespoke Leg* components for L/R/both/none stance glyphs.
+- Zero unicode glyphs used as UI affordances anywhere in src/.
+- Dev-only preview at /spec/icons.
 
 Settled decisions are in spec/SESSION-HANDOFF.md "Decisions log" — don't
 relitigate without specific reason.
 
 Dev-only preview routes for design research:
-  /spec/tokens, /spec/rate-options, /spec/node-options,
+  /spec/icons, /spec/tokens, /spec/rate-options, /spec/node-options,
   /spec/edge-options, /spec/selection-options.
 
-Recommended next phases (in order): Phase 6 (iconography — SHIP GATE,
-design-heavy, can parallelize), Phase 5 (motion language), Phase 4f
+Recommended next phases (in order): Phase 5 (motion language), Phase 4f
 (Learning fold-in to Home), Phase 4g (People + ForeignProfile pages),
 Phase 4e (Transitions placement), Phase 4i (Install + onboarding),
 Phase 7 (PWA polish).
