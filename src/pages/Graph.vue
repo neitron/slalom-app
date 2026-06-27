@@ -383,37 +383,6 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
     class="flex flex-col min-h-0"
     :style="{ height: 'calc(100dvh - env(safe-area-inset-top) - var(--tabbar-h, 4rem))' }"
   >
-    <div class="flex items-center justify-center px-3 pt-2 pb-2 shrink-0">
-      <div
-        v-if="!sequenceMode"
-        class="inline-flex gap-0.5 p-1 gw-glass-strong"
-        role="tablist"
-        aria-label="Graph mode"
-        :style="{ borderRadius: 'var(--radius-g-chip)' }"
-      >
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="!moveMode"
-          class="px-3 py-1 transition-colors"
-          :style="!moveMode
-            ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
-            : { color: 'var(--color-g-fg-muted)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)' }"
-          @click="moveMode = false"
-        >View</button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="moveMode"
-          class="px-3 py-1 transition-colors flex items-center gap-1"
-          :style="moveMode
-            ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
-            : { color: 'var(--color-g-fg-muted)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)' }"
-          @click="moveMode = true"
-        ><IconMoveMode :size="14" stroke="1.75" /> Move</button>
-      </div>
-    </div>
-
     <div class="flex-1 min-h-0 relative">
       <GraphView
         ref="graphViewRef"
@@ -429,6 +398,34 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         @node-drag-end="onNodeDragEnd"
         @view-change="onViewChange"
       />
+
+      <!-- Floating mode switcher: top-right Apple-glass pill -->
+      <div
+        v-if="!sequenceMode"
+        class="mode-switcher"
+        role="tablist"
+        aria-label="Graph mode"
+      >
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="!moveMode"
+          class="seg"
+          :class="{ active: !moveMode }"
+          @click="moveMode = false"
+        >View</button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="moveMode"
+          class="seg with-icon"
+          :class="{ active: moveMode }"
+          @click="moveMode = true"
+        >
+          <IconMoveMode :size="13" stroke="1.75" />
+          <span>Move</span>
+        </button>
+      </div>
     </div>
     <button
       v-if="!sequenceMode"
@@ -436,7 +433,10 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       class="fab"
       aria-label="Build sequence"
       @click="startSequenceMode"
-    ><IconRoute :size="22" stroke="1.75" /></button>
+    >
+      <IconRoute :size="18" stroke="1.75" />
+      <span>Build</span>
+    </button>
 
     <div
       v-if="linkSourceId"
@@ -634,18 +634,62 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
   position: fixed;
   right: 1rem;
   bottom: calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 1.5rem);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--color-g-brand);
-  color: var(--color-g-base);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 6px 20px rgba(110, 231, 183, 0.45), 0 0 0 1px rgba(110, 231, 183, 0.3);
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.30);
   z-index: 30;
   transition: transform 150ms ease;
 }
 .fab:active {
   transform: scale(0.95);
+}
+
+/* Floating mode switcher: Apple-glass pill at top-right of graph viewport */
+.mode-switcher {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background: rgba(20, 25, 32, 0.55);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.10),
+    0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 20;
+}
+.mode-switcher .seg {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+.mode-switcher .seg.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mode-switcher .seg.active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0a0e14;
+  font-weight: 600;
 }
 </style>

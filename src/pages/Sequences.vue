@@ -209,7 +209,10 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
       class="fab"
       aria-label="Generate sequence"
       @click="generatorOpen = true"
-    ><IconGenerate :size="22" stroke="1.75" /></button>
+    >
+      <IconGenerate :size="18" stroke="1.75" />
+      <span>Generate</span>
+    </button>
 
     <GeneratorSheet
       :visible="generatorOpen"
@@ -264,14 +267,22 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
   position: fixed;
   right: 1rem;
   bottom: calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 1.5rem);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--color-g-brand);
-  color: var(--color-g-base);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 6px 20px rgba(110, 231, 183, 0.45), 0 0 0 1px rgba(110, 231, 183, 0.3);
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.30);
   z-index: 30;
   transition: transform 150ms ease;
 }
