@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { fetchCatalogTricksByIds, loadForeignProgress } from '../storage/social';
-import { mergeTrick } from '../storage/progressMap';
+import { mergeTrick as mergeProgress } from '../storage/progressMap';
+import { mergeTrick as mergeCanonical } from '../domain/mergeTrick';
 import type { Profile, Sequence, Transition, Trick } from '../domain/types';
 import { useTricksStore } from './tricks';
 import { useAuthStore } from './auth';
@@ -96,7 +97,7 @@ export const useForeignProgressStore = defineStore('foreignProgress', {
 
         if (res.missingTrickIds.length) {
           const fetched = await fetchCatalogTricksByIds(res.missingTrickIds);
-          for (const t of fetched) tricksStore.replaceLocal(t);
+          for (const t of fetched) tricksStore.replaceLocal(mergeCanonical(t, null));
         }
 
         const catalogTrickById = new Map<string, Trick>(
@@ -107,7 +108,7 @@ export const useForeignProgressStore = defineStore('foreignProgress', {
         for (const p of res.tricks) {
           const cat = catalogTrickById.get(p.trickId);
           if (!cat) continue;
-          tricks.push(mergeTrick(cat, p));
+          tricks.push(mergeProgress(cat, p));
         }
         const transitions: Transition[] = res.transitions;
         const sequences: Sequence[] = res.sequences;

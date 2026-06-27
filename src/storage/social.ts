@@ -14,15 +14,15 @@ import {
   type UserTrickProgressRow,
 } from './fieldMap';
 import type {
+  CanonicalTrick,
   Friendship,
   Profile,
   Sequence,
   Transition,
-  Trick,
   UserBlock,
   UserTrickProgress,
 } from '../domain/types';
-import { mapSequenceFromServer, mapTransitionFromServer, mapTrickFromServer } from './fieldMap';
+import { mapCanonicalTrickFromServer, mapSequenceFromServer, mapTransitionFromServer } from './fieldMap';
 
 export class NicknameTakenError extends Error {
   code = 'NICKNAME_TAKEN' as const;
@@ -310,15 +310,15 @@ export async function loadForeignProgress(
 
 const IN_CHUNK = 200;
 
-export async function fetchCatalogTricksByIds(ids: string[]): Promise<Trick[]> {
+export async function fetchCatalogTricksByIds(ids: string[]): Promise<CanonicalTrick[]> {
   if (!ids.length) return [];
   const sb = await client();
-  const out: Trick[] = [];
+  const out: CanonicalTrick[] = [];
   for (let i = 0; i < ids.length; i += IN_CHUNK) {
     const chunk = ids.slice(i, i + IN_CHUNK);
     const { data, error } = await sb.from('tricks').select('*').in('id', chunk);
     if (error) throw new Error(`fetchCatalogTricksByIds: ${error.message}`);
-    for (const r of (data ?? []) as TrickRow[]) out.push(mapTrickFromServer(r));
+    for (const r of (data ?? []) as TrickRow[]) out.push(mapCanonicalTrickFromServer(r));
   }
   return out;
 }

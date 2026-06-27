@@ -1,4 +1,5 @@
 import type {
+  CanonicalTrick,
   Friendship,
   FriendshipStatus,
   PracticeEntityType,
@@ -11,28 +12,30 @@ import type {
   Stance,
   Transition,
   Trick,
+  TrickOverlay,
   TrickStatus,
   UserBlock,
   UserTrickProgress,
   Category,
   Tier,
+  Visibility,
 } from '../domain/types';
 
+/** Canonical tricks table row — new schema (after T2 migration). */
 export interface TrickRow {
   id?: string;
+  created_by: string | null;
+  visibility: Visibility;
   name: string;
   tier: Tier;
   category: Category;
   entry: Stance;
   exit: Stance;
   lr: boolean;
-  aliases: string[];
-  main_alias: string | null;
-  video: string | null;
-  icon: string | null;
-  tags: string[];
-  node_x: number | null;
-  node_y: number | null;
+  default_aliases: string[];
+  default_tags: string[];
+  default_icon: string | null;
+  default_video: string | null;
 }
 
 export interface TransitionRow {
@@ -106,6 +109,14 @@ export interface UserTrickProgressRow {
   fav: boolean;
   lr_enabled: boolean;
   updated_at?: string | null;
+  // Overlay columns (added in T2 migration)
+  aliases?: string[];
+  tags?: string[];
+  main_alias?: string | null;
+  icon_override?: string | null;
+  video_override?: string | null;
+  node_x?: number | null;
+  node_y?: number | null;
 }
 
 const stripUndefined = <T extends Record<string, unknown>>(obj: T): T => {
@@ -116,47 +127,120 @@ const stripUndefined = <T extends Record<string, unknown>>(obj: T): T => {
   return out as T;
 };
 
-export function mapTrickToServer(t: Trick): TrickRow {
+// ---------------------------------------------------------------------------
+// Canonical trick mappers (new schema: default_* columns)
+// ---------------------------------------------------------------------------
+
+export function mapCanonicalTrickToServer(t: CanonicalTrick): Record<string, unknown> {
   return stripUndefined({
     id: t.id,
+    created_by: t.createdBy,
+    visibility: t.visibility,
     name: t.name,
     tier: t.tier,
     category: t.category,
     entry: t.entry,
     exit: t.exit,
     lr: t.lr,
-    aliases: t.aliases,
-    main_alias: t.mainAlias ?? null,
-    video: t.video,
-    icon: t.icon,
-    tags: t.tags,
-    node_x: t.node_x ?? null,
-    node_y: t.node_y ?? null,
-  });
+    default_aliases: t.defaultAliases,
+    default_tags: t.defaultTags,
+    default_icon: t.defaultIcon,
+    default_video: t.defaultVideo,
+  }) as Record<string, unknown>;
 }
 
-export function mapTrickFromServer(r: TrickRow): Trick {
+export function mapCanonicalTrickFromServer(r: TrickRow): CanonicalTrick {
   return {
     id: r.id,
+    createdBy: r.created_by,
+    visibility: r.visibility,
     name: r.name,
     tier: r.tier,
     category: r.category,
     entry: r.entry,
     exit: r.exit,
     lr: r.lr,
-    rate: null,
-    rateL: null,
-    rateR: null,
-    last: null,
-    status: 'Not Started',
+    defaultAliases: r.default_aliases ?? [],
+    defaultTags: r.default_tags ?? [],
+    defaultIcon: r.default_icon ?? null,
+    defaultVideo: r.default_video ?? null,
+  };
+}
+
+/**
+ * @deprecated Use mapCanonicalTrickToServer instead.
+ * Kept for sync.ts / social.ts compatibility until T14.
+ */
+export function mapTrickToServer(t: Trick): Record<string, unknown> {
+  // Best-effort: map the merged Trick shape to the canonical server row.
+  // Per-user fields (rate, rateL, aliases, tags, icon, video, fav, etc.) are dropped
+  // because the canonical table no longer stores them (after T2 migration).
+  return stripUndefined({
+    id: t.id,
+    created_by: t.createdBy ?? null,
+    visibility: t.visibility ?? 'public',
+    name: t.name,
+    tier: t.tier,
+    category: t.category,
+    entry: t.entry,
+    exit: t.exit,
+    lr: t.lr,
+    default_aliases: t.aliases ?? [],
+    default_tags: t.tags ?? [],
+    default_icon: t.icon ?? null,
+    default_video: t.video ?? null,
+  }) as Record<string, unknown>;
+}
+
+/**
+ * @deprecated Use mapCanonicalTrickFromServer instead.
+ * Kept for sync.ts / social.ts compatibility until T14.
+ */
+export function mapTrickFromServer(r: TrickRow): CanonicalTrick {
+  return mapCanonicalTrickFromServer(r);
+}
+
+// ---------------------------------------------------------------------------
+// TrickOverlay mappers (user_trick_progress overlay columns)
+// ---------------------------------------------------------------------------
+
+export function mapTrickOverlayToServer(o: TrickOverlay): Record<string, unknown> {
+  return stripUndefined({
+    user_id: o.userId,
+    trick_id: o.trickId,
+    rate: o.rate,
+    rate_l: o.rateL,
+    rate_r: o.rateR,
+    last_practiced: o.last,
+    status: o.status,
+    aliases: o.aliases,
+    tags: o.tags,
+    main_alias: o.mainAlias,
+    icon_override: o.iconOverride,
+    video_override: o.videoOverride,
+    node_x: o.nodeX,
+    node_y: o.nodeY,
+    fav: o.fav,
+  }) as Record<string, unknown>;
+}
+
+export function mapTrickOverlayFromServer(r: UserTrickProgressRow): TrickOverlay {
+  return {
+    userId: r.user_id,
+    trickId: r.trick_id,
+    rate: r.rate,
+    rateL: r.rate_l,
+    rateR: r.rate_r,
+    last: r.last_practiced ?? null,
+    status: r.status ?? 'Not Started',
     aliases: r.aliases ?? [],
-    mainAlias: r.main_alias ?? null,
-    video: r.video,
-    icon: r.icon,
     tags: r.tags ?? [],
-    fav: false,
-    node_x: r.node_x ?? null,
-    node_y: r.node_y ?? null,
+    mainAlias: r.main_alias ?? null,
+    iconOverride: r.icon_override ?? null,
+    videoOverride: r.video_override ?? null,
+    nodeX: r.node_x ?? null,
+    nodeY: r.node_y ?? null,
+    fav: r.fav ?? false,
   };
 }
 

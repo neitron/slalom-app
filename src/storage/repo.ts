@@ -1,16 +1,21 @@
 import { db } from './dexie';
-import { applyReport, blend, isoToday, statusOf } from '../domain/rating';
+import { applyReport, blend, isoToday } from '../domain/rating';
 import { applyEdgeReport } from '../domain/edges';
 import { enqueue, type OutboxTable } from './outbox';
 import { uuidv4 } from './uuid';
 import { getCurrentUserId } from './social';
+import { getSb } from './supabase';
+import { mapCanonicalTrickFromServer } from './fieldMap';
+import { mergeTrick } from '../domain/mergeTrick';
 import type {
+  CanonicalTrick,
   PracticeEntityType,
   PracticeLog,
   Side,
   Sequence,
   Transition,
   Trick,
+  TrickOverlay,
   UserTrickProgress,
 } from '../domain/types';
 
@@ -37,63 +42,163 @@ async function enq(
   await enqueue(op, table, payload);
 }
 
-export async function getAllTricks(): Promise<Trick[]> {
-  return db.tricks.toArray();
-}
-
-export async function getTrick(id: string): Promise<Trick | undefined> {
-  return db.tricks.get(id);
-}
-
 function toPlain<T>(v: T): T {
   return JSON.parse(JSON.stringify(v));
 }
 
-export async function upsertTrick(t: Trick): Promise<string> {
+// ---------------------------------------------------------------------------
+// Canonical trick helpers (T4 split)
+// ---------------------------------------------------------------------------
+
+export async function upsertCanonicalTrick(t: CanonicalTrick): Promise<string> {
   if (!t.id) t.id = newId();
   const plain = toPlain(t);
   await db.tricks.put(plain);
   await enq('upsert', 'tricks', plain as unknown as Record<string, unknown>);
-  return t.id;
+  return t.id!;
 }
 
-async function loadTrickProgress(userId: string, trickId: string): Promise<UserTrickProgress | null> {
-  const row = await db.user_trick_progress.get([userId, trickId]);
+export async function getCanonicalTrick(id: string): Promise<CanonicalTrick | undefined> {
+  return db.tricks.get(id) as Promise<CanonicalTrick | undefined>;
+}
+
+// ---------------------------------------------------------------------------
+// TrickOverlay helpers (T4 split)
+// ---------------------------------------------------------------------------
+
+export async function upsertTrickOverlay(o: TrickOverlay): Promise<void> {
+  const plain = toPlain(o);
+  await db.user_trick_progress.put(plain);
+  await enq('upsert', 'user_trick_progress', plain as unknown as Record<string, unknown>);
+}
+
+export async function getTrickOverlay(userId: string, trickId: string): Promise<TrickOverlay | null> {
+  const row = await db.user_trick_progress.get([userId, trickId]) as TrickOverlay | undefined;
   return row ?? null;
+}
+
+export async function deleteTrickOverlay(userId: string, trickId: string): Promise<void> {
+  await db.user_trick_progress.delete([userId, trickId]);
+  await enq('delete', 'user_trick_progress', { userId, trickId } as Record<string, unknown>);
+}
+
+// ---------------------------------------------------------------------------
+// Merged trick queries (canonical + overlay → Trick)
+// ---------------------------------------------------------------------------
+
+export async function getAllTricksMerged(userId: string | null): Promise<Trick[]> {
+  const canonicals = await db.tricks.toArray() as CanonicalTrick[];
+  if (!userId) {
+    return canonicals.map((c) => mergeTrick(c, null));
+  }
+  const overlays = await db.user_trick_progress
+    .where('userId')
+    .equals(userId)
+    .toArray() as TrickOverlay[];
+  const overlayByTrickId = new Map(overlays.map((o) => [o.trickId, o]));
+  return canonicals.map((c) => mergeTrick(c, overlayByTrickId.get(c.id!) ?? null));
+}
+
+export async function getTrickMerged(id: string, userId: string | null): Promise<Trick | undefined> {
+  const c = await db.tricks.get(id) as CanonicalTrick | undefined;
+  if (!c) return undefined;
+  if (!userId) return mergeTrick(c, null);
+  const o = await db.user_trick_progress.get([userId, id]) as TrickOverlay | undefined;
+  return mergeTrick(c, o ?? null);
+}
+
+// ---------------------------------------------------------------------------
+// Deprecated wrappers — kept so tricks store / App.vue compile until T5
+// ---------------------------------------------------------------------------
+
+/** @deprecated Use getAllTricksMerged instead (T5). */
+export async function getAllTricks(): Promise<Trick[]> {
+  const uid = (await getCurrentUserId()) ?? null;
+  return getAllTricksMerged(uid);
+}
+
+/** @deprecated Use getTrickMerged instead (T5). */
+export async function getTrick(id: string): Promise<Trick | undefined> {
+  const uid = (await getCurrentUserId()) ?? null;
+  return getTrickMerged(id, uid);
+}
+
+/** @deprecated Callers must split into upsertCanonicalTrick + upsertTrickOverlay (T5). */
+export async function upsertTrick(t: Trick): Promise<string> {
+  if (!t.id) t.id = newId();
+  // Best-effort: write what we can to the canonical row; per-user fields are
+  // dropped because the canonical table no longer has them (after T2 migration).
+  const canonical: CanonicalTrick = {
+    id: t.id,
+    createdBy: t.createdBy ?? null,
+    visibility: t.visibility ?? 'public',
+    name: t.name,
+    tier: t.tier,
+    category: t.category,
+    entry: t.entry,
+    exit: t.exit,
+    lr: t.lr,
+    defaultAliases: t.aliases ?? [],
+    defaultTags: t.tags ?? [],
+    defaultIcon: t.icon ?? null,
+    defaultVideo: t.video ?? null,
+  };
+  await upsertCanonicalTrick(canonical);
+  return t.id;
 }
 
 export async function reportTrick(id: string, side: Side, score: number): Promise<Trick> {
   const today = isoToday();
   const uid = (await getCurrentUserId()) ?? null;
-  const { trick, log, progress } = await db.transaction(
+  const { merged, log, overlay } = await db.transaction(
     'rw',
     db.tricks,
     db.practice_log,
     db.user_trick_progress,
     async () => {
-      const t = await db.tricks.get(id);
-      if (!t) throw new Error(`trick not found: ${id}`);
-      applyReport(t, score, side, today);
-      await db.tricks.put(t);
+      // Read canonical (never mutated for rate fields)
+      const canonical = await db.tricks.get(id) as CanonicalTrick | undefined;
+      if (!canonical) throw new Error(`trick not found: ${id}`);
 
-      let progress: UserTrickProgress | null = null;
+      // Read existing overlay (or build blank)
+      const existingOverlay = uid
+        ? (await db.user_trick_progress.get([uid, id]) as TrickOverlay | undefined) ?? null
+        : null;
+
+      const blankOverlay: TrickOverlay = {
+        userId: uid ?? '',
+        trickId: id,
+        rate: null,
+        rateL: null,
+        rateR: null,
+        last: null,
+        status: 'Not Started',
+        aliases: [],
+        tags: [],
+        mainAlias: null,
+        iconOverride: null,
+        videoOverride: null,
+        nodeX: null,
+        nodeY: null,
+        fav: false,
+      };
+
+      // Merge into a Trick-like object so applyReport can mutate it
+      const workingMerged = mergeTrick(canonical, existingOverlay ?? (uid ? blankOverlay : null));
+      applyReport(workingMerged, score, side, today);
+
+      let overlay: TrickOverlay | null = null;
       if (uid) {
-        const existing = await db.user_trick_progress.get([uid, id]);
-        const lrEnabled = !!t.lr;
-        const next: UserTrickProgress = {
-          userId: uid,
-          trickId: id,
-          rate: lrEnabled ? null : t.rate,
-          rateL: lrEnabled ? t.rateL : null,
-          rateR: lrEnabled ? t.rateR : null,
-          last: t.last,
-          status: t.status,
-          fav: existing?.fav ?? t.fav,
-          lrEnabled,
-          updatedAt: new Date().toISOString(),
+        const nextOverlay: TrickOverlay = {
+          ...(existingOverlay ?? blankOverlay),
+          rate: canonical.lr ? null : workingMerged.rate,
+          rateL: canonical.lr ? workingMerged.rateL : null,
+          rateR: canonical.lr ? workingMerged.rateR : null,
+          last: workingMerged.last,
+          status: workingMerged.status,
         };
-        await db.user_trick_progress.put(next);
-        progress = next;
+        await db.user_trick_progress.put(nextOverlay);
+        overlay = nextOverlay;
       }
 
       const log: PracticeLog = {
@@ -106,14 +211,16 @@ export async function reportTrick(id: string, side: Side, score: number): Promis
         userId: uid,
       };
       await db.practice_log.add(log);
-      return { trick: t, log, progress };
+      // Return re-merged Trick for the store
+      const merged = overlay ? mergeTrick(canonical, overlay) : workingMerged;
+      return { merged, log, overlay };
     },
   );
-  if (progress) {
-    await enq('upsert', 'user_trick_progress', toPlain(progress) as unknown as Record<string, unknown>);
+  if (overlay) {
+    await enq('upsert', 'user_trick_progress', toPlain(overlay) as unknown as Record<string, unknown>);
   }
   await enq('upsert', 'practice_log', toPlain(log) as unknown as Record<string, unknown>);
-  return trick;
+  return merged;
 }
 
 export async function listPracticeLog(
@@ -227,80 +334,80 @@ export async function reportSequence(id: string, score: number): Promise<Sequenc
   return seq;
 }
 
+/** @deprecated Used by sync.ts until T14 replaces it with upsertTrickOverlay. */
 export async function upsertOwnTrickProgress(p: UserTrickProgress): Promise<void> {
-  await db.user_trick_progress.put(p);
+  // Cast: user_trick_progress stores TrickOverlay rows, but UserTrickProgress rows
+  // written here are structurally compatible at the DB level. T14 replaces this.
+  await db.user_trick_progress.put(p as unknown as TrickOverlay);
   await enq('upsert', 'user_trick_progress', toPlain(p) as unknown as Record<string, unknown>);
+}
+
+/** Helper: load overlay row as TrickOverlay if it exists. */
+async function loadOverlay(uid: string, trickId: string): Promise<TrickOverlay | null> {
+  const row = await db.user_trick_progress.get([uid, trickId]) as TrickOverlay | undefined;
+  return row ?? null;
 }
 
 export async function toggleOwnTrickFav(trickId: string, fav: boolean): Promise<void> {
   const uid = await getCurrentUserId();
   if (!uid) {
-    const t = await db.tricks.get(trickId);
-    if (t) {
-      t.fav = fav;
-      await db.tricks.put(t);
-    }
+    // Anonymous: best-effort write fav to overlay if an overlay row exists,
+    // otherwise nothing to do (no canonical fav column in new schema).
     return;
   }
-  const existing = await loadTrickProgress(uid, trickId);
-  const t = await db.tricks.get(trickId);
-  const next: UserTrickProgress = existing
-    ? { ...existing, fav, updatedAt: new Date().toISOString() }
+  const existing = await loadOverlay(uid, trickId);
+  const canonical = await db.tricks.get(trickId) as CanonicalTrick | undefined;
+  const next: TrickOverlay = existing
+    ? { ...existing, fav }
     : {
         userId: uid,
         trickId,
-        rate: t?.lr ? null : t?.rate ?? null,
-        rateL: t?.lr ? t?.rateL ?? null : null,
-        rateR: t?.lr ? t?.rateR ?? null : null,
-        last: t?.last ?? null,
-        status: t ? statusOf(t) : 'Not Started',
+        rate: null,
+        rateL: null,
+        rateR: null,
+        last: null,
+        status: 'Not Started',
+        aliases: [],
+        tags: [],
+        mainAlias: null,
+        iconOverride: null,
+        videoOverride: canonical?.defaultVideo ?? null,
+        nodeX: null,
+        nodeY: null,
         fav,
-        lrEnabled: !!t?.lr,
-        updatedAt: new Date().toISOString(),
       };
-  if (t) {
-    t.fav = fav;
-    await db.tricks.put(t);
-  }
-  await upsertOwnTrickProgress(next);
+  await upsertTrickOverlay(next);
 }
 
 export async function setOwnTrickLrEnabled(trickId: string, lrEnabled: boolean): Promise<void> {
+  // lrEnabled is now a canonical-level property (canonical.lr). This function is kept
+  // for backward compat; T5 store rewrite will replace the calling pattern.
+  // If signed in, update canonical lr field. Otherwise no-op.
   const uid = await getCurrentUserId();
   if (!uid) return;
-  const existing = await loadTrickProgress(uid, trickId);
-  const t = await db.tricks.get(trickId);
-  const next: UserTrickProgress = existing
-    ? { ...existing, lrEnabled, updatedAt: new Date().toISOString() }
-    : {
-        userId: uid,
-        trickId,
-        rate: lrEnabled ? null : t?.rate ?? null,
-        rateL: lrEnabled ? t?.rateL ?? null : null,
-        rateR: lrEnabled ? t?.rateR ?? null : null,
-        last: t?.last ?? null,
-        status: t ? statusOf(t) : 'Not Started',
-        fav: t?.fav ?? false,
-        lrEnabled,
-        updatedAt: new Date().toISOString(),
-      };
-  await upsertOwnTrickProgress(next);
+  const canonical = await db.tricks.get(trickId) as CanonicalTrick | undefined;
+  if (!canonical) return;
+  canonical.lr = lrEnabled;
+  await upsertCanonicalTrick(canonical);
 }
 
 export async function resetOwnTrickProgress(trickId: string): Promise<void> {
   const uid = await getCurrentUserId();
-  const t = await db.tricks.get(trickId);
-  if (t) {
-    t.rate = null;
-    t.rateL = null;
-    t.rateR = null;
-    t.last = null;
-    t.status = 'Not Started';
-    await db.tricks.put(t);
-  }
   if (!uid) return;
-  const existing = await loadTrickProgress(uid, trickId);
-  const next: UserTrickProgress = {
+  const existing = await loadOverlay(uid, trickId);
+  const next: TrickOverlay = {
+    ...(existing ?? {
+      userId: uid,
+      trickId,
+      aliases: [],
+      tags: [],
+      mainAlias: null,
+      iconOverride: null,
+      videoOverride: null,
+      nodeX: null,
+      nodeY: null,
+      fav: false,
+    }),
     userId: uid,
     trickId,
     rate: null,
@@ -308,16 +415,13 @@ export async function resetOwnTrickProgress(trickId: string): Promise<void> {
     rateR: null,
     last: null,
     status: 'Not Started',
-    fav: existing?.fav ?? false,
-    lrEnabled: existing?.lrEnabled ?? !!t?.lr,
-    updatedAt: new Date().toISOString(),
   };
-  await upsertOwnTrickProgress(next);
+  await upsertTrickOverlay(next);
 }
 
 export interface ExportPayload {
   exportedAt: string;
-  tricks: Trick[];
+  tricks: CanonicalTrick[];
   transitions: Transition[];
   sequences: Sequence[];
   practice_log: PracticeLog[];
@@ -355,4 +459,69 @@ export async function importJson(text: string): Promise<void> {
       },
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// Library page query — server-side, paginated
+// ---------------------------------------------------------------------------
+
+export interface LibraryPageOpts {
+  search: string;
+  tiers: number[];
+  categories: string[];
+  cursor: number;   // offset
+  pageSize: number;
+}
+
+export interface LibraryPageResult {
+  items: CanonicalTrick[];
+  hasMore: boolean;
+}
+
+/**
+ * Fetch public, not-mine, not-already-adopted tricks via Supabase.
+ * Server-side only — requires an active Supabase session.
+ */
+export async function loadLibraryPage(
+  opts: LibraryPageOpts,
+  currentUserId: string | null,
+): Promise<LibraryPageResult> {
+  const sb = await getSb();
+  if (!sb) throw new Error('Supabase not available');
+
+  let q = sb
+    .from('tricks')
+    .select('*')
+    .eq('visibility', 'public')
+    .not('created_by', 'is', null);
+
+  if (currentUserId) q = q.neq('created_by', currentUserId);
+  if (opts.search.trim()) q = q.ilike('name', `%${opts.search.trim()}%`);
+  if (opts.tiers.length) q = q.in('tier', opts.tiers);
+  if (opts.categories.length) q = q.in('category', opts.categories);
+
+  // Fetch one extra row to detect hasMore
+  q = q
+    .order('created_at', { ascending: false })
+    .range(opts.cursor, opts.cursor + opts.pageSize);
+
+  const { data, error } = await q;
+  if (error) throw error;
+
+  const rows = data ?? [];
+  const hasMore = rows.length > opts.pageSize;
+  const items = rows.slice(0, opts.pageSize).map(mapCanonicalTrickFromServer);
+
+  // Filter out tricks already adopted (overlay row exists locally)
+  if (currentUserId && items.length > 0) {
+    const ids = items.map((c) => c.id!).filter(Boolean);
+    const overlays = await db.user_trick_progress
+      .where('[userId+trickId]')
+      .anyOf(ids.map((i) => [currentUserId, i]))
+      .toArray() as TrickOverlay[];
+    const adoptedIds = new Set(overlays.map((o) => o.trickId));
+    return { items: items.filter((c) => !adoptedIds.has(c.id!)), hasMore };
+  }
+
+  return { items, hasMore };
 }

@@ -151,21 +151,10 @@ export async function clearAllUserProgress(): Promise<void> {
 }
 
 export async function clearCatalogRateFields(): Promise<void> {
-  await db.transaction('rw', db.tricks, db.transitions, db.sequences, async () => {
-    const tricks = await db.tricks.toArray();
-    if (tricks.length) {
-      await db.tricks.bulkPut(
-        tricks.map((t) => ({
-          ...t,
-          rate: null,
-          rateL: null,
-          rateR: null,
-          last: null,
-          status: 'Not Started',
-          fav: false,
-        })),
-      );
-    }
+  // After T4 the canonical tricks table no longer has rate/rateL/rateR/last/status/fav.
+  // On sign-out we clear the user_trick_progress overlay instead (done in clearAllUserProgress).
+  // Transitions and sequences still have their own rate/last fields.
+  await db.transaction('rw', db.transitions, db.sequences, async () => {
     await db.transitions.clear();
     await db.sequences.clear();
   });
