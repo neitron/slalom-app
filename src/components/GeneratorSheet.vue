@@ -213,6 +213,7 @@ function toggleArr(list: string[], v: string): string[] {
 
 <template>
   <Teleport to="body">
+    <Transition name="sheet">
     <div
       v-if="visible"
       class="fixed left-0 right-0 top-0 z-50 flex items-end overflow-hidden"
@@ -226,6 +227,7 @@ function toggleArr(list: string[], v: string): string[] {
         @click="close"
       />
 
+      <div class="sheet-panel-anim w-full">
       <div
         ref="panelRef"
         class="sheet-panel relative w-full gw-glass-strong p-4 pt-2 max-h-[90dvh] overflow-y-auto touch-pan-y overscroll-contain"
@@ -233,11 +235,12 @@ function toggleArr(list: string[], v: string): string[] {
           borderTopLeftRadius: 'var(--radius-g-panel)',
           borderTopRightRadius: 'var(--radius-g-panel)',
           transform: `translateY(${dragY}px)`,
-          transition: dragging ? 'none' : 'transform 0.2s ease-out',
+          transition: dragging ? 'none' : 'transform var(--motion-g-slow) var(--ease-g-out)',
         }"
         @touchstart.passive="onTouchStart"
         @touchmove.passive="onTouchMove"
         @touchend="onTouchEnd"
+        @touchcancel="onTouchEnd"
       >
       <div class="flex justify-center pb-2 -mt-1">
         <div class="w-10 h-1 rounded-full bg-border-2" />
@@ -405,6 +408,35 @@ function toggleArr(list: string[], v: string): string[] {
         >Save</button>
       </div>
       </div>
+      </div>
     </div>
+    </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: opacity var(--motion-g-base) var(--ease-g-out);
+}
+.sheet-enter-active .sheet-panel-anim,
+.sheet-leave-active .sheet-panel-anim {
+  transition:
+    transform var(--motion-g-slow) var(--ease-g-spring),
+    opacity var(--motion-g-base) var(--ease-g-out);
+}
+.sheet-enter-from,
+.sheet-leave-to { opacity: 0; }
+.sheet-enter-from .sheet-panel-anim,
+.sheet-leave-to .sheet-panel-anim {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-from .sheet-panel-anim,
+  .sheet-leave-to .sheet-panel-anim {
+    transform: none !important;
+  }
+}
+</style>
