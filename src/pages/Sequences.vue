@@ -240,6 +240,8 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
   top: 0;
   z-index: 20;
   will-change: transform;
+  /* horizontal inset matches Tricks.vue so the sticky-bar feels anchored consistently across pages */
+  margin: 0 0.75rem;
 }
 
 .search-row {
