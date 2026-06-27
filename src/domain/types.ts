@@ -25,6 +25,8 @@ export type TrickStatus = 'Not Started' | 'In Progress' | 'Complete';
 
 export interface Trick {
   id?: string;
+  createdBy: string | null;    // from canonical
+  visibility: Visibility;      // from canonical
   name: string;
   tier: Tier;
   category: Category;
@@ -44,6 +46,42 @@ export interface Trick {
   fav: boolean;
   node_x?: number | null;
   node_y?: number | null;
+}
+
+export type Visibility = 'private' | 'public'
+
+export interface CanonicalTrick {
+  id?: string
+  createdBy: string | null  // null = seeded canonical
+  visibility: Visibility    // 'public' for seeded; default 'private' for new
+  name: string
+  tier: Tier
+  category: Category
+  entry: Stance
+  exit: Stance
+  lr: boolean
+  defaultAliases: string[]  // creator's suggested aliases
+  defaultTags: string[]     // creator's suggested tags
+  defaultIcon: string | null  // creator's suggested icon
+  defaultVideo: string | null // creator's suggested video URL
+}
+
+export interface TrickOverlay {
+  userId: string
+  trickId: string
+  rate: number | null
+  rateL: number | null
+  rateR: number | null
+  last: string | null
+  status: TrickStatus
+  aliases: string[]       // overrides defaults when non-empty
+  tags: string[]
+  mainAlias: string | null
+  iconOverride: string | null
+  videoOverride: string | null
+  nodeX: number | null
+  nodeY: number | null
+  fav: boolean
 }
 
 export interface Transition {
