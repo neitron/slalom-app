@@ -9,8 +9,10 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `9a03fa8`, **37 commits ahead of `origin/main`** —
-  user pushes manually when ready (GH Pages redeploys on every push).
+- **Branch**: `main` at `cb73637`, **pushed to `origin/main`** (GH Pages
+  redeploy on every push). Phase 6 polish round 2 fully shipped + design
+  follow-ups from device review (safe-area, glass FAB, floating Graph
+  switcher) shipped on top.
 - 150/150 tests pass, build clean.
 - Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6 shipped
   + Phase 6 polish rounds 1 & 2 shipped.** Phase 6 polish round 2 also
@@ -25,6 +27,10 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+cb73637 Phase 6 polish R2: FAB → glass pill with label, Graph switcher → floating top-right
+d73e0a5 Phase 6 polish R2 dev: /spec/fab-options + /spec/graph-mode-options preview pages
+66c466b Phase 6 polish R2 fix: sticky-bar top: 0 → top: env(safe-area-inset-top)
+97808f4 SESSION-HANDOFF: refresh HEAD ref after final inset fix
 9a03fa8 Phase 6 polish R2: Sequences sticky-bar — match Tricks horizontal inset
 a3be8bf SESSION-HANDOFF: Phase 6 polish round 2 shipped
 a83799a Phase 6 polish R2: SequenceSheet — name-edit + Delete Glasswork chrome
@@ -253,6 +259,9 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 - DECIDED 2026-06-27 (R2 Graph): Graph top bar = centered `View | Move` 2-segment switcher (role=tablist, aria-selected). Drops h1, Transitions link, Sequence button. Switcher hides during sequence-mode. Zoom cluster (`+/−/⌂`) moves from bottom-right to bottom-left of the graph viewport to free bottom-right for the Build FAB.
 - DECIDED 2026-06-27 (R2 bubble): Sequence-mode bubble has `min-width: min(280px, calc(100vw - 1.5rem))` so the empty state has presence. Hint text centered. Undo + Save remain disabled until ≥1 / ≥2 steps; Cancel always works. Same `gw-glass-strong` chrome as before.
 - DECIDED 2026-06-27 (R2 SequenceSheet): Step rows are whole-row tappable (`<button>` wrapping content); explicit Open button removed. Chrome migrated to `gw-glass-strong` + chip radius from `bg-card-2`/`border-border-2`. L/R/null side indicator uses `LegL`/`LegR`/`LegNone` components (removed `sideColor()` helper). Name-edit input + Save/Cancel buttons + Delete button all on Glasswork tokens.
+- DECIDED 2026-06-27 (R2 follow-up — sticky safe-area): Sticky bars use `top: env(safe-area-inset-top)`, NOT `top: 0`. The earlier "double offset" reasoning (commits `0a8b4a7` etc.) was wrong: `position: sticky` tracks the viewport when stuck (body is the scrolling ancestor; no inner overflow), so `top: 0` lands under the notch. App.vue's outer-wrapper `paddingTop` only positions the INITIAL flow, not the stuck state. Fix shipped in `66c466b`. Pattern: any sticky bar that needs to sit below the notch when stuck must include `env(safe-area-inset-top)` in its `top`.
+- DECIDED 2026-06-27 (R2 follow-up — FAB style): FABs are Apple-glass pills with text label, NOT solid brand-color circles with green glow. Recipe: `background: rgba(255,255,255,0.10)`, `backdrop-filter: blur(24px) saturate(180%)`, `inset 0 0 0 0.5px rgba(255,255,255,0.18)` hairline border, `0 4px 16px rgba(0,0,0,0.30)` drop shadow, 44px tall, `padding: 0 16px 0 14px`, `border-radius: 999px`, icon 18px + label 13px white. Sequences FAB = "Generate", Graph FAB = "Build". Same chrome on both. Replaces commit `2a38c00` / `b3128c1` styling. Live preview at `/spec/fab-options` (dev only).
+- DECIDED 2026-06-27 (R2 follow-up — Graph mode switcher): View/Move switcher is a floating glass pill in the top-right corner of the graph viewport, NOT a layout-row top bar. Recipe: `background: rgba(20,25,32,0.55)`, `backdrop-filter: blur(20px) saturate(180%)`, `inset 0 0 0 0.5px rgba(255,255,255,0.10)` hairline border, `border-radius: 999px`. Active segment is solid white pill with dark text. `position: absolute; top: 12px; right: 12px;` inside the graph area; safe-area is already handled by App.vue's wrapper padding. Hides during sequence-mode. Frees ~36px of vertical graph canvas vs the old top-bar approach. Live preview at `/spec/graph-mode-options` (dev only).
 
 ---
 
@@ -294,8 +303,8 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at 9a03fa8, 37 commits
-ahead of origin (push when ready). 150/150 tests pass, build clean.
+Continue the Glasswork redesign. Branch is main at cb73637, pushed to
+origin. 150/150 tests pass, build clean.
 
 READ FIRST (in this order):
 - spec/SESSION-HANDOFF.md  ← single source of truth for current state
