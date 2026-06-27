@@ -1,7 +1,30 @@
 import { db } from './dexie';
-import type { Sequence, SequenceStep, Transition, Trick } from '../domain/types';
+import type { CanonicalTrick, Sequence, SequenceStep, Transition } from '../domain/types';
 
-interface SeedTrick extends Omit<Trick, 'id'> {}
+// SeedTrick mirrors the old (pre-v5) Trick shape as found in seed-data.json.
+// The seed file is NOT updated — the loader does the translation to CanonicalTrick.
+interface SeedTrick {
+  name: string;
+  tier: number;
+  category: string;
+  entry: string;
+  exit: string;
+  lr: boolean;
+  aliases?: string[];
+  tags?: string[];
+  icon?: string | null;
+  video?: string | null;
+  // per-user fields present in seed file (ignored on canonical write)
+  status?: string;
+  rate?: number | null;
+  rateL?: number | null;
+  rateR?: number | null;
+  last?: string | null;
+  fav?: boolean;
+  mainAlias?: string | null;
+  node_x?: number | null;
+  node_y?: number | null;
+}
 interface SeedTransitionRaw {
   from: string;
   to: string;
@@ -38,10 +61,28 @@ export async function ensureSeeded(): Promise<void> {
   const seed = (await res.json()) as SeedFile;
 
   const idByName = new Map<string, string>();
-  const tricks: Trick[] = seed.tricks.map((t) => {
+  // Map old seed shape → CanonicalTrick (v5). Per-user fields from seed-data.json
+  // (aliases, tags, icon, video, status, rate, fav, etc.) are translated into
+  // the canonical default_* fields; the per-user fields are dropped.
+  const tricks: CanonicalTrick[] = seed.tricks.map((t) => {
     const id = newId();
     idByName.set(t.name, id);
-    return { ...t, id };
+    const canonical: CanonicalTrick = {
+      id,
+      name: t.name,
+      tier: t.tier as CanonicalTrick['tier'],
+      category: t.category as CanonicalTrick['category'],
+      entry: t.entry as CanonicalTrick['entry'],
+      exit: t.exit as CanonicalTrick['exit'],
+      lr: t.lr,
+      createdBy: null,
+      visibility: 'public',
+      defaultAliases: t.aliases ?? [],
+      defaultTags: t.tags ?? [],
+      defaultIcon: t.icon ?? null,
+      defaultVideo: t.video ?? null,
+    };
+    return canonical;
   });
 
   const transitions: Transition[] = seed.transitions
