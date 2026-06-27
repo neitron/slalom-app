@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Trick } from '../domain/types'
 import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
-import { IconClose } from '../icons'
+import { IconClose, IconPlus } from '../icons'
 
 type Props = {
   trick: Trick
@@ -124,14 +124,14 @@ function startLink(side: 'L' | 'R' | null) {
               :style="{ borderRadius: 'var(--radius-g-chip)' }"
               :class="{ 'opacity-40 pointer-events-none': sequenceMode }"
               @click="startLink('L')"
-            >➕ from L</button>
+            ><span class="inline-flex items-center justify-center gap-1"><IconPlus :size="12" stroke="2" /> from L</span></button>
             <button
               type="button"
               class="flex-1 py-1.5 btn-r text-xs"
               :style="{ borderRadius: 'var(--radius-g-chip)' }"
               :class="{ 'opacity-40 pointer-events-none': sequenceMode }"
               @click="startLink('R')"
-            >➕ from R</button>
+            ><span class="inline-flex items-center justify-center gap-1"><IconPlus :size="12" stroke="2" /> from R</span></button>
           </template>
           <button
             v-else
@@ -140,7 +140,7 @@ function startLink(side: 'L' | 'R' | null) {
             :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
             :class="{ 'opacity-40 pointer-events-none': sequenceMode }"
             @click="startLink(null)"
-          >➕ Transition</button>
+          ><span class="inline-flex items-center justify-center gap-1"><IconPlus :size="12" stroke="2" /> Transition</span></button>
         </div>
 
         <div

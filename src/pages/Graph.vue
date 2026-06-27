@@ -16,7 +16,7 @@ import EdgeBubble from '../components/EdgeBubble.vue'
 import LegChooser from '../components/LegChooser.vue'
 import SequenceChain from '../components/SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
-import { IconClose } from '../icons'
+import { IconClose, IconTransition } from '../icons'
 
 const saveSheetPanelRef = ref<HTMLElement | null>(null)
 
@@ -392,7 +392,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
           color: 'var(--color-g-fg-muted)',
           borderRadius: 'var(--radius-g-chip)',
         }"
-      >↔ Transitions</RouterLink>
+      ><span class="inline-flex items-center gap-1"><IconTransition :size="16" stroke="1.75" /> Transitions</span></RouterLink>
       <button
         type="button"
         class="px-3 py-1.5 rounded-full text-xs border transition-colors"

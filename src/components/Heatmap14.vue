@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Heatmap14Cell } from '../composables/homeDataCompute'
+import { IconTrendUp } from '../icons'
 
 type Props = {
   cells: Heatmap14Cell[]
@@ -14,9 +15,9 @@ const props = withDefaults(defineProps<Props>(), { isLoading: false })
 
 const deltaLabel = computed(() => {
   if (props.sessionsDelta == null) return null
-  if (props.sessionsDelta > 0) return `↗ +${props.sessionsDelta}`
-  if (props.sessionsDelta < 0) return `↘ ${props.sessionsDelta}`
-  return '→ 0'
+  if (props.sessionsDelta > 0) return `+${props.sessionsDelta}`
+  if (props.sessionsDelta < 0) return `${props.sessionsDelta}`
+  return '0'
 })
 
 const deltaColor = computed(() => {
@@ -55,7 +56,7 @@ const cellFg = (level: 0 | 1 | 2 | 3): string => {
           >{{ sessionsTotal }}</span>
           <span
             :style="{ fontSize: '10px', letterSpacing: '0.06em', color: 'var(--color-g-fg-muted)', textTransform: 'uppercase' }"
-          >Sessions <span v-if="deltaLabel" :style="{ color: deltaColor, fontWeight: 600 }">{{ deltaLabel }}</span></span>
+          >Sessions <span v-if="deltaLabel" class="inline-flex items-center gap-0.5" :style="{ color: deltaColor, fontWeight: 600 }"><IconTrendUp v-if="sessionsDelta != null && sessionsDelta > 0" :size="11" stroke="1.75" /><IconTrendUp v-else-if="sessionsDelta != null && sessionsDelta < 0" :size="11" stroke="1.75" :style="{ transform: 'rotate(90deg)' }" />{{ deltaLabel }}</span></span>
         </div>
         <div class="flex flex-col">
           <span

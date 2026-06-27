@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { Side, Transition, Trick } from '../domain/types'
 import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
+import { IconBidi, IconArrowRight } from '../icons'
 
 type Props = {
   edge: Transition
@@ -15,8 +15,6 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   open: [edgeId: string]
 }>()
-
-const arrow = computed(() => (props.edge.bidi ? '⇄' : '→'))
 
 function sideColor(side: Side): string {
   if (side === 'L') return 'var(--side-l)'
@@ -53,10 +51,7 @@ function onClick() {
           class="font-bold shrink-0"
           :style="{ fontSize: '11px', color: sideColor(edge.fromSide) }"
         >{{ edge.fromSide ?? '–' }}</span>
-        <span
-          class="mx-1 shrink-0"
-          :style="{ color: 'var(--color-g-fg-muted)' }"
-        >{{ arrow }}</span>
+        <component :is="props.edge.bidi ? IconBidi : IconArrowRight" :size="14" stroke="1.75" class="mx-1 shrink-0" :style="{ color: 'var(--color-g-fg-muted)' }" />
         <span v-if="toTrick.icon" class="text-base leading-none shrink-0">{{ toTrick.icon }}</span>
         <span
           class="font-medium truncate"

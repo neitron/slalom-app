@@ -13,6 +13,7 @@ import { listOutbox } from '../storage/outbox'
 import { flushOutbox, pullAll, pushLocalAll, runStartupSync } from '../storage/sync'
 import { clearPositions } from '../utils/graphView'
 import { BUILD_SHA, buildLabel } from '../utils/buildInfo'
+import { IconBack } from '../icons'
 
 declare const __BUILD_TIME__: string
 
@@ -243,7 +244,7 @@ function armImport() {
             fontSize: 'var(--text-g-micro)',
           }"
           @click="router.push('/settings')"
-        >← Settings</button>
+        ><span class="inline-flex items-center gap-1"><IconBack :size="14" stroke="1.75" /> Settings</span></button>
         <h1 class="text-xl font-semibold flex-1">Diagnostics</h1>
       </header>
 

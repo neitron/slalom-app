@@ -5,6 +5,7 @@ import { useTransitionsStore } from '../stores/transitions'
 import { edgeMatches } from '../domain/edges'
 import { displayName } from '../domain/display'
 import type { Side, Trick } from '../domain/types'
+import { IconArrowRight } from '../icons'
 
 type Step = { trickId: string; side: Side }
 
@@ -81,7 +82,7 @@ function warnBetween(i: number): boolean {
           style="color: var(--rate-bad)"
           title="No matching learned transition"
         >⚠</span>
-        <span class="text-muted text-sm select-none">→</span>
+        <IconArrowRight :size="14" stroke="1.75" class="text-muted" />
       </template>
     </template>
   </div>

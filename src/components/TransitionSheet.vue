@@ -10,7 +10,7 @@ import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
-import { IconClose } from '../icons'
+import { IconClose, IconBidi, IconArrowRight, IconTransition } from '../icons'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -138,8 +138,6 @@ function close() {
   uiStore.closeTransition()
 }
 
-const arrow = computed(() => (edge.value?.bidi ? '⇄' : '→'))
-
 function sideColor(side: Side): string {
   if (side === 'L') return 'var(--side-l)'
   if (side === 'R') return 'var(--side-r)'
@@ -243,7 +241,7 @@ function sideChipBg(active: boolean, s: Side): string {
             class="ml-1 font-bold text-xs"
             :style="{ color: sideColor(edge.fromSide) }"
           >{{ edge.fromSide ?? '–' }}</span>
-          <span class="mx-1.5 text-muted">{{ arrow }}</span>
+          <component :is="edge?.bidi ? IconBidi : IconArrowRight" :size="14" stroke="1.75" class="mx-1.5 text-muted" />
           <span v-if="toTrick.icon" class="mr-1">{{ toTrick.icon }}</span>
           <span class="text-fg">{{ displayName(toTrick) }}</span>
           <span
@@ -329,7 +327,7 @@ function sideChipBg(active: boolean, s: Side): string {
           class="accent-accent"
           @change="toggleBidi"
         >
-        <span>↔ Both directions</span>
+        <span class="inline-flex items-center gap-1"><IconTransition :size="14" stroke="1.75" /> Both directions</span>
       </label>
 
       <section class="mt-5">

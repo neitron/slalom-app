@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Side, Transition as TransitionEdge, Trick } from '../domain/types'
 import { useUiStore } from '../stores/ui'
 import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
-import { IconClose } from '../icons'
+import { IconClose, IconBidi, IconArrowRight, IconTransition } from '../icons'
 
 const uiStore = useUiStore()
 
@@ -68,8 +68,6 @@ function sideColor(side: Side): string {
   return 'var(--side-none)'
 }
 
-const arrow = computed(() => (props.edge.bidi ? '⇄' : '→'))
-
 const removeArmed = ref(false)
 let armTimer: number | null = null
 
@@ -132,7 +130,7 @@ function openDetails() {
               class="ml-1 font-bold"
               :style="{ color: sideColor(edge.fromSide) }"
             >({{ edge.fromSide }})</span>
-            <span class="mx-1.5" :style="{ color: 'var(--color-g-fg-muted)' }">{{ arrow }}</span>
+            <component :is="props.edge.bidi ? IconBidi : IconArrowRight" :size="14" stroke="1.75" class="mx-1.5" :style="{ color: 'var(--color-g-fg-muted)' }" />
             <span :style="{ color: 'var(--color-g-fg)' }">{{ displayName(toTrick) }}</span>
             <span
               v-if="edge.toSide"
@@ -172,7 +170,7 @@ function openDetails() {
             class="accent-accent"
             @change="toggleBidi"
           >
-          <span>↔ both directions</span>
+          <span class="inline-flex items-center gap-1"><IconTransition :size="14" stroke="1.75" /> both directions</span>
         </label>
 
         <button

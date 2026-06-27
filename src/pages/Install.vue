@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { detectPlatform, useInstallPrompt } from '../utils/installPrompt'
+import { IconCheck } from '../icons'
 
 const router = useRouter()
 const platform = ref(detectPlatform())
@@ -100,7 +101,7 @@ const iosBrowserName = computed(() => {
           type="button"
           class="shrink-0 px-2.5 py-1.5 rounded-md border border-border-2 bg-card-2 text-fg text-xs"
           @click="copyLink"
-        >{{ copied ? '✓ Copied' : 'Copy link' }}</button>
+        ><span class="inline-flex items-center gap-1"><IconCheck v-if="copied" :size="14" stroke="1.75" />{{ copied ? 'Copied' : 'Copy link' }}</span></button>
       </div>
       <p class="text-[10.5px] text-muted">Use this if you need to open the page in a different browser.</p>
     </section>
@@ -109,7 +110,7 @@ const iosBrowserName = computed(() => {
       v-if="guide === 'installed'"
       class="bg-card border border-rate-good/40 rounded-xl p-4 flex flex-col gap-3 text-center"
     >
-      <div class="text-rate-good text-2xl">✓</div>
+      <IconCheck :size="32" stroke="2" class="text-rate-good" />
       <p class="text-sm">You're already running the installed app.</p>
       <button
         type="button"

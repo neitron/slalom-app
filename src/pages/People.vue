@@ -10,6 +10,7 @@ import ShareProfile from '../components/ShareProfile.vue'
 import { nicknameDisplay } from '../domain/display'
 import { fetchProfilesByIds, getProfileByNickname } from '../storage/social'
 import type { Profile } from '../domain/types'
+import { IconChevronDown, IconChevronRight } from '../icons'
 
 const friends = useFriendsStore()
 const profile = useProfileStore()
@@ -209,7 +210,7 @@ async function tryNavSearch() {
           @click="showBlocked = !showBlocked"
         >
           <span>Blocked ({{ blocked.length }})</span>
-          <span>{{ showBlocked ? '▾' : '▸' }}</span>
+          <component :is="showBlocked ? IconChevronDown : IconChevronRight" :size="14" stroke="1.75" />
         </button>
         <div v-if="showBlocked" class="flex flex-col gap-1">
           <div
