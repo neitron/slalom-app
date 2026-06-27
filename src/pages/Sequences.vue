@@ -14,6 +14,7 @@ import { useScrollDirection } from '../composables/useScrollDirection'
 import { IconSearch, IconFilter, IconGenerate } from '../icons'
 
 const tricksStore = useTricksStore()
+// transitionsStore is preloaded here (not consumed by the parent template) so TransitionsList mounts without a loading flash on sub-tab switch
 const transitionsStore = useTransitionsStore()
 const sequencesStore = useSequencesStore()
 const ui = useUiStore()
@@ -149,8 +150,8 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
             </button>
           </div>
 
-          <!-- Row 2: sub-tabs (always pinned) -->
-          <div class="flex flex-wrap gap-1 pt-2">
+          <!-- Row 2: sub-tabs (always pinned; pt-* gap lives on .search-row's margin-bottom so it collapses with the row) -->
+          <div class="flex flex-wrap gap-1">
             <button
               type="button"
               class="px-3 py-1.5 transition-colors"
@@ -245,11 +246,13 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
   max-height: 80px;
   overflow: hidden;
   opacity: 1;
-  transition: max-height 200ms ease, opacity 200ms ease;
+  margin-bottom: 8px;
+  transition: max-height 200ms ease, opacity 200ms ease, margin-bottom 200ms ease;
 }
 .search-row.collapsed {
   max-height: 0;
   opacity: 0;
+  margin-bottom: 0;
   pointer-events: none;
 }
 
