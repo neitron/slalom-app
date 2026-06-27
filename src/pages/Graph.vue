@@ -532,6 +532,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         right: 'auto',
         transform: 'translateX(-50%)',
         maxWidth: 'min(calc(100vw - 1.5rem), 420px)',
+        minWidth: 'min(280px, calc(100vw - 1.5rem))',
         width: 'max-content',
         bottom: 'calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 0.5rem + 0.5rem)',
         borderRadius: 'var(--radius-g-panel)',
@@ -545,8 +546,9 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         />
         <div
           v-else
+          class="text-center"
           :style="{ fontSize: 'var(--text-g-micro)', color: 'var(--color-g-fg-muted)' }"
-        >Tap tricks on the graph to build a sequence.</div>
+        >Tap tricks on the graph to build a sequence</div>
       </div>
       <div class="flex gap-2">
         <button
