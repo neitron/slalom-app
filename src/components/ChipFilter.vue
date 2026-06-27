@@ -41,7 +41,7 @@ function toggle(value: string) {
 </script>
 
 <template>
-  <div class="flex gap-1.5 overflow-x-auto no-scrollbar -mx-3 px-3 pb-1">
+  <div class="flex flex-wrap gap-1.5 pb-1">
     <button
       v-for="o in options"
       :key="o.value"
@@ -60,8 +60,3 @@ function toggle(value: string) {
     </button>
   </div>
 </template>
-
-<style scoped>
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { scrollbar-width: none; }
-</style>
