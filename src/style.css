@@ -96,3 +96,40 @@
     transform: translateZ(0) translateY(calc(100% + 1rem));
   }
 }
+
+/* View Transitions — Phase 5.1
+   --vt-direction is set on :root by TabBar before triggering the transition.
+   +1 = going right in tab order (Home → Tricks → Graph → Sequences);
+        old slides left, new slides in from right.
+   -1 = going left in tab order; old slides right, new slides in from left.
+    0 = no direction (deep links, programmatic nav) → opacity fade only. */
+
+@supports (view-transition-name: root) {
+  :root {
+    --vt-direction: 0;
+    --vt-slide-distance: 24px;
+  }
+
+  ::view-transition-old(root) {
+    animation: vt-slide-out var(--motion-g-base) var(--ease-g-out);
+  }
+  ::view-transition-new(root) {
+    animation: vt-slide-in var(--motion-g-base) var(--ease-g-out);
+  }
+
+  @keyframes vt-slide-out {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(calc(var(--vt-direction) * var(--vt-slide-distance) * -1)); }
+  }
+  @keyframes vt-slide-in {
+    from { opacity: 0; transform: translateX(calc(var(--vt-direction) * var(--vt-slide-distance))); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+    }
+  }
+}
