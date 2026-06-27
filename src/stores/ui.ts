@@ -7,6 +7,8 @@ export type Tab = 'tricks' | 'learning' | 'graph' | 'transitions' | 'sequences' 
 export type SequencesSubTab = 'sequences' | 'transitions';
 export type SequencesSortKey = 'newest' | 'best' | 'worst';
 export type TransitionsSortKey = 'name' | 'best' | 'worst' | 'recent';
+export type TricksSubTab = 'my-tricks' | 'library';
+export type LibrarySortKey = 'newest' | 'name';
 
 export type RateContext = 'trick' | 'transition' | 'sequence';
 export interface FeedbackReport {
@@ -44,6 +46,12 @@ export const useUiStore = defineStore('ui', {
     transitionsSearch: '',
     transitionsSort: 'name' as TransitionsSortKey,
     transitionsCategory: 'all' as Category | 'all',
+    // Trick Library — Tricks page sub-tab + library browse state
+    tricksSubTab: 'my-tricks' as TricksSubTab,
+    librarySearch: '',
+    librarySort: 'newest' as LibrarySortKey,
+    libraryTiers: [] as Tier[],
+    libraryCategories: [] as Category[],
     feedback: null as FeedbackReport | null,
     toasts: [] as Toast[],
   }),
@@ -105,6 +113,21 @@ export const useUiStore = defineStore('ui', {
     },
     setTransitionsCategory(v: Category | 'all'): void {
       this.transitionsCategory = v;
+    },
+    setTricksSubTab(v: TricksSubTab): void {
+      this.tricksSubTab = v;
+    },
+    setLibrarySearch(v: string): void {
+      this.librarySearch = v;
+    },
+    setLibrarySort(v: LibrarySortKey): void {
+      this.librarySort = v;
+    },
+    setLibraryTiers(v: Tier[]): void {
+      this.libraryTiers = v;
+    },
+    setLibraryCategories(v: Category[]): void {
+      this.libraryCategories = v;
     },
     resetTricksFilters(): void {
       this.tricksTiers = [];

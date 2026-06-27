@@ -4,6 +4,7 @@ import Tricks from './pages/Tricks.vue'
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./pages/Home.vue') },
   { path: '/tricks', name: 'tricks', component: Tricks },
+  { path: '/tricks/library', name: 'tricks-library', component: Tricks, meta: { subTab: 'library' } },
   { path: '/learning', name: 'learning', component: () => import('./pages/Learning.vue') },
   { path: '/graph', name: 'graph', component: () => import('./pages/Graph.vue'), meta: { fullViewport: true } },
   { path: '/sequences', name: 'sequences', component: () => import('./pages/Sequences.vue') },
