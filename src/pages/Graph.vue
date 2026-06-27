@@ -651,7 +651,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
     0 4px 16px rgba(0, 0, 0, 0.30);
   z-index: 30;
-  transition: transform 150ms ease;
+  transition: transform var(--motion-g-fast) var(--ease-g-out);
 }
 .fab:active {
   transform: scale(0.95);
@@ -680,7 +680,9 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.55);
   background: transparent;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition:
+    background-color var(--motion-g-base) var(--ease-g-out),
+    color var(--motion-g-base) var(--ease-g-out);
 }
 .mode-switcher .seg.with-icon {
   display: inline-flex;

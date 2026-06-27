@@ -268,7 +268,7 @@ function onVideo(t: Trick) {
      directly — otherwise the bar slides under the notch on scroll. */
   top: env(safe-area-inset-top);
   z-index: 20;
-  transition: transform 200ms ease;
+  transition: transform var(--motion-g-base) var(--ease-g-out);
   will-change: transform;
   margin: 0 0.75rem;
 }

@@ -254,7 +254,10 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
   overflow: hidden;
   opacity: 1;
   margin-bottom: 8px;
-  transition: max-height 200ms ease, opacity 200ms ease, margin-bottom 200ms ease;
+  transition:
+    max-height var(--motion-g-base) var(--ease-g-out),
+    opacity var(--motion-g-base) var(--ease-g-out),
+    margin-bottom var(--motion-g-base) var(--ease-g-out);
 }
 .search-row.collapsed {
   max-height: 0;
@@ -284,7 +287,7 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
     0 4px 16px rgba(0, 0, 0, 0.30);
   z-index: 30;
-  transition: transform 150ms ease;
+  transition: transform var(--motion-g-fast) var(--ease-g-out);
 }
 .fab:active {
   transform: scale(0.95);
