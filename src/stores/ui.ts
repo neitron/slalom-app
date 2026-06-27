@@ -4,9 +4,9 @@ import type { SortKey } from './tricks';
 
 export type Tab = 'tricks' | 'learning' | 'graph' | 'transitions' | 'sequences' | 'settings';
 
-export type SequencesSubTab = 'sequences' | 'transitions'
-export type SequencesSortKey = 'newest' | 'best' | 'worst'
-export type TransitionsSortKey = 'name' | 'best' | 'worst' | 'recent'
+export type SequencesSubTab = 'sequences' | 'transitions';
+export type SequencesSortKey = 'newest' | 'best' | 'worst';
+export type TransitionsSortKey = 'name' | 'best' | 'worst' | 'recent';
 
 export type RateContext = 'trick' | 'transition' | 'sequence';
 export interface FeedbackReport {
