@@ -6,6 +6,7 @@ import { CATEGORIES, TIER_NAMES } from '../domain/constants'
 import type { Category, Tier, TrickStatus } from '../domain/types'
 import ChipFilter, { type ChipOption } from './ChipFilter.vue'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
+import { IconFavOn } from '../icons'
 
 type Props = { visible: boolean }
 const props = defineProps<Props>()
@@ -176,7 +177,7 @@ function onResetAll() {
                   ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)' }
                   : { color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)' }"
                 @click="ui.setTricksFavOnly(!ui.tricksFavOnly)"
-              >{{ ui.tricksFavOnly ? '★ On' : 'Off' }}</button>
+              ><span class="inline-flex items-center gap-1"><IconFavOn v-if="ui.tricksFavOnly" :size="14" stroke="1.75" />{{ ui.tricksFavOnly ? 'On' : 'Off' }}</span></button>
             </section>
           </div>
 

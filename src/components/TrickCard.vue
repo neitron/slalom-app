@@ -4,6 +4,7 @@ import type { Trick } from '../domain/types'
 import { displayName } from '../domain/display'
 import { autosizeIcon } from '../utils/graphemes'
 import RateDots from './RateDots.vue'
+import { IconFavOn } from '../icons'
 
 type Props = {
   trick: Trick
@@ -51,7 +52,7 @@ function onVideoClick(e: MouseEvent) {
           v-if="trick.fav"
           :style="{ color: 'var(--color-g-brand)' }"
           aria-label="favorite"
-        >★</span>
+        ><IconFavOn :size="14" stroke="1.75" /></span>
         <span
           v-if="trick.icon"
           class="leading-none whitespace-nowrap"

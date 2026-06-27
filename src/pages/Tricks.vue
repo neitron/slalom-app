@@ -8,6 +8,7 @@ import { resolveVideoUrl } from '../domain/video'
 import TrickCard from '../components/TrickCard.vue'
 import TricksFilterSheet from '../components/TricksFilterSheet.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
+import { IconFavOn } from '../icons'
 
 const tricksStore = useTricksStore()
 const ui = useUiStore()
@@ -93,7 +94,7 @@ const activeFilterChips = computed<ActiveFilterChip[]>(() => {
   if (ui.tricksFavOnly) {
     chips.push({
       key: 'fav',
-      label: '★ Favorites',
+      label: 'Favorites',
       remove: () => ui.setTricksFavOnly(false),
     })
   }
@@ -212,6 +213,7 @@ function onVideo(t: Trick) {
           :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
           @click="chip.remove"
         >
+          <IconFavOn v-if="chip.key === 'fav'" :size="12" stroke="1.75" />
           <span>{{ chip.label }}</span>
           <span :style="{ color: 'var(--color-g-fg-muted)', fontSize: '14px', lineHeight: 1 }">×</span>
         </button>

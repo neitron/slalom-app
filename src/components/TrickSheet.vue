@@ -12,7 +12,7 @@ import { gw } from '../design/tokens'
 import { MAX_TRICK_EMOJIS, takeGraphemes } from '../utils/graphemes'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
-import { IconClose } from '../icons'
+import { IconClose, IconFavOn, IconFavOff } from '../icons'
 
 const panelRef = ref<HTMLElement | null>(null)
 const scrollAreaRef = ref<HTMLElement | null>(null)
@@ -320,7 +320,7 @@ const detailItems = computed(() => {
               :class="trick.fav ? 'text-fav' : 'text-muted hover:text-fav'"
               :aria-label="trick.fav ? 'Unfavorite' : 'Favorite'"
               @click="toggleFav"
-            >★</button>
+            ><IconFavOn :size="18" stroke="1.75" /></button>
             <span v-if="trick.icon" class="text-xl leading-none">{{ trick.icon }}</span>
             <div class="flex-1 min-w-0">
               <h2 class="text-lg font-semibold truncate">{{ displayName(trick) }}</h2>
@@ -443,8 +443,8 @@ const detailItems = computed(() => {
                   :class="trick.mainAlias === a ? 'text-accent' : 'text-muted hover:text-fg'"
                   :aria-label="trick.mainAlias === a ? `clear main alias` : `set ${a} as main`"
                   @click="toggleMainAlias(a)"
-                >{{ trick.mainAlias === a ? '★' : '☆' }}</button>
-                <span v-else-if="trick.mainAlias === a" class="text-accent leading-none">★</span>
+                ><component :is="trick.mainAlias === a ? IconFavOn : IconFavOff" :size="14" stroke="1.75" /></button>
+                <IconFavOn v-else-if="trick.mainAlias === a" :size="14" stroke="1.75" class="text-accent" />
                 {{ a }}
                 <button
                   v-if="editMode"

@@ -6,6 +6,7 @@ import { TIERS } from '../domain/constants'
 import { resolveVideoUrl } from '../domain/video'
 import { useUiStore } from '../stores/ui'
 import RateDots from './RateDots.vue'
+import { IconFavOn } from '../icons'
 
 type Props = {
   tricks: Trick[]
@@ -91,7 +92,7 @@ function onVideo(t: Trick, e: MouseEvent) {
         >view-only</span>
         <div class="flex items-start gap-2">
           <div class="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-            <span v-if="t.fav" class="text-fav">★</span>
+            <IconFavOn v-if="t.fav" :size="14" stroke="1.75" class="text-fav" />
             <span v-if="t.icon" class="text-base leading-none">{{ t.icon }}</span>
             <span class="font-medium" :class="readonly ? 'text-muted' : 'text-fg'">{{ displayName(t) }}</span>
           </div>
