@@ -313,19 +313,33 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
             ref="nameInputRef"
             v-model="nameDraft"
             type="text"
-            class="flex-1 px-2 py-1.5 bg-card-2 border border-border-2 rounded text-sm focus:outline-none focus:border-accent"
+            class="flex-1 px-3 py-2 text-sm outline-none"
+            :style="{
+              background: 'rgba(255,255,255,0.06)',
+              color: 'var(--color-g-fg)',
+              borderRadius: 'var(--radius-g-chip)',
+            }"
             @keydown.enter.prevent="commitName"
             @keydown.escape.prevent="cancelEditName"
             @blur="commitName"
           >
           <button
             type="button"
-            class="px-2.5 py-1.5 rounded bg-accent text-bg text-xs font-semibold"
+            class="px-3 py-1.5 text-xs font-semibold"
+            :style="{
+              background: 'var(--color-g-brand)',
+              color: 'var(--color-g-base)',
+              borderRadius: 'var(--radius-g-chip)',
+            }"
             @mousedown.prevent="commitName"
           >Save</button>
           <button
             type="button"
-            class="px-2.5 py-1.5 rounded border border-border-2 text-muted text-xs"
+            class="px-3 py-1.5 text-xs gw-glass-strong"
+            :style="{
+              color: 'var(--color-g-fg-muted)',
+              borderRadius: 'var(--radius-g-chip)',
+            }"
             @mousedown.prevent="cancelEditName"
           >Cancel</button>
         </template>
@@ -410,10 +424,11 @@ async function onReport(payload: { score: 1 | 2 | 3 | 4 | 5; side: Side }) {
       <section class="mt-5 pt-3 border-t border-border">
         <button
           type="button"
-          class="w-full py-2 rounded-lg text-sm transition-colors"
-          :class="removeArmed
-            ? 'bg-danger text-fg font-semibold'
-            : 'border border-border-2 text-muted hover:text-danger'"
+          class="w-full py-2 text-sm transition-colors"
+          :class="removeArmed ? 'font-semibold' : 'gw-glass-strong'"
+          :style="removeArmed
+            ? { background: 'var(--color-g-danger)', color: 'var(--color-g-fg)', borderRadius: 'var(--radius-g-chip)' }
+            : { color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)' }"
           @click="armRemove"
         >{{ removeArmed ? 'Tap again to confirm delete' : 'Delete sequence' }}</button>
       </section>
