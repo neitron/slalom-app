@@ -9,13 +9,15 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `9ceb609`, **5 commits ahead of `origin/main`** —
+- **Branch**: `main` at `dabd5a7`, **6 commits ahead of `origin/main`** —
   user pushes manually when ready (GH Pages redeploys on every push).
-  Phase 5.1 (TabBar View Transition) shipped on top of Phase 5 foundation.
-  Four Phase 5 follow-ups still deferred (sub-tab VT, RateDots pulse,
-  spring tap-bounce, generator stagger, fibonacci breathing) — each
-  can be picked up as its own small spec.
-- 150/150 tests pass, build clean.
+  **Add-new-trick** shipped (critical UX gap: Tricks page now has a FAB
+  to create new tricks). Phase 5.1 (TabBar View Transition) shipped
+  earlier on top of Phase 5 foundation. Four Phase 5 follow-ups still
+  deferred (sub-tab VT, RateDots pulse, spring tap-bounce, generator
+  stagger, fibonacci breathing) — each can be picked up as its own
+  small spec.
+- 156/156 tests pass, build clean.
 - Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6 shipped
   + Phase 6 polish rounds 1 & 2 shipped.** Phase 6 polish round 2 also
   subsumed previously-open Phase 4e (Transitions placement) and
@@ -29,6 +31,12 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+dabd5a7 Add-new-trick: Tricks page FAB + creation-sheet wiring
+0fae60d Add-new-trick: TrickCreationSheet component
+dd08a54 Add-new-trick: tricksStore.create action + tests
+0dc561a Add-new-trick implementation plan
+a8f1df7 Add-new-trick design spec
+c98e9f1 SESSION-HANDOFF: Phase 5.1 (TabBar View Transition) shipped
 9ceb609 Phase 5.1: TabBar — intercept tab clicks for directional View Transition
 bdffcc0 Phase 5.1: view-transition CSS — directional slide via --vt-direction
 c96cad6 Phase 5.1: useViewTransition composable
@@ -87,6 +95,15 @@ ab6b1a0 Phase 6 polish: 4 missed × close affordances → IconClose
 ---
 
 ## What's shipped since the 2026-06-26 handoff (additive)
+
+### Add new trick — critical feature (shipped 2026-06-27)
+- Spec: `spec/2026-06-27-add-new-trick-design.md` (commit `a8f1df7`). Plan: `docs/superpowers/plans/2026-06-27-add-new-trick.md` (commit `0dc561a`). Three implementation commits: `dd08a54` (store + tests), `0fae60d` (sheet component), `dabd5a7` (page wiring).
+- **Closes a critical UX gap**: Tricks page previously had no add-trick affordance — the only source of tricks was the database seed. Now a "New trick" FAB lives bottom-right on `/tricks`.
+- **`tricksStore.create(input)` action** — builds a complete `Trick` with progress defaults (`rate/rateL/rateR/last` null, `status: 'Not Started'`, empty `aliases`/`tags`, no `fav`/`video`/`icon`, `entry`/`exit` defaulted to `'2/f'`). Wraps existing `upsertTrick` which auto-generates the id. Throws on empty/whitespace name. Six new tests cover defaults + trimming + optional fields + list append.
+- **`TrickCreationSheet.vue`** — new component using the Phase 5 unified two-layer sheet pattern. Minimal form: name (required, autofocus), tier (6-segment selector, default T2), category (ChipFilter, default forward), LR toggle (custom switch with brand-color fill), optional icon (text input, MAX_TRICK_EMOJIS-friendly), optional first alias. Save button disabled until name non-empty.
+- **Post-save handoff to TrickSheet**: on `'created'` emit, the create sheet closes and `ui.openSheet(id)` immediately opens the existing `TrickSheet` for the new trick so the user can fill extended fields (entry/exit/video/multi-aliases/tags) without an extra navigation step. **By design, the create form is minimal**.
+- **FAB matches Sequences/Graph pattern** — Apple-glass pill with `IconPlus` glyph + "New trick" label, bottom-right, safe-area-aware, motion-token transition.
+- **Tests**: 156/156 (was 150 + 6 new).
 
 ### Phase 5.1 — TabBar View Transition (shipped 2026-06-27)
 - Spec: `spec/2026-06-27-glasswork-phase-5-1-tabbar-view-transition-design.md` (commit `2544011`). Plan: `docs/superpowers/plans/2026-06-27-glasswork-phase-5-1-tabbar-view-transition.md` (commit `59ef4e0`). Three implementation commits: `c96cad6` composable, `bdffcc0` CSS, `9ceb609` TabBar wiring.
@@ -306,6 +323,7 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 - DECIDED 2026-06-27 (Phase 5 — reduced-motion strategy): A single `@media (prefers-reduced-motion: reduce)` block in `glasswork.css` collapses all duration tokens to ~100ms (fast → 0.01ms). Consumers get a11y for free by referencing tokens. Components that also use transform-based motion (sheets, bubbles, toasts) declare an additional local `@media (prefers-reduced-motion: reduce)` block that removes the transform via `transform: none !important;` — net effect = fade-only, no slide, no jarring snap.
 - DECIDED 2026-06-27 (Phase 5 — sheet enter architecture): All 6 sheets use a **two-layer panel structure**. The outer `.sheet-panel-anim w-full` div carries the class-based enter/leave slide-up via `<Transition name="sheet">` CSS. The inner `.sheet-panel` keeps all existing chrome (`gw-glass-strong`, `max-h-Xdvh`, drag-to-close via inline `transform: translateY(${dragY}px)`, touch handlers, scroll lock). The two layers exist because the inline drag transform on the inner panel would otherwise overwrite the class-based enter transform via CSS specificity (inline > class). Separating concerns makes the slide actually fire. Pattern is the same for every sheet — copy/paste discipline.
 - DECIDED 2026-06-27 (Phase 5.1 — TabBar View Transition): TabBar uses View Transitions API (iOS Safari 18+ / Chrome 111+) with a directional slide based on TAB_ORDER index diff (Home/Tricks/Graph/Sequences = 0/1/2/3). `--vt-direction` CSS variable carries -1/0/+1. Deep links keep VT default (cross-fade) when supported. Reduced-motion + unsupported browsers degrade to instant nav. Wiring: `useViewTransition` composable + TabBar `RouterLink custom` slot click intercept + CSS `@supports (view-transition-name: root)` block. `--vt-direction` resets to 0 in a `finally` block after every TabBar nav so programmatic nav stays neutral.
+- DECIDED 2026-06-27 (Add-new-trick): Tricks page gets a "New trick" FAB matching the Sequences/Graph Apple-glass pill pattern. Tap opens `TrickCreationSheet` (new component using the Phase 5 two-layer sheet pattern). Minimal form: name + tier + category + LR + optional icon + optional first alias. Extended fields (entry/exit/video/multi-aliases/tags) are intentionally deferred to the existing TrickSheet edit flow — the post-save handler closes the create sheet and immediately calls `ui.openSheet(newId)` so the user can fill them in without an extra navigation step. `tricksStore.create()` action throws on empty name and defaults entry/exit to `'2/f'`, status to `'Not Started'`, and all progress fields to null. The post-save → TrickSheet handoff IS the success confirmation (no toast).
 
 ---
 
@@ -349,8 +367,8 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at 9ceb609, 5 commits
-ahead of origin (push when ready). 150/150 tests pass, build clean.
+Continue the Glasswork redesign. Branch is main at dabd5a7, 6 commits
+ahead of origin (push when ready). 156/156 tests pass, build clean.
 
 READ FIRST (in this order):
 - spec/SESSION-HANDOFF.md  ← single source of truth for current state
