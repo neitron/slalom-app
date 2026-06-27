@@ -15,6 +15,8 @@ import type { Trick } from '../types';
 
 const baseTrick = (overrides: Partial<Trick> = {}): Trick => ({
   name: 'Test',
+  createdBy: null,
+  visibility: 'public',
   tier: 1,
   category: 'forward',
   entry: '2/f',

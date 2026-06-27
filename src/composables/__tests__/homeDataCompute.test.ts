@@ -19,7 +19,8 @@ const setNow = (iso: string) => {
 }
 
 const mkTrick = (over: Partial<Trick>): Trick => ({
-  id: 't', name: 'Trick', tier: 1, category: 'forward', entry: '2/f', exit: '2/f',
+  id: 't', name: 'Trick', createdBy: null, visibility: 'public',
+  tier: 1, category: 'forward', entry: '2/f', exit: '2/f',
   lr: false, rate: null, rateL: null, rateR: null, last: null,
   status: 'Not Started', aliases: [], video: null, icon: null, tags: [], fav: false,
   ...over,

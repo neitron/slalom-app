@@ -11,7 +11,7 @@ import { useUiStore } from './stores/ui'
 import { useTricksStore } from './stores/tricks'
 import { useTransitionsStore } from './stores/transitions'
 import { useSequencesStore } from './stores/sequences'
-import { getAllTricks, getAllTransitions, getAllSequences } from './storage/repo'
+import { getAllTransitions, getAllSequences } from './storage/repo'
 import { useIosKeyboardReset } from './composables/useIosKeyboardReset'
 
 const uiStore = useUiStore()
@@ -30,13 +30,13 @@ const sequencesStore = useSequencesStore()
 useIosKeyboardReset()
 
 async function reloadStoresFromDexie() {
-  const [tricks, edges, sequences] = await Promise.all([
-    getAllTricks(),
+  const [edges, sequences] = await Promise.all([
     getAllTransitions(),
     getAllSequences(),
   ])
-  tricksStore.tricks = tricks
-  tricksStore.loaded = true
+  // tricks store uses canonicals + overlays state — reload via store's own load action
+  tricksStore.loaded = false
+  void tricksStore.load()
   transitionsStore.edges = edges
   transitionsStore.loaded = true
   sequencesStore.sequences = sequences

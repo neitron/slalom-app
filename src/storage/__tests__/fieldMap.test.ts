@@ -11,6 +11,8 @@ describe('catalog mappers exclude per-user fields', () => {
   it('mapTrickToServer drops rate/rate_l/rate_r/last_practiced/status/fav', () => {
     const t: Trick = {
       id: 't1',
+      createdBy: null,
+      visibility: 'public',
       name: 'Heel-Toe',
       tier: 1,
       category: 'forward',

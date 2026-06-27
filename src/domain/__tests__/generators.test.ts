@@ -4,6 +4,8 @@ import type { GenFilter, Rng, Transition, Trick } from '../types';
 
 const mkTrick = (overrides: Partial<Trick> = {}): Trick => ({
   name: overrides.name ?? 'T',
+  createdBy: null,
+  visibility: 'public',
   tier: 1,
   category: 'forward',
   entry: '2/f',

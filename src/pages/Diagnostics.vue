@@ -164,7 +164,8 @@ async function doReseed() {
     )
     await ensureSeeded()
   })
-  tricksStore.tricks = []
+  tricksStore.canonicals = []
+  tricksStore.overlaysByTrickId = new Map()
   tricksStore.loaded = false
   transitionsStore.edges = []
   transitionsStore.loaded = false
@@ -199,7 +200,8 @@ async function onImportFile(ev: Event) {
   const text = await file.text()
   try {
     await importJson(text)
-    tricksStore.tricks = []
+    tricksStore.canonicals = []
+    tricksStore.overlaysByTrickId = new Map()
     tricksStore.loaded = false
     transitionsStore.edges = []
     transitionsStore.loaded = false

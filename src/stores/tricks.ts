@@ -1,18 +1,32 @@
 import { defineStore } from 'pinia';
 import {
-  getAllTricks,
-  getTrick,
+  upsertCanonicalTrick,
+  upsertTrickOverlay,
+  getTrickOverlay,
+  getCanonicalTrick,
+  deleteTrickOverlay,
+  getTrickMerged,
+  loadLibraryPage,
   reportTrick,
-  upsertTrick,
+  type LibraryPageOpts,
+  type LibraryPageResult,
 } from '../storage/repo';
 import { ensureSeeded } from '../storage/seed';
+import { getCurrentUserId } from '../storage/social';
+import { mergeTrick } from '../domain/mergeTrick';
 import {
   effectiveRate,
-  resetTrick,
   toggleLrOff,
-  toggleLrOn,
 } from '../domain/rating';
-import type { Category, Side, Tier, Trick, TrickStatus } from '../domain/types';
+import type {
+  CanonicalTrick,
+  Category,
+  Side,
+  Tier,
+  Trick,
+  TrickOverlay,
+  TrickStatus,
+} from '../domain/types';
 
 export type SortKey = 'name' | 'best' | 'worst';
 
@@ -47,22 +61,49 @@ const matchesQuery = (t: Trick, q: string): boolean => {
   );
 };
 
+function blankOverlay(userId: string, trickId: string): TrickOverlay {
+  return {
+    userId,
+    trickId,
+    rate: null,
+    rateL: null,
+    rateR: null,
+    last: null,
+    status: 'Not Started' as TrickStatus,
+    aliases: [],
+    tags: [],
+    mainAlias: null,
+    iconOverride: null,
+    videoOverride: null,
+    nodeX: null,
+    nodeY: null,
+    fav: false,
+  };
+}
+
 export const useTricksStore = defineStore('tricks', {
   state: () => ({
-    tricks: [] as Trick[],
+    canonicals: [] as CanonicalTrick[],
+    overlaysByTrickId: new Map<string, TrickOverlay>(),
     loaded: false,
   }),
 
   getters: {
-    byId(state) {
-      return (id: string): Trick | undefined =>
-        state.tricks.find((t) => t.id === id);
+    tricks(state): Trick[] {
+      return state.canonicals.map((c) =>
+        mergeTrick(c, c.id ? state.overlaysByTrickId.get(c.id) ?? null : null),
+      );
     },
-    byTier(state) {
-      return (tier: Tier): Trick[] =>
-        state.tricks.filter((t) => t.tier === tier);
+
+    byId(): (id: string) => Trick | undefined {
+      return (id: string) => this.tricks.find((t) => t.id === id);
     },
-    filteredAndSorted(state) {
+
+    byTier(): (tier: Tier) => Trick[] {
+      return (tier: Tier) => this.tricks.filter((t) => t.tier === tier);
+    },
+
+    filteredAndSorted(): (opts?: FilterOpts) => Trick[] {
       return (opts: FilterOpts = {}): Trick[] => {
         const {
           search = '',
@@ -72,7 +113,7 @@ export const useTricksStore = defineStore('tricks', {
           statuses = null,
           favOnly = false,
         } = opts;
-        let list = state.tricks.slice();
+        let list = this.tricks.slice();
 
         if (tiers != null && tiers.length > 0) {
           const setT = new Set(tiers);
@@ -102,144 +143,313 @@ export const useTricksStore = defineStore('tricks', {
   actions: {
     async load(): Promise<void> {
       await ensureSeeded();
-      this.tricks = await getAllTricks();
+      const userId = await getCurrentUserId();
+      const uid = userId ?? null;
+
+      // Load canonicals from Dexie
+      const { db } = await import('../storage/dexie');
+      this.canonicals = (await db.tricks.toArray()) as CanonicalTrick[];
+
+      if (uid) {
+        const overlays = (await db.user_trick_progress
+          .where('userId')
+          .equals(uid)
+          .toArray()) as TrickOverlay[];
+        this.overlaysByTrickId = new Map(overlays.map((o) => [o.trickId, o]));
+      } else {
+        this.overlaysByTrickId = new Map();
+      }
       this.loaded = true;
     },
 
     async report(id: string, side: Side, score: number): Promise<void> {
       const updated = await reportTrick(id, side, score);
       this.replaceLocal(updated);
-    },
-
-    async updateTrick(patch: Partial<Trick> & { id: string }): Promise<void> {
-      const existing = this.byId(patch.id);
-      if (!existing) return;
-      const next: Trick = { ...existing, ...patch };
-      this.replaceLocal(next);
-      await upsertTrick(next);
-    },
-
-    async toggleFav(id: string): Promise<void> {
-      const t = this.byId(id);
-      if (!t) return;
-      const next: Trick = { ...t, fav: !t.fav };
-      this.replaceLocal(next);
-      await upsertTrick(next);
-    },
-
-    async toggleLr(id: string): Promise<void> {
-      const t = this.byId(id);
-      if (!t) return;
-      const next: Trick = { ...t };
-      if (next.lr) toggleLrOff(next);
-      else toggleLrOn(next);
-      this.replaceLocal(next);
-      await upsertTrick(next);
-    },
-
-    async resetProgress(id: string): Promise<void> {
-      const t = this.byId(id);
-      if (!t) return;
-      const next: Trick = { ...t };
-      resetTrick(next);
-      this.replaceLocal(next);
-      await upsertTrick(next);
-    },
-
-    /** Reset a single side's rate (LR mode) or the single-side rate. */
-    async resetTrickSide(id: string, side: Side): Promise<void> {
-      const t = this.byId(id);
-      if (!t) return;
-      const next: Trick = { ...t };
-      if (side === 'L') next.rateL = null;
-      else if (side === 'R') next.rateR = null;
-      else next.rate = null;
-      // Recompute aggregate state from what remains.
-      const stillRated = next.lr
-        ? next.rateL != null || next.rateR != null
-        : next.rate != null;
-      if (!stillRated) {
-        next.last = null;
-        next.status = 'Not Started';
+      // Sync the overlay in state too
+      const userId = await getCurrentUserId();
+      if (userId) {
+        const overlay = await getTrickOverlay(userId, id);
+        if (overlay) {
+          this.overlaysByTrickId.set(id, overlay);
+          this.overlaysByTrickId = new Map(this.overlaysByTrickId);
+        }
       }
-      this.replaceLocal(next);
-      await upsertTrick(next);
-    },
-
-    async updateAliases(id: string, aliases: string[]): Promise<void> {
-      const t = this.byId(id);
-      const patch: Partial<Trick> & { id: string } = { id, aliases };
-      if (t?.mainAlias && !aliases.includes(t.mainAlias)) patch.mainAlias = null;
-      await this.updateTrick(patch);
-    },
-
-    async setMainAlias(id: string, alias: string | null): Promise<void> {
-      const t = this.byId(id);
-      if (!t) return;
-      const next = alias && t.aliases.includes(alias) ? alias : null;
-      await this.updateTrick({ id, mainAlias: next });
-    },
-
-    async updateTags(id: string, tags: string[]): Promise<void> {
-      await this.updateTrick({ id, tags });
-    },
-
-    async updateVideo(id: string, video: string | null): Promise<void> {
-      await this.updateTrick({ id, video });
-    },
-
-    async updateEmoji(id: string, icon: string | null): Promise<void> {
-      await this.updateTrick({ id, icon });
     },
 
     async create(input: {
-      name: string
-      tier: Tier
-      category: Category
-      lr: boolean
-      icon?: string | null
-      firstAlias?: string | null
+      name: string;
+      tier: Tier;
+      category: Category;
+      lr: boolean;
+      icon?: string | null;
+      firstAlias?: string | null;
     }): Promise<string> {
-      const name = input.name.trim()
-      if (!name) throw new Error('Trick name required')
-      const alias = input.firstAlias?.trim()
-      const aliasArr: string[] = alias ? [alias] : []
-      const trick: Trick = {
+      const name = input.name.trim();
+      if (!name) throw new Error('Trick name required');
+      const alias = input.firstAlias?.trim();
+      const aliasArr: string[] = alias ? [alias] : [];
+      const userId = await getCurrentUserId();
+      const canonical: CanonicalTrick = {
         name,
         tier: input.tier,
         category: input.category,
         entry: '2/f',
         exit: '2/f',
         lr: input.lr,
+        createdBy: userId,
+        visibility: 'private',
+        defaultAliases: aliasArr,
+        defaultTags: [],
+        defaultIcon: input.icon?.trim() || null,
+        defaultVideo: null,
+      };
+      const id = await upsertCanonicalTrick(canonical);
+      canonical.id = id;
+      this.canonicals = [...this.canonicals, canonical];
+      return id;
+    },
+
+    async refresh(id: string): Promise<void> {
+      const userId = await getCurrentUserId();
+      const fresh = await getTrickMerged(id, userId ?? null);
+      if (fresh) this.replaceLocal(fresh);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Overlay patch helper
+    // ---------------------------------------------------------------------------
+
+    async _patchOverlay(id: string, patch: Partial<TrickOverlay>): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to customize tricks');
+      const existing = await getTrickOverlay(userId, id);
+      const next: TrickOverlay = { ...(existing ?? blankOverlay(userId, id)), ...patch };
+      await upsertTrickOverlay(next);
+      this.overlaysByTrickId.set(id, next);
+      // Trigger Pinia reactivity (Map mutation is not tracked, reassign to new Map)
+      this.overlaysByTrickId = new Map(this.overlaysByTrickId);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Patch actions — all write to overlay now
+    // ---------------------------------------------------------------------------
+
+    async toggleFav(id: string): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to favorite tricks');
+      const existing = await getTrickOverlay(userId, id);
+      const current = existing ?? blankOverlay(userId, id);
+      await this._patchOverlay(id, { fav: !current.fav });
+    },
+
+    async toggleLr(id: string): Promise<void> {
+      // lr is a canonical field — only the creator (or best-effort) can toggle
+      const canonical = await getCanonicalTrick(id);
+      if (!canonical) return;
+      if (canonical.lr) {
+        toggleLrOff({ lr: canonical.lr, rate: null, rateL: null, rateR: null } as Trick);
+        canonical.lr = false;
+      } else {
+        canonical.lr = true;
+      }
+      await upsertCanonicalTrick(canonical);
+      // Update local canonicals list
+      const idx = this.canonicals.findIndex((c) => c.id === id);
+      if (idx >= 0) {
+        this.canonicals = [
+          ...this.canonicals.slice(0, idx),
+          { ...canonical },
+          ...this.canonicals.slice(idx + 1),
+        ];
+      }
+    },
+
+    async resetProgress(id: string): Promise<void> {
+      await this._patchOverlay(id, {
         rate: null,
         rateL: null,
         rateR: null,
         last: null,
         status: 'Not Started',
-        aliases: aliasArr,
-        mainAlias: null,
-        video: null,
-        icon: input.icon?.trim() || null,
-        tags: [],
-        fav: false,
-      }
-      const id = await upsertTrick(trick)
-      trick.id = id
-      this.tricks = [...this.tricks, trick]
-      return id
+      });
     },
 
-    async refresh(id: string): Promise<void> {
-      const fresh = await getTrick(id);
-      if (fresh) this.replaceLocal(fresh);
+    async resetTrickSide(id: string, side: Side): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) return;
+      const existing = await getTrickOverlay(userId, id);
+      const current = existing ?? blankOverlay(userId, id);
+      const patch: Partial<TrickOverlay> = {};
+      if (side === 'L') patch.rateL = null;
+      else if (side === 'R') patch.rateR = null;
+      else patch.rate = null;
+
+      // Recompute aggregate state from what remains
+      const canonical = await getCanonicalTrick(id);
+      const afterL = side === 'L' ? null : current.rateL;
+      const afterR = side === 'R' ? null : current.rateR;
+      const afterRate = side === null ? null : current.rate;
+      const stillRated = canonical?.lr
+        ? afterL != null || afterR != null
+        : afterRate != null;
+      if (!stillRated) {
+        patch.last = null;
+        patch.status = 'Not Started';
+      }
+      await this._patchOverlay(id, patch);
     },
+
+    async updateAliases(id: string, aliases: string[]): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to customize tricks');
+      const existing = await getTrickOverlay(userId, id);
+      const patch: Partial<TrickOverlay> = { aliases };
+      // Clear mainAlias if it's no longer in the alias list
+      const currentMainAlias = existing?.mainAlias ?? null;
+      if (currentMainAlias && !aliases.includes(currentMainAlias)) {
+        patch.mainAlias = null;
+      }
+      await this._patchOverlay(id, patch);
+    },
+
+    async setMainAlias(id: string, alias: string | null): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to customize tricks');
+      const existing = await getTrickOverlay(userId, id);
+      const currentAliases = existing?.aliases ?? [];
+      const canonical = await getCanonicalTrick(id);
+      const effectiveAliases = currentAliases.length > 0
+        ? currentAliases
+        : (canonical?.defaultAliases ?? []);
+      const next = alias && effectiveAliases.includes(alias) ? alias : null;
+      await this._patchOverlay(id, { mainAlias: next });
+    },
+
+    async updateTags(id: string, tags: string[]): Promise<void> {
+      await this._patchOverlay(id, { tags });
+    },
+
+    async updateVideo(id: string, video: string | null): Promise<void> {
+      await this._patchOverlay(id, { videoOverride: video });
+    },
+
+    async updateEmoji(id: string, icon: string | null): Promise<void> {
+      await this._patchOverlay(id, { iconOverride: icon });
+    },
+
+    // ---------------------------------------------------------------------------
+    // New actions: publish / unpublish / adopt / unadopt / loadLibraryPage
+    // ---------------------------------------------------------------------------
+
+    async publish(id: string): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to publish');
+      const canonical = await getCanonicalTrick(id);
+      if (!canonical) throw new Error('Trick not found');
+      if (canonical.createdBy !== userId) throw new Error('Only the creator can publish');
+      canonical.visibility = 'public';
+      await upsertCanonicalTrick(canonical);
+      // Update local canonical
+      const idx = this.canonicals.findIndex((c) => c.id === id);
+      if (idx >= 0) {
+        this.canonicals = [
+          ...this.canonicals.slice(0, idx),
+          { ...canonical },
+          ...this.canonicals.slice(idx + 1),
+        ];
+      }
+    },
+
+    async unpublish(id: string): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to unpublish');
+      const canonical = await getCanonicalTrick(id);
+      if (!canonical) throw new Error('Trick not found');
+      if (canonical.createdBy !== userId) throw new Error('Only the creator can unpublish');
+      canonical.visibility = 'private';
+      await upsertCanonicalTrick(canonical);
+      // Update local canonical
+      const idx = this.canonicals.findIndex((c) => c.id === id);
+      if (idx >= 0) {
+        this.canonicals = [
+          ...this.canonicals.slice(0, idx),
+          { ...canonical },
+          ...this.canonicals.slice(idx + 1),
+        ];
+      }
+    },
+
+    async adopt(id: string): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to adopt');
+      const existing = await getTrickOverlay(userId, id);
+      if (existing) return; // already adopted — idempotent
+      const empty = blankOverlay(userId, id);
+      await upsertTrickOverlay(empty);
+      // Add overlay to state
+      this.overlaysByTrickId.set(id, empty);
+      this.overlaysByTrickId = new Map(this.overlaysByTrickId);
+      // Add canonical to state if not already present
+      const alreadyInState = this.canonicals.some((c) => c.id === id);
+      if (!alreadyInState) {
+        const canonical = await getCanonicalTrick(id);
+        if (canonical) {
+          this.canonicals = [...this.canonicals, canonical];
+        }
+      }
+    },
+
+    async unadopt(id: string): Promise<void> {
+      const userId = await getCurrentUserId();
+      if (!userId) return;
+      const existing = await getTrickOverlay(userId, id);
+      if (!existing) return;
+      // Guard: fail if overlay has any non-default data
+      const hasData =
+        existing.rate != null ||
+        existing.rateL != null ||
+        existing.rateR != null ||
+        existing.aliases.length > 0 ||
+        existing.tags.length > 0 ||
+        existing.fav ||
+        existing.iconOverride != null ||
+        existing.videoOverride != null ||
+        existing.nodeX != null ||
+        existing.nodeY != null;
+      if (hasData) {
+        throw new Error('Trick has progress or customizations — clear them first');
+      }
+      await deleteTrickOverlay(userId, id);
+      this.overlaysByTrickId.delete(id);
+      this.overlaysByTrickId = new Map(this.overlaysByTrickId);
+      // Remove from canonicals if it was adopted (not seeded / not own)
+      const canonical = this.canonicals.find((c) => c.id === id);
+      if (canonical && canonical.createdBy !== null && canonical.createdBy !== userId) {
+        this.canonicals = this.canonicals.filter((c) => c.id !== id);
+      }
+    },
+
+    async loadLibraryPage(opts: LibraryPageOpts): Promise<LibraryPageResult> {
+      const userId = await getCurrentUserId();
+      return loadLibraryPage(opts, userId ?? null);
+    },
+
+    // ---------------------------------------------------------------------------
+    // Internal helpers
+    // ---------------------------------------------------------------------------
 
     replaceLocal(t: Trick): void {
       if (!t.id) return;
-      const next: Trick = { ...t };
-      const idx = this.tricks.findIndex((x) => x.id === next.id);
-      if (idx === -1) this.tricks.push(next);
-      else this.tricks.splice(idx, 1, next);
+      // Update overlay in state if the trick has overlay fields
+      // For simplicity, update the merged list by manipulating canonicals
+      // (canonical is unchanged for report; overlay is updated separately)
+      // This is a passthrough for compatibility — report() updates overlay separately
+      const idx = this.canonicals.findIndex((c) => c.id === t.id);
+      if (idx === -1) {
+        // New trick — shouldn't happen via replaceLocal but handle gracefully
+        return;
+      }
+      // canonical doesn't change in a report; the overlay update triggers re-merge via getter
     },
   },
 });
