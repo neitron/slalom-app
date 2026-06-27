@@ -9,7 +9,7 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `a83799a`, **36 commits ahead of `origin/main`** —
+- **Branch**: `main` at `9a03fa8`, **37 commits ahead of `origin/main`** —
   user pushes manually when ready (GH Pages redeploys on every push).
 - 150/150 tests pass, build clean.
 - Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6 shipped
@@ -25,6 +25,8 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+9a03fa8 Phase 6 polish R2: Sequences sticky-bar — match Tricks horizontal inset
+a3be8bf SESSION-HANDOFF: Phase 6 polish round 2 shipped
 a83799a Phase 6 polish R2: SequenceSheet — name-edit + Delete Glasswork chrome
 d0bb80a Phase 6 polish R2: SequenceSheet — step rows tappable + Glasswork chrome
 184ec24 Phase 6 polish R2: SequenceSheet — 🔗 → IconRoute, ✎ → IconEdit
@@ -292,7 +294,7 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at a83799a, 36 commits
+Continue the Glasswork redesign. Branch is main at 9a03fa8, 37 commits
 ahead of origin (push when ready). 150/150 tests pass, build clean.
 
 READ FIRST (in this order):
