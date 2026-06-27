@@ -16,7 +16,7 @@ import EdgeBubble from '../components/EdgeBubble.vue'
 import LegChooser from '../components/LegChooser.vue'
 import SequenceChain from '../components/SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
-import { IconClose, IconTransition, IconMoveMode } from '../icons'
+import { IconClose, IconMoveMode } from '../icons'
 
 const saveSheetPanelRef = ref<HTMLElement | null>(null)
 
@@ -301,6 +301,8 @@ function onEdgeBubbleDetails(edgeId: string): void {
   uiStore.openTransition(edgeId)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- T10 FAB will call this
+// @ts-ignore -- referenced by T10 sequence FAB (next task)
 function startSequenceMode(): void {
   sequenceMode.value = true
   sequenceSteps.value = []
@@ -383,33 +385,35 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
     class="flex flex-col min-h-0"
     :style="{ height: 'calc(100dvh - env(safe-area-inset-top) - var(--tabbar-h, 4rem))' }"
   >
-    <div class="flex items-center gap-2 px-3 pt-2 pb-2 shrink-0">
-      <h1 class="text-lg font-semibold flex-1">Graph</h1>
-      <RouterLink
-        to="/transitions"
-        class="px-3 py-1.5 rounded-full text-xs transition-colors gw-glass-strong flex items-center justify-center gap-1"
-        :style="{
-          color: 'var(--color-g-fg-muted)',
-          borderRadius: 'var(--radius-g-chip)',
-        }"
-      ><IconTransition :size="16" stroke="1.75" /> Transitions</RouterLink>
-      <button
-        type="button"
-        class="px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center justify-center gap-1"
-        :class="moveMode
-          ? 'bg-accent text-bg border-accent font-semibold'
-          : 'bg-card border-border-2 text-muted hover:text-fg'"
-        :aria-pressed="moveMode"
-        @click="moveMode = !moveMode"
-      ><IconMoveMode :size="14" stroke="1.75" /> Move</button>
-      <button
-        type="button"
-        class="px-3 py-1.5 rounded-full text-xs border transition-colors"
-        :class="sequenceMode
-          ? 'bg-accent text-bg border-accent font-semibold'
-          : 'bg-card border-border-2 text-muted hover:text-fg'"
-        @click="sequenceMode ? cancelSequenceMode() : startSequenceMode()"
-      >⛓ Sequence</button>
+    <div class="flex items-center justify-center px-3 pt-2 pb-2 shrink-0">
+      <div
+        v-if="!sequenceMode"
+        class="inline-flex gap-0.5 p-1 gw-glass-strong"
+        role="tablist"
+        aria-label="Graph mode"
+        :style="{ borderRadius: 'var(--radius-g-chip)' }"
+      >
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="!moveMode"
+          class="px-3 py-1 transition-colors"
+          :style="!moveMode
+            ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
+            : { color: 'var(--color-g-fg-muted)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)' }"
+          @click="moveMode = false"
+        >View</button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="moveMode"
+          class="px-3 py-1 transition-colors flex items-center gap-1"
+          :style="moveMode
+            ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
+            : { color: 'var(--color-g-fg-muted)', borderRadius: 'calc(var(--radius-g-chip) - 4px)', fontSize: 'var(--text-g-micro)' }"
+          @click="moveMode = true"
+        ><IconMoveMode :size="14" stroke="1.75" /> Move</button>
+      </div>
     </div>
 
     <div class="flex-1 min-h-0 relative">
