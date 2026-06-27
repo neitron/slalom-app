@@ -12,6 +12,7 @@ import { gw } from '../design/tokens'
 import { MAX_TRICK_EMOJIS, takeGraphemes } from '../utils/graphemes'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
+import { IconClose } from '../icons'
 
 const panelRef = ref<HTMLElement | null>(null)
 const scrollAreaRef = ref<HTMLElement | null>(null)
@@ -345,7 +346,7 @@ const detailItems = computed(() => {
               class="p-1 text-muted hover:text-fg"
               aria-label="Close"
               @click="close"
-            >✕</button>
+            ><IconClose :size="18" stroke="1.75" /></button>
           </div>
 
           <!-- Emoji edit — only in edit mode -->

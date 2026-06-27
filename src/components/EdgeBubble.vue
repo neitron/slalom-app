@@ -4,6 +4,7 @@ import type { Side, Transition as TransitionEdge, Trick } from '../domain/types'
 import { useUiStore } from '../stores/ui'
 import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
+import { IconClose } from '../icons'
 
 const uiStore = useUiStore()
 
@@ -145,7 +146,7 @@ function openDetails() {
             :style="{ color: 'var(--color-g-fg-muted)' }"
             aria-label="Close"
             @click="emit('close')"
-          >✕</button>
+          ><IconClose :size="16" stroke="1.75" /></button>
         </div>
 
         <RateDots

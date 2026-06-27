@@ -16,6 +16,7 @@ import EdgeBubble from '../components/EdgeBubble.vue'
 import LegChooser from '../components/LegChooser.vue'
 import SequenceChain from '../components/SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
+import { IconClose } from '../icons'
 
 const saveSheetPanelRef = ref<HTMLElement | null>(null)
 
@@ -459,7 +460,7 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         class="px-1"
         aria-label="Cancel linking"
         @click="cancelLinking"
-      >✕ cancel</button>
+      ><span class="inline-flex items-center gap-1"><IconClose :size="14" stroke="1.75" /> cancel</span></button>
     </div>
 
     <div

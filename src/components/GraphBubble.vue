@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Trick } from '../domain/types'
 import { displayName } from '../domain/display'
 import RateDots from './RateDots.vue'
+import { IconClose } from '../icons'
 
 type Props = {
   trick: Trick
@@ -95,7 +96,7 @@ function startLink(side: 'L' | 'R' | null) {
             :style="{ color: 'var(--color-g-fg-muted)' }"
             aria-label="Close"
             @click="emit('close')"
-          >✕</button>
+          ><IconClose :size="16" stroke="1.75" /></button>
         </div>
 
         <RateDots

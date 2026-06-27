@@ -10,6 +10,7 @@ import RateDots from './RateDots.vue'
 import RateButtons from './RateButtons.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
+import { IconClose } from '../icons'
 
 const panelRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
@@ -255,7 +256,7 @@ function sideChipBg(active: boolean, s: Side): string {
           class="p-1 text-muted hover:text-fg"
           aria-label="Close"
           @click="close"
-        >✕</button>
+        ><IconClose :size="18" stroke="1.75" /></button>
       </div>
 
       <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">

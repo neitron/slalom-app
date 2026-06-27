@@ -13,6 +13,7 @@ import type { Sequence, SequenceStep, Tier } from '../domain/types'
 import SequenceChain from './SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
+import { IconClose } from '../icons'
 
 type Mode = 'graph' | 'known' | 'random'
 
@@ -249,7 +250,7 @@ function toggleArr(list: string[], v: string): string[] {
           class="p-1 text-muted hover:text-fg"
           aria-label="Close"
           @click="close"
-        >✕</button>
+        ><IconClose :size="18" stroke="1.75" /></button>
       </div>
 
       <section class="mt-3">
