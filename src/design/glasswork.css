@@ -147,3 +147,34 @@
   );
   background-size: 8px 8px;
 }
+
+/* Motion tokens (Phase 5) ---------------------------------------------------
+ * Four durations + four easings. Consumers reference these instead of
+ * hard-coded ms / cubic-bezier literals. The reduced-motion @media block
+ * below auto-collapses durations so any consumer using these tokens honors
+ * prefers-reduced-motion without per-component awareness.
+ *
+ * Tokens that need to also drop transform-based motion (e.g. sheet slide-up)
+ * declare their own @media (prefers-reduced-motion: reduce) override
+ * locally in their component to remove the transform.
+ * -------------------------------------------------------------------------- */
+:root {
+  --motion-g-fast:       150ms;
+  --motion-g-base:       240ms;
+  --motion-g-slow:       320ms;
+  --motion-g-deliberate: 480ms;
+
+  --ease-g-out:    cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-g-in:     cubic-bezier(0.4, 0.0, 1, 1);
+  --ease-g-inout:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-g-spring: cubic-bezier(0.18, 1.2, 0.42, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-g-fast:       0.01ms;
+    --motion-g-base:       100ms;
+    --motion-g-slow:       100ms;
+    --motion-g-deliberate: 100ms;
+  }
+}
