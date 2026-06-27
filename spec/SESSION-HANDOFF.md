@@ -1,4 +1,4 @@
-# Session handoff — 2026-06-27
+# Session handoff — 2026-06-28
 
 Picking up next session: paste the **"Prompt for new session"** at the bottom
 of this file into a fresh `claude` invocation at
@@ -9,15 +9,20 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `dabd5a7`, **6 commits ahead of `origin/main`** —
+- **Branch**: `main` at `5d9a314`, **20 commits ahead of `origin/main`** —
   user pushes manually when ready (GH Pages redeploys on every push).
-  **Add-new-trick** shipped (critical UX gap: Tricks page now has a FAB
-  to create new tricks). Phase 5.1 (TabBar View Transition) shipped
-  earlier on top of Phase 5 foundation. Four Phase 5 follow-ups still
-  deferred (sub-tab VT, RateDots pulse, spring tap-bounce, generator
-  stagger, fibonacci breathing) — each can be picked up as its own
-  small spec.
-- 156/156 tests pass, build clean.
+  **Trick Library** shipped (canonical+overlay data split; `My Tricks |
+  Library` sub-tabs; per-user customization isolation; community
+  adoption flow). Supabase migration applied. Add-new-trick + Phase 5.1
+  (TabBar VT) + Phase 5 (motion foundation) all shipped earlier in this
+  session. Four Phase 5 follow-ups still deferred.
+- 176/176 tests pass, build clean.
+- **OAuth bug on dev still open** — Supabase auth provider redirect URIs
+  are configured for prod only. Dev sign-in fails after the Google
+  side-flow completes. Library sub-tab requires sign-in to load (only
+  seeded canonical visible otherwise). Testing on live (prod) works
+  fine. Separate small spec needed to fix Supabase Authentication →
+  URL Configuration → add localhost dev origins to redirect URIs.
 - Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6 shipped
   + Phase 6 polish rounds 1 & 2 shipped.** Phase 6 polish round 2 also
   subsumed previously-open Phase 4e (Transitions placement) and
@@ -31,6 +36,20 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+5d9a314 Trick Library T14: sync.ts — new mapping fns + canonical/overlay-aware push/pull
+42453e5 Trick Library T12: TrickSheet — Share-with-library toggle
+8e455f3 Trick Library T11: Tricks.vue umbrella + sub-tabs
+4ffeed4 Trick Library T10: LibraryFilterSheet
+6285342 Trick Library T8+T9: LibraryTrickCard + LibraryList
+5f4244a Trick Library T6+T7: ui store sub-tab state + /tricks/library route
+83e0343 Trick Library T5: tricksStore rewrite — overlay actions + publish/adopt
+0bf0ce7 Trick Library T4: storage layer split + library page query
+11c09fe Trick Library T3: Dexie v5 + seed loader migration
+adad880 Trick Library T1: domain types + mergeTrick utility
+8833461 Trick Library T0: install vue-virtual-scroller
+d2e374c Trick Library implementation plan
+3f28d57 Trick Library design spec
+856d66f SESSION-HANDOFF: Add-new-trick shipped
 dabd5a7 Add-new-trick: Tricks page FAB + creation-sheet wiring
 0fae60d Add-new-trick: TrickCreationSheet component
 dd08a54 Add-new-trick: tricksStore.create action + tests
@@ -95,6 +114,22 @@ ab6b1a0 Phase 6 polish: 4 missed × close affordances → IconClose
 ---
 
 ## What's shipped since the 2026-06-26 handoff (additive)
+
+### Trick Library — canonical+overlay split + community sub-tab (shipped 2026-06-28)
+- Spec: `spec/2026-06-28-trick-library-design.md` (commit `3f28d57`). Plan: `docs/superpowers/plans/2026-06-28-trick-library.md` (commit `d2e374c`). 13 implementation commits + cutover handoff (`8833461` through `5d9a314`).
+- **Major data model change** — split trick storage into two layers:
+  - **Canonical (`tricks` table)**: creator-supplied schema (name, tier, category, entry, exit, lr) + `createdBy`/`visibility` + creator-suggested defaults (`defaultAliases`, `defaultTags`, `defaultIcon`, `defaultVideo`). Shared across all adopters; only creator can mutate.
+  - **Per-user overlay (`user_trick_progress` extended)**: each user's `aliases`, `tags`, `mainAlias`, `iconOverride`, `videoOverride`, `nodeX`, `nodeY`, `fav` (plus existing rate/status/last). Isolated per user.
+  - **View merge rule** (`src/domain/mergeTrick.ts`): `Trick` consumed by Vue components is computed from canonical + (optional) overlay. Overlay overrides defaults when non-empty / non-null; canonical fields are always authoritative.
+- **Adoption model = reference (not copy)**. Adoption = existence of an overlay row. First interaction (rate, favorite, customize, explicit "Add" tap from Library) creates the row. Creator's canonical edits propagate to all adopters; per-user overlay isolates personal customizations.
+- **Privacy default**: private on create. `tricksStore.publish(id)` / `unpublish(id)` flips `visibility` for own tricks. Seeded canonical (`createdBy: null`) is always public.
+- **IA — Tricks page sub-tabs**: `/tricks` (My Tricks default) + `/tricks/library` (community browse). Mirrors Sequences umbrella pattern. FAB visible only on My Tricks. Filter button + sort cycle swap per sub-tab.
+- **Library sub-tab UX**: virtual list (`vue-virtual-scroller` v2-beta) + server-side pagination (50/page via Supabase cursor + ilike search) + debounced search (300ms) + tier/category filter sheet. Lazy-load on tab activation. Adopted-state guard hides adopted tricks from the browse.
+- **Dexie v5 migration**: rewrites every canonical row to the new shape; for the signed-in user (best-effort from localStorage), migrates per-user fields into `user_trick_progress` overlay rows. Anonymous users lose customizations during migration (no overlay destination).
+- **Supabase migration applied** to project `tdpetpsexwfblrhwunup`: tricks table has the new canonical columns + dropped per-user; `user_trick_progress` has the new overlay columns; RLS rules enforce `created_by IS NULL OR created_by = auth.uid() OR visibility = 'public'` on SELECT; index for library performance.
+- **New dep**: `vue-virtual-scroller@2.0.0-beta.8` (~10KB gzip, MIT).
+- **`tricksStore` rewrite**: state shape changes to hold canonicals + overlays separately; `tricks` is a computed getter via mergeTrick. All patch actions (toggleFav, updateAliases, updateTags, setMainAlias, updateVideo, updateEmoji, resetProgress, resetTrickSide) now write to overlay. New actions: `publish`, `unpublish`, `adopt`, `unadopt`, `loadLibraryPage`. ~12 new tests; suite 156 → 176.
+- **Out of scope (deferred)**: search-by-creator-profile, popularity sort, moderation/reporting, forking (clone-as-mine), single-user "claim" of pre-auth-created local tricks on first sign-in.
 
 ### Add new trick — critical feature (shipped 2026-06-27)
 - Spec: `spec/2026-06-27-add-new-trick-design.md` (commit `a8f1df7`). Plan: `docs/superpowers/plans/2026-06-27-add-new-trick.md` (commit `0dc561a`). Three implementation commits: `dd08a54` (store + tests), `0fae60d` (sheet component), `dabd5a7` (page wiring).
@@ -324,6 +359,10 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 - DECIDED 2026-06-27 (Phase 5 — sheet enter architecture): All 6 sheets use a **two-layer panel structure**. The outer `.sheet-panel-anim w-full` div carries the class-based enter/leave slide-up via `<Transition name="sheet">` CSS. The inner `.sheet-panel` keeps all existing chrome (`gw-glass-strong`, `max-h-Xdvh`, drag-to-close via inline `transform: translateY(${dragY}px)`, touch handlers, scroll lock). The two layers exist because the inline drag transform on the inner panel would otherwise overwrite the class-based enter transform via CSS specificity (inline > class). Separating concerns makes the slide actually fire. Pattern is the same for every sheet — copy/paste discipline.
 - DECIDED 2026-06-27 (Phase 5.1 — TabBar View Transition): TabBar uses View Transitions API (iOS Safari 18+ / Chrome 111+) with a directional slide based on TAB_ORDER index diff (Home/Tricks/Graph/Sequences = 0/1/2/3). `--vt-direction` CSS variable carries -1/0/+1. Deep links keep VT default (cross-fade) when supported. Reduced-motion + unsupported browsers degrade to instant nav. Wiring: `useViewTransition` composable + TabBar `RouterLink custom` slot click intercept + CSS `@supports (view-transition-name: root)` block. `--vt-direction` resets to 0 in a `finally` block after every TabBar nav so programmatic nav stays neutral.
 - DECIDED 2026-06-27 (Add-new-trick): Tricks page gets a "New trick" FAB matching the Sequences/Graph Apple-glass pill pattern. Tap opens `TrickCreationSheet` (new component using the Phase 5 two-layer sheet pattern). Minimal form: name + tier + category + LR + optional icon + optional first alias. Extended fields (entry/exit/video/multi-aliases/tags) are intentionally deferred to the existing TrickSheet edit flow — the post-save handler closes the create sheet and immediately calls `ui.openSheet(newId)` so the user can fill them in without an extra navigation step. `tricksStore.create()` action throws on empty name and defaults entry/exit to `'2/f'`, status to `'Not Started'`, and all progress fields to null. The post-save → TrickSheet handoff IS the success confirmation (no toast).
+- DECIDED 2026-06-28 (Trick Library — data model): Tricks stored as canonical (catalog row, creator-owned, shared across adopters) + per-user overlay (in `user_trick_progress` extended). Canonical = `id, createdBy, visibility, name, tier, category, entry, exit, lr, defaultAliases, defaultTags, defaultIcon, defaultVideo`. Overlay = `userId, trickId, rate, rateL, rateR, last, status, aliases, tags, mainAlias, iconOverride, videoOverride, nodeX, nodeY, fav`. View merge rule: canonical fields always; overlay arrays override defaults when non-empty; overlay nullables override defaults when non-null; per-user-only fields (mainAlias, fav, nodeX/Y, progress) are overlay-only with no canonical fallback.
+- DECIDED 2026-06-28 (Trick Library — adoption + privacy): Adoption = overlay-row-existence (no separate adoptions table). Creator's canonical edits propagate to all adopters; per-user overlay isolates personalizations. Privacy default = `private` on create; explicit publish toggle in TrickSheet's Library section (visible only when `createdBy === me`). Seeded canonical (`createdBy: null`) is always public. Anonymous users cannot publish or adopt.
+- DECIDED 2026-06-28 (Trick Library — IA): Tricks page is now an umbrella with `My Tricks | Library` sub-tabs (mirrors Sequences pattern). `/tricks` = My Tricks default. `/tricks/library` = Library browse. FAB visible only on My Tricks. Filter button + sort cycle swap per sub-tab. Library sub-tab is lazy-loaded on tab activation (not page mount).
+- DECIDED 2026-06-28 (Trick Library — scale): Library uses server-side cursor pagination (50/page) + debounced ilike name search (300ms) + virtual list via `vue-virtual-scroller` v2-beta (~10KB gzip, MIT). New dep added. Filter chips (tier, category) applied server-side via `.in()` clauses. Postgres GIN index on `to_tsvector('english', name)` provisioned for future full-text upgrade if `ilike` becomes slow.
 
 ---
 
@@ -367,8 +406,13 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at dabd5a7, 6 commits
-ahead of origin (push when ready). 156/156 tests pass, build clean.
+Continue the Glasswork redesign. Branch is main at 5d9a314, 20 commits
+ahead of origin (push when ready). 176/176 tests pass, build clean.
+
+Trick Library just shipped (canonical+overlay split, My Tricks |
+Library sub-tabs, adoption flow). Supabase migration applied. After
+push: verify on live (dev OAuth still broken; library requires sign-in
+to test beyond canonical seed). Document any device issues for follow-up.
 
 READ FIRST (in this order):
 - spec/SESSION-HANDOFF.md  ← single source of truth for current state
