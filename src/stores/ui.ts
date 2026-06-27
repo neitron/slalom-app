@@ -4,6 +4,10 @@ import type { SortKey } from './tricks';
 
 export type Tab = 'tricks' | 'learning' | 'graph' | 'transitions' | 'sequences' | 'settings';
 
+export type SequencesSubTab = 'sequences' | 'transitions'
+export type SequencesSortKey = 'newest' | 'best' | 'worst'
+export type TransitionsSortKey = 'name' | 'best' | 'worst' | 'recent'
+
 export type RateContext = 'trick' | 'transition' | 'sequence';
 export interface FeedbackReport {
   score: 1 | 2 | 3 | 4 | 5;
@@ -33,6 +37,13 @@ export const useUiStore = defineStore('ui', {
     tricksFavOnly: false,
     tricksSearch: '',
     tricksSort: 'name' as SortKey,
+    // Phase 6 R2 — Sequences/Transitions sub-tab state
+    sequencesSubTab: 'sequences' as SequencesSubTab,
+    sequencesSearch: '',
+    sequencesSort: 'newest' as SequencesSortKey,
+    transitionsSearch: '',
+    transitionsSort: 'name' as TransitionsSortKey,
+    transitionsCategory: 'all' as Category | 'all',
     feedback: null as FeedbackReport | null,
     toasts: [] as Toast[],
   }),
@@ -76,6 +87,24 @@ export const useUiStore = defineStore('ui', {
     },
     setTricksSort(v: SortKey): void {
       this.tricksSort = v;
+    },
+    setSequencesSubTab(v: SequencesSubTab): void {
+      this.sequencesSubTab = v;
+    },
+    setSequencesSearch(v: string): void {
+      this.sequencesSearch = v;
+    },
+    setSequencesSort(v: SequencesSortKey): void {
+      this.sequencesSort = v;
+    },
+    setTransitionsSearch(v: string): void {
+      this.transitionsSearch = v;
+    },
+    setTransitionsSort(v: TransitionsSortKey): void {
+      this.transitionsSort = v;
+    },
+    setTransitionsCategory(v: Category | 'all'): void {
+      this.transitionsCategory = v;
     },
     resetTricksFilters(): void {
       this.tricksTiers = [];
