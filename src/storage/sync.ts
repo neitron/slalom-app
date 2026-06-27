@@ -273,21 +273,10 @@ export async function pullAll(): Promise<{
  * Canonical trick fields — these belong in the server `tricks` table.
  * Used to filter outbox payloads that may have the old combined shape.
  */
-const CANONICAL_TRICK_FIELDS = new Set([
-  'id',
-  'created_by',
-  'visibility',
-  'name',
-  'tier',
-  'category',
-  'entry',
-  'exit',
-  'lr',
-  'default_aliases',
-  'default_tags',
-  'default_icon',
-  'default_video',
-]);
+// (CANONICAL_TRICK_FIELDS keyset removed — filterTricksPayloadToCanonical
+//  now uses mapCanonicalTrickToServer for proper camelCase → snake_case
+//  translation. The keyset was assuming snake_case payload keys that
+//  upsertCanonicalTrick never produces.)
 
 /**
  * Filter an outbox tricks payload to canonical-only fields.
@@ -302,15 +291,23 @@ const CANONICAL_TRICK_FIELDS = new Set([
  * unchanged.
  */
 function filterTricksPayloadToCanonical(payload: Record<string, unknown>): Record<string, unknown> {
-  // Check if payload uses new canonical shape (has any default_* key)
-  const hasNewShape = Object.keys(payload).some((k) => k.startsWith('default_') || k === 'created_by' || k === 'visibility');
-  if (hasNewShape) {
-    // New shape — filter to canonical fields only
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(payload)) {
-      if (CANONICAL_TRICK_FIELDS.has(k)) out[k] = v;
-    }
-    return out;
+  // Detect shape:
+  // - **New canonical shape** (what upsertCanonicalTrick enqueues): camelCase keys
+  //   (createdBy, defaultAliases, defaultTags, defaultIcon, defaultVideo, visibility, ...)
+  // - **Old combined shape** (pre-T4 enqueues): aliases / tags / icon / video on the trick row
+  //
+  // Detection: new shape has `createdBy` OR `defaultAliases` (etc); old shape has
+  // `aliases`/`tags` directly on the payload alongside other trick fields.
+  const isNewShape =
+    'createdBy' in payload ||
+    'defaultAliases' in payload ||
+    'defaultTags' in payload ||
+    'defaultIcon' in payload ||
+    'defaultVideo' in payload;
+
+  if (isNewShape) {
+    // Properly translate camelCase → snake_case via the typed mapper.
+    return mapCanonicalTrickToServer(payload as unknown as CanonicalTrick) as unknown as Record<string, unknown>;
   }
 
   // Old combined shape: translate to canonical server columns, drop per-user fields
