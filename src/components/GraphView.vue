@@ -1058,7 +1058,7 @@ function nextSpawnPosition(): { x: number; y: number } {
       </g>
     </svg>
     <div
-      class="absolute right-3 flex flex-col gap-1.5"
+      class="absolute left-3 flex flex-col gap-1.5"
       :style="{
         bottom: 'calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 1.5rem)',
       }"
