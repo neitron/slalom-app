@@ -7,8 +7,9 @@ import type { Trick, TrickStatus } from '../domain/types'
 import { resolveVideoUrl } from '../domain/video'
 import TrickCard from '../components/TrickCard.vue'
 import TricksFilterSheet from '../components/TricksFilterSheet.vue'
+import TrickCreationSheet from '../components/TrickCreationSheet.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
-import { IconFavOn, IconSearch, IconFilter, IconClose } from '../icons'
+import { IconFavOn, IconSearch, IconFilter, IconClose, IconPlus } from '../icons'
 
 const tricksStore = useTricksStore()
 const ui = useUiStore()
@@ -102,6 +103,12 @@ const activeFilterChips = computed<ActiveFilterChip[]>(() => {
 })
 
 const filterSheetOpen = ref(false)
+const creationSheetOpen = ref(false)
+
+function onTrickCreated(id: string): void {
+  creationSheetOpen.value = false
+  ui.openSheet(id)
+}
 
 const filterCount = computed(() =>
   ui.tricksTiers.length +
@@ -249,6 +256,22 @@ function onVideo(t: Trick) {
       :visible="filterSheetOpen"
       @close="filterSheetOpen = false"
     />
+
+    <button
+      type="button"
+      class="fab"
+      aria-label="Create new trick"
+      @click="creationSheetOpen = true"
+    >
+      <IconPlus :size="18" stroke="1.75" />
+      <span>New trick</span>
+    </button>
+
+    <TrickCreationSheet
+      :visible="creationSheetOpen"
+      @close="creationSheetOpen = false"
+      @created="onTrickCreated"
+    />
   </div>
 </template>
 
@@ -274,5 +297,32 @@ function onVideo(t: Trick) {
 }
 .sticky-bar.hidden {
   transform: translateY(calc(-100% - 1rem));
+}
+
+.fab {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 1.5rem);
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.30);
+  z-index: 30;
+  transition: transform var(--motion-g-fast) var(--ease-g-out);
+}
+.fab:active {
+  transform: scale(0.95);
 }
 </style>
