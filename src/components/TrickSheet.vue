@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useTricksStore } from '../stores/tricks'
 import { useUiStore } from '../stores/ui'
+import { useAuthStore } from '../stores/auth'
 import { TIERS } from '../domain/constants'
 import { effectiveRate, statusOf } from '../domain/rating'
 import { resolveVideoUrl } from '../domain/video'
@@ -63,6 +64,7 @@ function onTouchEnd() {
 
 const tricksStore = useTricksStore()
 const uiStore = useUiStore()
+const authStore = useAuthStore()
 
 const trick = computed<Trick | undefined>(() =>
   uiStore.openSheetTrickId ? tricksStore.byId(uiStore.openSheetTrickId) : undefined,
@@ -277,6 +279,27 @@ const detailItems = computed(() => {
     { label: 'Last',     value: t.last       ?? '—', isStatus: false },
   ]
 })
+
+const isOwnTrick = computed(() => {
+  const t = trick.value
+  if (!t) return false
+  return t.createdBy != null && t.createdBy === authStore.currentUserId
+})
+
+const isPublished = computed(() => trick.value?.visibility === 'public')
+
+async function onToggleShare(): Promise<void> {
+  if (!trick.value?.id || !isOwnTrick.value) return
+  try {
+    if (isPublished.value) {
+      await tricksStore.unpublish(trick.value.id)
+    } else {
+      await tricksStore.publish(trick.value.id)
+    }
+  } catch (e) {
+    uiStore.showError((e as Error).message || 'Failed to update sharing')
+  }
+}
 </script>
 
 <template>
@@ -539,6 +562,32 @@ const detailItems = computed(() => {
                 @click="openVideo"
               >Watch</button>
             </div>
+          </section>
+
+          <!-- Library — only visible to the trick's creator -->
+          <section v-if="trick && isOwnTrick" class="mt-4">
+            <h3 class="text-xs uppercase tracking-wide text-muted mb-1.5">Library</h3>
+            <label class="flex items-center justify-between gap-3 cursor-pointer">
+              <span class="text-sm">Share with library</span>
+              <span class="relative inline-flex items-center">
+                <input
+                  :checked="isPublished"
+                  type="checkbox"
+                  class="peer sr-only"
+                  @change="onToggleShare"
+                >
+                <span
+                  class="w-10 h-6 rounded-full transition-colors"
+                  :style="isPublished
+                    ? { background: 'var(--color-g-brand)' }
+                    : { background: 'rgba(255,255,255,0.12)' }"
+                />
+                <span
+                  class="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
+                  :style="isPublished ? { transform: 'translateX(16px)' } : {}"
+                />
+              </span>
+            </label>
           </section>
 
         </div>
