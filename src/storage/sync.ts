@@ -395,6 +395,16 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
     try {
       if (row.op === 'upsert') {
         const serverRow = mapPayloadToServer(row.table, row.payload);
+        // Trick Library RLS: tricks INSERT requires created_by = auth.uid().
+        // Skip + drain canonical tricks with null created_by (anonymous-created
+        // locals or pre-migration seed dupes — they should never go to the
+        // server. Seeds already exist server-side; anonymous locals stay local
+        // until a future "claim" flow assigns them to the signing-in user).
+        if (row.table === 'tricks' && serverRow.created_by == null) {
+          console.info('[sync] skipping anonymous-created trick push', row.payload.id);
+          await removeOutbox(row.id);
+          continue;
+        }
         const { error } = await sb
           .from(row.table)
           .upsert(serverRow, { onConflict: progressConflict(row.table) });
