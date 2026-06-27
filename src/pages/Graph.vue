@@ -16,7 +16,7 @@ import EdgeBubble from '../components/EdgeBubble.vue'
 import LegChooser from '../components/LegChooser.vue'
 import SequenceChain from '../components/SequenceChain.vue'
 import { useSheetViewport } from '../composables/useSheetViewport'
-import { IconClose, IconMoveMode } from '../icons'
+import { IconClose, IconMoveMode, IconRoute } from '../icons'
 
 const saveSheetPanelRef = ref<HTMLElement | null>(null)
 
@@ -301,8 +301,6 @@ function onEdgeBubbleDetails(edgeId: string): void {
   uiStore.openTransition(edgeId)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- T10 FAB will call this
-// @ts-ignore -- referenced by T10 sequence FAB (next task)
 function startSequenceMode(): void {
   sequenceMode.value = true
   sequenceSteps.value = []
@@ -432,6 +430,13 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
         @view-change="onViewChange"
       />
     </div>
+    <button
+      v-if="!sequenceMode"
+      type="button"
+      class="fab"
+      aria-label="Build sequence"
+      @click="startSequenceMode"
+    ><IconRoute :size="22" stroke="1.75" /></button>
 
     <div
       v-if="linkSourceId"
@@ -621,3 +626,24 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.fab {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--tabbar-h, 4rem) + max(env(safe-area-inset-bottom), 0.5rem) + 1.5rem);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-g-brand);
+  color: var(--color-g-base);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 20px rgba(110, 231, 183, 0.45), 0 0 0 1px rgba(110, 231, 183, 0.3);
+  z-index: 30;
+  transition: transform 150ms ease;
+}
+.fab:active {
+  transform: scale(0.95);
+}
+</style>
