@@ -145,53 +145,50 @@ function onVideo(t: Trick) {
   <div class="page-shell">
     <div class="page-aurora gw-aurora-bg-sm" aria-hidden="true" />
 
-    <div
-      class="sticky-bar"
-      :class="{ hidden: stickyHidden }"
-    >
-      <div class="gw-glass px-3 py-2 flex items-center gap-2"
-           :style="{ borderRadius: 'var(--radius-g-panel)' }">
-        <label class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2"
-               :style="{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-g-chip)' }">
-          <IconSearch :size="16" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" aria-hidden="true" />
-          <input
-            :value="ui.tricksSearch"
-            type="search"
-            placeholder="Search…"
-            autocomplete="off"
-            autocapitalize="off"
-            spellcheck="false"
-            class="flex-1 min-w-0 bg-transparent outline-none"
-            :style="{ color: 'var(--color-g-fg)', fontSize: 'var(--text-g-body)' }"
-            @input="ui.setTricksSearch(($event.target as HTMLInputElement).value)"
+    <div class="page-scroll p-3 flex flex-col gap-3">
+      <div
+        class="sticky-bar"
+        :class="{ hidden: stickyHidden }"
+      >
+        <div class="gw-glass px-3 py-2 flex items-center gap-2"
+             :style="{ borderRadius: 'var(--radius-g-panel)' }">
+          <label class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2"
+                 :style="{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-g-chip)' }">
+            <IconSearch :size="16" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" aria-hidden="true" />
+            <input
+              :value="ui.tricksSearch"
+              type="search"
+              placeholder="Search…"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              class="flex-1 min-w-0 bg-transparent outline-none"
+              :style="{ color: 'var(--color-g-fg)', fontSize: 'var(--text-g-body)' }"
+              @input="ui.setTricksSearch(($event.target as HTMLInputElement).value)"
+            >
+          </label>
+          <button
+            type="button"
+            class="shrink-0 px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
+            @click="cycleSort"
+          >{{ SORT_LABEL[ui.tricksSort] }}</button>
+          <button
+            type="button"
+            class="shrink-0 relative w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
+            aria-label="Open filters"
+            @click="filterSheetOpen = true"
           >
-        </label>
-        <button
-          type="button"
-          class="shrink-0 px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
-          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
-          @click="cycleSort"
-        >{{ SORT_LABEL[ui.tricksSort] }}</button>
-        <button
-          type="button"
-          class="shrink-0 relative w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
-          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
-          aria-label="Open filters"
-          @click="filterSheetOpen = true"
-        >
-          <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
-          <span
-            v-if="filterCount > 0"
-            class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
-            :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
-          >{{ filterCount }}</span>
-        </button>
+            <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
+            <span
+              v-if="filterCount > 0"
+              class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
+              :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
+            >{{ filterCount }}</span>
+          </button>
+        </div>
       </div>
-    </div>
-
-    <div class="page-scroll p-3 flex flex-col gap-3" style="padding-top: 0;">
-      <!-- spacer so content begins below the sticky bar on initial paint -->
-      <div aria-hidden="true" style="height: 72px;" />
 
       <div
         v-if="activeFilterChips.length > 0"
@@ -265,12 +262,11 @@ function onVideo(t: Trick) {
 }
 .page-scroll { position: relative; z-index: 1; }
 .sticky-bar {
-  position: fixed;
+  position: sticky;
   top: env(safe-area-inset-top);
-  left: 0.75rem;
-  right: 0.75rem;
   z-index: 20;
   transition: transform 200ms ease;
+  margin: 0 0.75rem;
 }
 .sticky-bar.hidden {
   transform: translateY(calc(-100% - 1rem));
