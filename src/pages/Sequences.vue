@@ -55,9 +55,9 @@ async function onRemove(id: string): Promise<void> {
       </select>
       <button
         type="button"
-        class="px-3 py-1.5 rounded-full text-xs bg-accent text-bg font-semibold"
+        class="px-3 py-1.5 rounded-full text-xs bg-accent text-bg font-semibold flex items-center justify-center gap-1.5"
         @click="generatorOpen = true"
-      ><span class="inline-flex items-center gap-1.5"><IconGenerate :size="16" stroke="1.75" /> Generate</span></button>
+      ><IconGenerate :size="16" stroke="1.75" /> Generate</button>
     </div>
 
     <div

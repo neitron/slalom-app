@@ -99,9 +99,9 @@ const iosBrowserName = computed(() => {
         <span class="flex-1 text-xs text-muted truncate" :title="appUrl">{{ appUrl }}</span>
         <button
           type="button"
-          class="shrink-0 px-2.5 py-1.5 rounded-md border border-border-2 bg-card-2 text-fg text-xs"
+          class="shrink-0 px-2.5 py-1.5 rounded-md border border-border-2 bg-card-2 text-fg text-xs flex items-center justify-center gap-1"
           @click="copyLink"
-        ><span class="inline-flex items-center gap-1"><IconCheck v-if="copied" :size="14" stroke="1.75" />{{ copied ? 'Copied' : 'Copy link' }}</span></button>
+        ><IconCheck v-if="copied" :size="14" stroke="1.75" />{{ copied ? 'Copied' : 'Copy link' }}</button>
       </div>
       <p class="text-[10.5px] text-muted">Use this if you need to open the page in a different browser.</p>
     </section>

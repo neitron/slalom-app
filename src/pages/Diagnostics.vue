@@ -237,14 +237,14 @@ function armImport() {
       <header class="flex items-center gap-2">
         <button
           type="button"
-          class="px-3 py-1.5 gw-glass-strong active:scale-95 transition-transform"
+          class="px-3 py-1.5 gw-glass-strong active:scale-95 transition-transform flex items-center justify-center gap-1"
           :style="{
             borderRadius: 'var(--radius-g-chip)',
             color: 'var(--color-g-fg-muted)',
             fontSize: 'var(--text-g-micro)',
           }"
           @click="router.push('/settings')"
-        ><span class="inline-flex items-center gap-1"><IconBack :size="14" stroke="1.75" /> Settings</span></button>
+        ><IconBack :size="14" stroke="1.75" /> Settings</button>
         <h1 class="text-xl font-semibold flex-1">Diagnostics</h1>
       </header>
 

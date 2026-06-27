@@ -365,9 +365,9 @@ function toggleArr(list: string[], v: string): string[] {
           <h3 class="text-xs uppercase tracking-wide text-muted">Preview</h3>
           <button
             type="button"
-            class="px-2.5 py-1 rounded text-xs border border-border-2 text-fg hover:bg-card-2"
+            class="px-2.5 py-1 rounded text-xs border border-border-2 text-fg hover:bg-card-2 flex items-center justify-center gap-1.5"
             @click="rollNew"
-          ><span class="inline-flex items-center gap-1.5"><IconGenerate :size="16" stroke="1.75" /> Regenerate</span></button>
+          ><IconGenerate :size="16" stroke="1.75" /> Regenerate</button>
         </div>
         <div class="bg-card-2 border border-border-2 rounded-lg p-2 min-h-[2.5rem]">
           <SequenceChain

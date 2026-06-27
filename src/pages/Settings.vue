@@ -335,9 +335,9 @@ async function onSignOut() {
 
     <button
       type="button"
-      class="w-full py-2 rounded-lg border border-border-2 text-muted text-sm hover:text-fg hover:bg-border/40"
+      class="w-full py-2 rounded-lg border border-border-2 text-muted text-sm hover:text-fg hover:bg-border/40 flex items-center justify-center gap-1"
       @click="router.push('/diagnostics')"
-    ><span class="inline-flex items-center gap-1">Diagnostics <IconArrowRight :size="14" stroke="1.75" /></span></button>
+    >Diagnostics <IconArrowRight :size="14" stroke="1.75" /></button>
     </div>
   </div>
 </template>

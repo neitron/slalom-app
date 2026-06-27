@@ -6,7 +6,7 @@ import { CATEGORIES, TIER_NAMES } from '../domain/constants'
 import type { Category, Tier, TrickStatus } from '../domain/types'
 import ChipFilter, { type ChipOption } from './ChipFilter.vue'
 import { useBodyScrollLock } from '../composables/useBodyScrollLock'
-import { IconFavOn } from '../icons'
+import { IconFavOn, IconClose } from '../icons'
 
 type Props = { visible: boolean }
 const props = defineProps<Props>()
@@ -144,7 +144,7 @@ function onResetAll() {
                 :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
                 aria-label="Close filters"
                 @click="emit('close')"
-              >×</button>
+              ><IconClose :size="16" stroke="1.75" /></button>
             </div>
           </header>
 
@@ -171,13 +171,13 @@ function onResetAll() {
               <h3 class="text-xs uppercase tracking-wide" :style="{ color: 'var(--color-g-fg-muted)' }">Favorites only</h3>
               <button
                 type="button"
-                class="px-3 py-1.5 transition-colors"
+                class="px-3 py-1.5 transition-colors flex items-center justify-center gap-1"
                 :class="ui.tricksFavOnly ? 'font-semibold' : 'gw-glass-strong'"
                 :style="ui.tricksFavOnly
                   ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)' }
                   : { color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)' }"
                 @click="ui.setTricksFavOnly(!ui.tricksFavOnly)"
-              ><span class="inline-flex items-center gap-1"><IconFavOn v-if="ui.tricksFavOnly" :size="14" stroke="1.75" />{{ ui.tricksFavOnly ? 'On' : 'Off' }}</span></button>
+              ><IconFavOn v-if="ui.tricksFavOnly" :size="14" stroke="1.75" />{{ ui.tricksFavOnly ? 'On' : 'Off' }}</button>
             </section>
           </div>
 

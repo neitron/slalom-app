@@ -387,21 +387,21 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       <h1 class="text-lg font-semibold flex-1">Graph</h1>
       <RouterLink
         to="/transitions"
-        class="px-3 py-1.5 rounded-full text-xs transition-colors gw-glass-strong"
+        class="px-3 py-1.5 rounded-full text-xs transition-colors gw-glass-strong flex items-center justify-center gap-1"
         :style="{
           color: 'var(--color-g-fg-muted)',
           borderRadius: 'var(--radius-g-chip)',
         }"
-      ><span class="inline-flex items-center gap-1"><IconTransition :size="16" stroke="1.75" /> Transitions</span></RouterLink>
+      ><IconTransition :size="16" stroke="1.75" /> Transitions</RouterLink>
       <button
         type="button"
-        class="px-3 py-1.5 rounded-full text-xs border transition-colors"
+        class="px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center justify-center gap-1"
         :class="moveMode
           ? 'bg-accent text-bg border-accent font-semibold'
           : 'bg-card border-border-2 text-muted hover:text-fg'"
         :aria-pressed="moveMode"
         @click="moveMode = !moveMode"
-      ><span class="inline-flex items-center gap-1"><IconMoveMode :size="14" stroke="1.75" /> Move</span></button>
+      ><IconMoveMode :size="14" stroke="1.75" /> Move</button>
       <button
         type="button"
         class="px-3 py-1.5 rounded-full text-xs border transition-colors"
@@ -457,10 +457,10 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
       <button
         type="button"
         :style="{ color: 'var(--color-g-fg-muted)' }"
-        class="px-1"
+        class="px-1 flex items-center justify-center gap-1"
         aria-label="Cancel linking"
         @click="cancelLinking"
-      ><span class="inline-flex items-center gap-1"><IconClose :size="14" stroke="1.75" /> cancel</span></button>
+      ><IconClose :size="14" stroke="1.75" /> cancel</button>
     </div>
 
     <div
