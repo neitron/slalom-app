@@ -2,12 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTricksStore, type SortKey } from '../stores/tricks'
-import { useUiStore } from '../stores/ui'
+import { useUiStore, type TricksSubTab, type LibrarySortKey } from '../stores/ui'
 import type { Trick, TrickStatus } from '../domain/types'
 import { resolveVideoUrl } from '../domain/video'
 import TrickCard from '../components/TrickCard.vue'
 import TricksFilterSheet from '../components/TricksFilterSheet.vue'
 import TrickCreationSheet from '../components/TrickCreationSheet.vue'
+import LibraryList from '../components/LibraryList.vue'
+import LibraryFilterSheet from '../components/LibraryFilterSheet.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
 import { IconFavOn, IconSearch, IconFilter, IconClose, IconPlus } from '../icons'
 
@@ -18,9 +20,25 @@ const router = useRouter()
 
 onMounted(() => {
   if (!tricksStore.loaded) void tricksStore.load()
+  syncSubTabFromRoute()
   syncStatusFromQuery()
 })
 
+// ─── Sub-tab routing (mirrors Sequences pattern) ───────────────────────────
+watch(() => route.meta.subTab, () => syncSubTabFromRoute())
+
+function syncSubTabFromRoute() {
+  const meta = route.meta.subTab as TricksSubTab | undefined
+  ui.setTricksSubTab(meta === 'library' ? 'library' : 'my-tricks')
+}
+
+function switchSubTab(tab: TricksSubTab) {
+  ui.setTricksSubTab(tab)
+  const target = tab === 'library' ? '/tricks/library' : '/tricks'
+  if (route.path !== target) void router.replace(target)
+}
+
+// ─── ?status= URL sync (My Tricks only) ────────────────────────────────────
 watch(() => route.query.status, () => syncStatusFromQuery())
 
 const STATUS_FROM_QUERY: Record<string, TrickStatus> = {
@@ -62,6 +80,7 @@ watch(() => ui.tricksStatuses.slice(), (next) => {
   }
 }, { deep: true })
 
+// ─── Active filter chips (My Tricks) ───────────────────────────────────────
 interface ActiveFilterChip {
   key: string
   label: string
@@ -102,7 +121,9 @@ const activeFilterChips = computed<ActiveFilterChip[]>(() => {
   return chips
 })
 
+// ─── Sheets ─────────────────────────────────────────────────────────────────
 const filterSheetOpen = ref(false)
+const libraryFilterOpen = ref(false)
 const creationSheetOpen = ref(false)
 
 function onTrickCreated(id: string): void {
@@ -110,20 +131,51 @@ function onTrickCreated(id: string): void {
   ui.openSheet(id)
 }
 
-const filterCount = computed(() =>
-  ui.tricksTiers.length +
-  ui.tricksCategories.length +
-  ui.tricksStatuses.length +
-  (ui.tricksFavOnly ? 1 : 0),
+// ─── Filter count (per sub-tab) ─────────────────────────────────────────────
+const filterCount = computed(() => {
+  if (ui.tricksSubTab === 'my-tricks') {
+    return (
+      ui.tricksTiers.length +
+      ui.tricksCategories.length +
+      ui.tricksStatuses.length +
+      (ui.tricksFavOnly ? 1 : 0)
+    )
+  }
+  return ui.libraryTiers.length + ui.libraryCategories.length
+})
+
+// ─── Sort cycle (per sub-tab) ────────────────────────────────────────────────
+const TRICKS_SORT_CYCLE: SortKey[] = ['name', 'best', 'worst']
+const TRICKS_SORT_LABEL: Record<SortKey, string> = { name: 'Name', best: 'Best', worst: 'Worst' }
+const LIBRARY_SORT_CYCLE: LibrarySortKey[] = ['newest', 'name']
+const LIBRARY_SORT_LABEL: Record<LibrarySortKey, string> = { newest: 'Newest', name: 'Name' }
+
+const sortLabel = computed(() =>
+  ui.tricksSubTab === 'my-tricks'
+    ? TRICKS_SORT_LABEL[ui.tricksSort]
+    : LIBRARY_SORT_LABEL[ui.librarySort],
 )
 
-const SORT_CYCLE: SortKey[] = ['name', 'best', 'worst']
-const SORT_LABEL: Record<SortKey, string> = { name: 'Name', best: 'Best', worst: 'Worst' }
 function cycleSort() {
-  const i = SORT_CYCLE.indexOf(ui.tricksSort)
-  ui.setTricksSort(SORT_CYCLE[(i + 1) % SORT_CYCLE.length])
+  if (ui.tricksSubTab === 'my-tricks') {
+    const i = TRICKS_SORT_CYCLE.indexOf(ui.tricksSort)
+    ui.setTricksSort(TRICKS_SORT_CYCLE[(i + 1) % TRICKS_SORT_CYCLE.length])
+  } else {
+    const i = LIBRARY_SORT_CYCLE.indexOf(ui.librarySort)
+    ui.setLibrarySort(LIBRARY_SORT_CYCLE[(i + 1) % LIBRARY_SORT_CYCLE.length])
+  }
 }
 
+// ─── Search (per sub-tab) ───────────────────────────────────────────────────
+const searchValue = computed(() =>
+  ui.tricksSubTab === 'my-tricks' ? ui.tricksSearch : ui.librarySearch,
+)
+function setSearch(v: string) {
+  if (ui.tricksSubTab === 'my-tricks') ui.setTricksSearch(v)
+  else ui.setLibrarySearch(v)
+}
+
+// ─── My Tricks list ─────────────────────────────────────────────────────────
 const list = computed<Trick[]>(() =>
   tricksStore.filteredAndSorted({
     tiers: ui.tricksTiers,
@@ -153,111 +205,136 @@ function onVideo(t: Trick) {
     <div class="page-aurora gw-aurora-bg-sm" aria-hidden="true" />
 
     <div class="page-scroll p-3 flex flex-col gap-3">
-      <div
-        class="sticky-bar"
-        :class="{ hidden: stickyHidden }"
-      >
-        <div class="gw-glass px-3 py-2 flex items-center gap-2"
-             :style="{ borderRadius: 'var(--radius-g-panel)' }">
-          <label class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2"
-                 :style="{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-g-chip)' }">
-            <IconSearch :size="16" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" aria-hidden="true" />
-            <input
-              :value="ui.tricksSearch"
-              type="search"
-              placeholder="Search…"
-              autocomplete="off"
-              autocapitalize="off"
-              spellcheck="false"
-              class="flex-1 min-w-0 bg-transparent outline-none"
-              :style="{ color: 'var(--color-g-fg)', fontSize: 'var(--text-g-body)' }"
-              @input="ui.setTricksSearch(($event.target as HTMLInputElement).value)"
+      <!-- Sticky top bar: row 1 (collapsible) + row 2 (pinned sub-tabs) -->
+      <div class="sticky-bar">
+        <div class="gw-glass" :style="{ borderRadius: 'var(--radius-g-panel)', padding: '8px 12px' }">
+          <!-- Row 1: search + sort + filter (collapsible) -->
+          <div class="search-row flex items-center gap-2" :class="{ collapsed: stickyHidden }">
+            <label class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2"
+                   :style="{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-g-chip)' }">
+              <IconSearch :size="16" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" aria-hidden="true" />
+              <input
+                :value="searchValue"
+                type="search"
+                placeholder="Search…"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                class="flex-1 min-w-0 bg-transparent outline-none"
+                :style="{ color: 'var(--color-g-fg)', fontSize: 'var(--text-g-body)' }"
+                @input="setSearch(($event.target as HTMLInputElement).value)"
+              >
+            </label>
+            <button
+              type="button"
+              class="shrink-0 px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
+              :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
+              @click="cycleSort"
+            >{{ sortLabel }}</button>
+            <button
+              type="button"
+              class="shrink-0 relative w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
+              :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
+              aria-label="Open filters"
+              @click="ui.tricksSubTab === 'my-tricks' ? filterSheetOpen = true : libraryFilterOpen = true"
             >
-          </label>
-          <button
-            type="button"
-            class="shrink-0 px-3 py-2 active:scale-95 transition-transform gw-glass-strong"
-            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
-            @click="cycleSort"
-          >{{ SORT_LABEL[ui.tricksSort] }}</button>
-          <button
-            type="button"
-            class="shrink-0 relative w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
-            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
-            aria-label="Open filters"
-            @click="filterSheetOpen = true"
-          >
-            <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
-            <span
-              v-if="filterCount > 0"
-              class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
-              :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
-            >{{ filterCount }}</span>
-          </button>
+              <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
+              <span
+                v-if="filterCount > 0"
+                class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
+                :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
+              >{{ filterCount }}</span>
+            </button>
+          </div>
+
+          <!-- Row 2: sub-tabs (always pinned; margin-bottom on .search-row collapses the gap) -->
+          <div class="flex flex-wrap gap-1">
+            <button
+              type="button"
+              class="px-3 py-1.5 transition-colors"
+              :style="ui.tricksSubTab === 'my-tricks'
+                ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
+                : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)' }"
+              @click="switchSubTab('my-tricks')"
+            >My Tricks</button>
+            <button
+              type="button"
+              class="px-3 py-1.5 transition-colors"
+              :style="ui.tricksSubTab === 'library'
+                ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
+                : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)' }"
+              @click="switchSubTab('library')"
+            >Library</button>
+          </div>
         </div>
       </div>
 
-      <div
-        v-if="activeFilterChips.length > 0"
-        class="flex flex-wrap gap-1.5"
-      >
-        <button
-          v-for="chip in activeFilterChips"
-          :key="chip.key"
-          type="button"
-          class="gw-glass-strong flex items-center gap-2 px-3 py-1.5 active:scale-95 transition-transform"
-          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
-          @click="chip.remove"
+      <!-- My Tricks sub-tab content -->
+      <template v-if="ui.tricksSubTab === 'my-tricks'">
+        <div
+          v-if="activeFilterChips.length > 0"
+          class="flex flex-wrap gap-1.5"
         >
-          <IconFavOn v-if="chip.key === 'fav'" :size="12" stroke="1.75" />
-          <span>{{ chip.label }}</span>
-          <IconClose :size="14" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" />
-        </button>
-      </div>
+          <button
+            v-for="chip in activeFilterChips"
+            :key="chip.key"
+            type="button"
+            class="gw-glass-strong flex items-center gap-2 px-3 py-1.5 active:scale-95 transition-transform"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
+            @click="chip.remove"
+          >
+            <IconFavOn v-if="chip.key === 'fav'" :size="12" stroke="1.75" />
+            <span>{{ chip.label }}</span>
+            <IconClose :size="14" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" />
+          </button>
+        </div>
 
-      <div
-        v-if="!tricksStore.loaded"
-        class="text-muted text-sm py-8 text-center"
-      >Loading…</div>
+        <div
+          v-if="!tricksStore.loaded"
+          class="text-muted text-sm py-8 text-center"
+        >Loading…</div>
 
-      <div
-        v-else-if="!list.length && anyFilterActive"
-        class="text-muted text-sm py-8 text-center flex flex-col gap-2 items-center"
-      >
-        <span>No matches — try clearing filters.</span>
-        <button
-          type="button"
-          class="px-3 py-1.5 active:scale-95 transition-transform gw-glass-strong"
-          :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
-          @click="filterSheetOpen = true"
-        >Open filters</button>
-      </div>
+        <div
+          v-else-if="!list.length && anyFilterActive"
+          class="text-muted text-sm py-8 text-center flex flex-col gap-2 items-center"
+        >
+          <span>No matches — try clearing filters.</span>
+          <button
+            type="button"
+            class="px-3 py-1.5 active:scale-95 transition-transform gw-glass-strong"
+            :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
+            @click="filterSheetOpen = true"
+          >Open filters</button>
+        </div>
 
-      <div
-        v-else-if="!list.length"
-        class="text-muted text-sm py-8 text-center"
-      >No tricks yet.</div>
+        <div
+          v-else-if="!list.length"
+          class="text-muted text-sm py-8 text-center"
+        >No tricks yet.</div>
 
-      <div
-        v-else
-        class="grid grid-cols-1 sm:grid-cols-2 gap-2"
-      >
-        <TrickCard
-          v-for="t in list"
-          :key="t.id"
-          :trick="t"
-          @open="onOpen"
-          @video="onVideo"
-        />
-      </div>
+        <div
+          v-else
+          class="grid grid-cols-1 sm:grid-cols-2 gap-2"
+        >
+          <TrickCard
+            v-for="t in list"
+            :key="t.id"
+            :trick="t"
+            @open="onOpen"
+            @video="onVideo"
+          />
+        </div>
+      </template>
+
+      <!-- Library sub-tab content -->
+      <template v-else>
+        <LibraryList />
+      </template>
     </div>
 
-    <TricksFilterSheet
-      :visible="filterSheetOpen"
-      @close="filterSheetOpen = false"
-    />
-
+    <!-- FAB: visible only on My Tricks sub-tab -->
     <button
+      v-if="ui.tricksSubTab === 'my-tricks'"
       type="button"
       class="fab"
       aria-label="Create new trick"
@@ -267,7 +344,18 @@ function onVideo(t: Trick) {
       <span>New trick</span>
     </button>
 
+    <TricksFilterSheet
+      :visible="filterSheetOpen"
+      @close="filterSheetOpen = false"
+    />
+
+    <LibraryFilterSheet
+      :visible="libraryFilterOpen"
+      @close="libraryFilterOpen = false"
+    />
+
     <TrickCreationSheet
+      v-if="ui.tricksSubTab === 'my-tricks'"
       :visible="creationSheetOpen"
       @close="creationSheetOpen = false"
       @created="onTrickCreated"
@@ -284,6 +372,7 @@ function onVideo(t: Trick) {
   pointer-events: none;
 }
 .page-scroll { position: relative; z-index: 1; }
+
 .sticky-bar {
   position: sticky;
   /* App.vue's wrapper paddingTop only affects INITIAL layout. position: sticky
@@ -291,12 +380,26 @@ function onVideo(t: Trick) {
      directly — otherwise the bar slides under the notch on scroll. */
   top: env(safe-area-inset-top);
   z-index: 20;
-  transition: transform var(--motion-g-base) var(--ease-g-out);
   will-change: transform;
+  /* horizontal inset matches Sequences.vue so the sticky-bar feels anchored consistently across pages */
   margin: 0 0.75rem;
 }
-.sticky-bar.hidden {
-  transform: translateY(calc(-100% - 1rem));
+
+.search-row {
+  max-height: 80px;
+  overflow: hidden;
+  opacity: 1;
+  margin-bottom: 8px;
+  transition:
+    max-height var(--motion-g-base) var(--ease-g-out),
+    opacity var(--motion-g-base) var(--ease-g-out),
+    margin-bottom var(--motion-g-base) var(--ease-g-out);
+}
+.search-row.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: 0;
+  pointer-events: none;
 }
 
 .fab {
