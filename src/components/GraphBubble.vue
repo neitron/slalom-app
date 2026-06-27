@@ -158,8 +158,17 @@ function startLink(side: 'L' | 'R' | null) {
 
 <style scoped>
 .gb-enter-active, .gb-leave-active {
-  transition: transform 180ms cubic-bezier(0.18, 1.2, 0.42, 1), opacity 140ms ease;
+  transition:
+    transform var(--motion-g-base) var(--ease-g-spring),
+    opacity var(--motion-g-fast) var(--ease-g-out);
 }
 .gb-enter-from { opacity: 0; transform: translateY(-6px) scale(0.96); }
 .gb-leave-to   { opacity: 0; transform: translateY(-3px) scale(0.98); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-enter-from,
+  .gb-leave-to {
+    transform: none !important;
+  }
+}
 </style>
