@@ -192,6 +192,43 @@ export const useTricksStore = defineStore('tricks', {
       await this.updateTrick({ id, icon });
     },
 
+    async create(input: {
+      name: string
+      tier: Tier
+      category: Category
+      lr: boolean
+      icon?: string | null
+      firstAlias?: string | null
+    }): Promise<string> {
+      const name = input.name.trim()
+      if (!name) throw new Error('Trick name required')
+      const alias = input.firstAlias?.trim()
+      const aliasArr: string[] = alias ? [alias] : []
+      const trick: Trick = {
+        name,
+        tier: input.tier,
+        category: input.category,
+        entry: '2/f',
+        exit: '2/f',
+        lr: input.lr,
+        rate: null,
+        rateL: null,
+        rateR: null,
+        last: null,
+        status: 'Not Started',
+        aliases: aliasArr,
+        mainAlias: null,
+        video: null,
+        icon: input.icon?.trim() || null,
+        tags: [],
+        fav: false,
+      }
+      const id = await upsertTrick(trick)
+      trick.id = id
+      this.tricks = [...this.tricks, trick]
+      return id
+    },
+
     async refresh(id: string): Promise<void> {
       const fresh = await getTrick(id);
       if (fresh) this.replaceLocal(fresh);
