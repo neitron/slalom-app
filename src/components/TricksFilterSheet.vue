@@ -112,19 +112,20 @@ function onResetAll() {
           style="touch-action: none;"
           @click="emit('close')"
         />
-        <div
-          ref="panelRef"
-          class="relative w-full max-h-[85dvh] gw-glass flex flex-col touch-pan-y overscroll-contain"
-          :style="{
-            borderTopLeftRadius: 'var(--radius-g-panel)',
-            borderTopRightRadius: 'var(--radius-g-panel)',
-            transform: `translateY(${dragY}px)`,
-            transition: dragging ? 'none' : 'transform 280ms ease',
-          }"
-          @touchstart.passive="onTouchStart"
-          @touchmove.passive="onTouchMove"
-          @touchend="onTouchEnd"
-        >
+        <div class="sheet-panel-anim w-full">
+          <div
+            ref="panelRef"
+            class="relative w-full max-h-[85dvh] gw-glass flex flex-col touch-pan-y overscroll-contain"
+            :style="{
+              borderTopLeftRadius: 'var(--radius-g-panel)',
+              borderTopRightRadius: 'var(--radius-g-panel)',
+              transform: `translateY(${dragY}px)`,
+              transition: dragging ? 'none' : 'transform var(--motion-g-slow) var(--ease-g-out)',
+            }"
+            @touchstart.passive="onTouchStart"
+            @touchmove.passive="onTouchMove"
+            @touchend="onTouchEnd"
+          >
           <div class="pt-3 pb-1 flex justify-center">
             <div class="w-10 h-1 rounded-full" :style="{ background: 'rgba(255,255,255,0.18)' }" />
           </div>
@@ -189,6 +190,7 @@ function onResetAll() {
               <span :style="{ color: 'var(--color-g-fg)', fontWeight: 600 }">{{ resultCount }}</span> result<span v-if="resultCount !== 1">s</span>
             </p>
           </footer>
+          </div>
         </div>
       </div>
     </Transition>
@@ -197,11 +199,28 @@ function onResetAll() {
 
 <style scoped>
 .sheet-enter-active,
-.sheet-leave-active { transition: opacity 240ms ease; }
-.sheet-enter-active .relative,
-.sheet-leave-active .relative { transition: transform 280ms cubic-bezier(.2, .8, .2, 1), opacity 240ms ease; }
+.sheet-leave-active {
+  transition: opacity var(--motion-g-base) var(--ease-g-out);
+}
+.sheet-enter-active .sheet-panel-anim,
+.sheet-leave-active .sheet-panel-anim {
+  transition:
+    transform var(--motion-g-slow) var(--ease-g-spring),
+    opacity var(--motion-g-base) var(--ease-g-out);
+}
 .sheet-enter-from,
 .sheet-leave-to { opacity: 0; }
-.sheet-enter-from .relative,
-.sheet-leave-to .relative { transform: translateY(100%); }
+.sheet-enter-from .sheet-panel-anim,
+.sheet-leave-to .sheet-panel-anim {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Reduced-motion fallback: kill the slide, keep the fade */
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-from .sheet-panel-anim,
+  .sheet-leave-to .sheet-panel-anim {
+    transform: none !important;
+  }
+}
 </style>
