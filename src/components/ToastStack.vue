@@ -37,7 +37,9 @@ const ui = useUiStore()
 <style scoped>
 .toast-enter-active,
 .toast-leave-active {
-  transition: all 180ms ease;
+  transition:
+    transform var(--motion-g-base) var(--ease-g-out),
+    opacity var(--motion-g-base) var(--ease-g-out);
 }
 .toast-enter-from {
   opacity: 0;
@@ -46,5 +48,12 @@ const ui = useUiStore()
 .toast-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter-from,
+  .toast-leave-to {
+    transform: none !important;
+  }
 }
 </style>

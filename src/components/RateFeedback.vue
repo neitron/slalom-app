@@ -207,12 +207,21 @@ function close() {
 </template>
 
 <style scoped>
-.rf-enter-active, .rf-leave-active { transition: opacity 180ms ease; }
+.rf-enter-active, .rf-leave-active { transition: opacity var(--motion-g-base) var(--ease-g-out); }
 .rf-enter-from, .rf-leave-to { opacity: 0; }
 .rf-enter-active > div,
 .rf-leave-active > div {
-  transition: transform 220ms cubic-bezier(0.18, 1.2, 0.42, 1), opacity 180ms ease;
+  transition:
+    transform var(--motion-g-base) var(--ease-g-spring),
+    opacity var(--motion-g-base) var(--ease-g-out);
 }
 .rf-enter-from > div { opacity: 0; transform: translateY(-12px) scale(0.95); }
 .rf-leave-to   > div { opacity: 0; transform: translateY(-6px)  scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rf-enter-from > div,
+  .rf-leave-to > div {
+    transform: none !important;
+  }
+}
 </style>
