@@ -9,10 +9,12 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `6a4915e`, **14 commits ahead of `origin/main`**
-  — user pushes manually when ready (GH Pages redeploys on every push).
-  Phase 5 (Motion language, foundation pass) fully shipped on top of
-  Phase 6 polish round 2.
+- **Branch**: `main` at `9ceb609`, **5 commits ahead of `origin/main`** —
+  user pushes manually when ready (GH Pages redeploys on every push).
+  Phase 5.1 (TabBar View Transition) shipped on top of Phase 5 foundation.
+  Four Phase 5 follow-ups still deferred (sub-tab VT, RateDots pulse,
+  spring tap-bounce, generator stagger, fibonacci breathing) — each
+  can be picked up as its own small spec.
 - 150/150 tests pass, build clean.
 - Glasswork redesign: **Phases 1, 2, 3a, 3b, 4a, 4b, 4c, 4h, 6 shipped
   + Phase 6 polish rounds 1 & 2 shipped.** Phase 6 polish round 2 also
@@ -27,6 +29,12 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+9ceb609 Phase 5.1: TabBar — intercept tab clicks for directional View Transition
+bdffcc0 Phase 5.1: view-transition CSS — directional slide via --vt-direction
+c96cad6 Phase 5.1: useViewTransition composable
+59ef4e0 Phase 5.1 — TabBar View Transition implementation plan
+2544011 Phase 5.1 — TabBar View Transition design spec
+0b17988 SESSION-HANDOFF: Phase 5 (Motion language, foundation pass) shipped
 6a4915e Phase 5 audit sweep: TabBar + ToastStack + RateFeedback to motion tokens
 5619759 Phase 5: Tricks + Sequences + Graph — token uptake on sticky bars, FABs, mode switcher
 79458c9 Phase 5: GraphBubble + EdgeBubble — motion tokens + reduced-motion fallback
@@ -79,6 +87,14 @@ ab6b1a0 Phase 6 polish: 4 missed × close affordances → IconClose
 ---
 
 ## What's shipped since the 2026-06-26 handoff (additive)
+
+### Phase 5.1 — TabBar View Transition (shipped 2026-06-27)
+- Spec: `spec/2026-06-27-glasswork-phase-5-1-tabbar-view-transition-design.md` (commit `2544011`). Plan: `docs/superpowers/plans/2026-06-27-glasswork-phase-5-1-tabbar-view-transition.md` (commit `59ef4e0`). Three implementation commits: `c96cad6` composable, `bdffcc0` CSS, `9ceb609` TabBar wiring.
+- **`useViewTransition` composable** (`src/composables/useViewTransition.ts`) — wraps `document.startViewTransition` with feature-detect + reduced-motion check. Falls through to plain callback if unsupported.
+- **Directional slide CSS** in `src/style.css` under `@supports (view-transition-name: root)`. `--vt-direction` (-1/0/+1) scales a 24px horizontal slide on `::view-transition-old(root)` and `::view-transition-new(root)`. Direction 0 = pure opacity fade.
+- **TabBar click interception** via `RouterLink custom v-slot` — anchor href / right-click semantics preserved; click intercepted with `@click.prevent` to set `--vt-direction` based on TAB_ORDER index diff, then run navigation through the composable. `--vt-direction` resets to 0 in `finally` so subsequent programmatic navigations get the plain cross-fade default.
+- **Browser support**: iOS Safari 18+ / Chrome 111+. Older browsers degrade to instant nav (no transition). Reduced-motion preference skips the transition entirely.
+- **Out of scope (still deferred from Phase 5)**: sub-tab VT in Sequences (Sequences ↔ Transitions), RateDots tap-to-cycle pulse, spring tap-bounce (vanilla or @vueuse/motion), generator stagger reveal, fibonacci grid breathing.
 
 ### Phase 5 — Motion language, foundation pass (shipped 2026-06-27)
 - Spec: `spec/2026-06-27-glasswork-phase-5-motion-design.md` (commits `3209ef8` + `082e74c` correction). Plan: `docs/superpowers/plans/2026-06-27-glasswork-phase-5-motion.md` (commit `6ed7510`). 12 implementation tasks landed across 11 commits (`26864c4` through `6a4915e`; T9-T11 combined).
@@ -289,6 +305,7 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 - DECIDED 2026-06-27 (Phase 5 — motion vocabulary): Four durations (`--motion-g-fast` 150ms / `--motion-g-base` 240ms / `--motion-g-slow` 320ms / `--motion-g-deliberate` 480ms) + four easings (`--ease-g-out` / `--ease-g-in` / `--ease-g-inout` / `--ease-g-spring`). Defined in `src/design/glasswork.css` alongside the rest of the Glasswork tokens. **Consumers MUST use tokens** — no hard-coded `Xms` / `cubic-bezier(...)` literals in `src/` except `glasswork.css` token definitions and the dev-only `/spec/*` preview pages.
 - DECIDED 2026-06-27 (Phase 5 — reduced-motion strategy): A single `@media (prefers-reduced-motion: reduce)` block in `glasswork.css` collapses all duration tokens to ~100ms (fast → 0.01ms). Consumers get a11y for free by referencing tokens. Components that also use transform-based motion (sheets, bubbles, toasts) declare an additional local `@media (prefers-reduced-motion: reduce)` block that removes the transform via `transform: none !important;` — net effect = fade-only, no slide, no jarring snap.
 - DECIDED 2026-06-27 (Phase 5 — sheet enter architecture): All 6 sheets use a **two-layer panel structure**. The outer `.sheet-panel-anim w-full` div carries the class-based enter/leave slide-up via `<Transition name="sheet">` CSS. The inner `.sheet-panel` keeps all existing chrome (`gw-glass-strong`, `max-h-Xdvh`, drag-to-close via inline `transform: translateY(${dragY}px)`, touch handlers, scroll lock). The two layers exist because the inline drag transform on the inner panel would otherwise overwrite the class-based enter transform via CSS specificity (inline > class). Separating concerns makes the slide actually fire. Pattern is the same for every sheet — copy/paste discipline.
+- DECIDED 2026-06-27 (Phase 5.1 — TabBar View Transition): TabBar uses View Transitions API (iOS Safari 18+ / Chrome 111+) with a directional slide based on TAB_ORDER index diff (Home/Tricks/Graph/Sequences = 0/1/2/3). `--vt-direction` CSS variable carries -1/0/+1. Deep links keep VT default (cross-fade) when supported. Reduced-motion + unsupported browsers degrade to instant nav. Wiring: `useViewTransition` composable + TabBar `RouterLink custom` slot click intercept + CSS `@supports (view-transition-name: root)` block. `--vt-direction` resets to 0 in a `finally` block after every TabBar nav so programmatic nav stays neutral.
 
 ---
 
@@ -332,7 +349,7 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at 6a4915e, 14 commits
+Continue the Glasswork redesign. Branch is main at 9ceb609, 5 commits
 ahead of origin (push when ready). 150/150 tests pass, build clean.
 
 READ FIRST (in this order):
