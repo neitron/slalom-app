@@ -263,9 +263,11 @@ function onVideo(t: Trick) {
 .page-scroll { position: relative; z-index: 1; }
 .sticky-bar {
   position: sticky;
-  top: env(safe-area-inset-top);
+  /* App.vue wrapper already pads by env(safe-area-inset-top); use 0 here to avoid double offset on notched iOS */
+  top: 0;
   z-index: 20;
   transition: transform 200ms ease;
+  will-change: transform;
   margin: 0 0.75rem;
 }
 .sticky-bar.hidden {
