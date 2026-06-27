@@ -4,7 +4,7 @@ import type { Trick } from '../domain/types'
 import { displayName } from '../domain/display'
 import { autosizeIcon } from '../utils/graphemes'
 import RateDots from './RateDots.vue'
-import { IconFavOn } from '../icons'
+import { IconFavOn, IconBrandYoutube } from '../icons'
 
 type Props = {
   trick: Trick
@@ -73,15 +73,7 @@ function onVideoClick(e: MouseEvent) {
         :aria-label="hasVideoLink ? 'Watch tutorial' : 'Search tutorial'"
         @click="onVideoClick"
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z" />
-        </svg>
+        <IconBrandYoutube :size="20" stroke="1.75" />
       </button>
     </div>
 

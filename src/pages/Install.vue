@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { detectPlatform, useInstallPrompt } from '../utils/installPrompt'
-import { IconCheck } from '../icons'
+import { IconCheck, IconShare } from '../icons'
 
 const router = useRouter()
 const platform = ref(detectPlatform())
@@ -157,10 +157,7 @@ const iosBrowserName = computed(() => {
         <li>
           Tap the
           <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-card-2 border border-border-2 text-accent align-middle">
-            <svg width="14" height="16" viewBox="0 0 14 16" fill="none" aria-hidden="true">
-              <path d="M7 1.5v8.5M7 1.5l-2.5 2.5M7 1.5l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 7v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
+            <IconShare :size="16" stroke="1.75" />
             Share
           </span>
           button at the bottom of Safari.

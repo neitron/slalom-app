@@ -6,7 +6,7 @@ import { TIERS } from '../domain/constants'
 import { resolveVideoUrl } from '../domain/video'
 import { useUiStore } from '../stores/ui'
 import RateDots from './RateDots.vue'
-import { IconFavOn } from '../icons'
+import { IconFavOn, IconEye, IconBrandYoutube } from '../icons'
 
 type Props = {
   tricks: Trick[]
@@ -54,10 +54,7 @@ function onVideo(t: Trick, e: MouseEvent) {
       class="sticky z-[5] -mx-2 px-3 py-1.5 bg-fav/15 backdrop-blur border-y border-fav/30 flex items-center gap-2 text-[11px] font-semibold text-fav"
       :style="{ top: 'env(safe-area-inset-top)' }"
     >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
+      <IconEye :size="12" stroke="2" />
       <span class="truncate">Viewing @{{ ownerNickname }} (read-only)</span>
     </div>
 
@@ -103,9 +100,7 @@ function onVideo(t: Trick, e: MouseEvent) {
             :title="t.video ? 'Watch tutorial' : 'Search tutorial'"
             @click="onVideo(t, $event)"
           >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-              <path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z" />
-            </svg>
+            <IconBrandYoutube :size="20" stroke="1.75" />
           </button>
         </div>
         <div class="text-muted text-xs mt-1 truncate">

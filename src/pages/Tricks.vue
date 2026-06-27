@@ -8,7 +8,7 @@ import { resolveVideoUrl } from '../domain/video'
 import TrickCard from '../components/TrickCard.vue'
 import TricksFilterSheet from '../components/TricksFilterSheet.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
-import { IconFavOn } from '../icons'
+import { IconFavOn, IconSearch, IconFilter } from '../icons'
 
 const tricksStore = useTricksStore()
 const ui = useUiStore()
@@ -153,7 +153,7 @@ function onVideo(t: Trick) {
            :style="{ borderRadius: 'var(--radius-g-panel)' }">
         <label class="flex-1 min-w-0 flex items-center gap-2 px-3 py-2"
                :style="{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-g-chip)' }">
-          <span aria-hidden="true" :style="{ color: 'var(--color-g-fg-muted)' }">⌕</span>
+          <IconSearch :size="16" stroke="1.75" :style="{ color: 'var(--color-g-fg-muted)' }" aria-hidden="true" />
           <input
             :value="ui.tricksSearch"
             type="search"
@@ -179,15 +179,7 @@ function onVideo(t: Trick) {
           aria-label="Open filters"
           @click="filterSheetOpen = true"
         >
-          <!-- 3-line slider/filter glyph -->
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <line x1="4" y1="6" x2="20" y2="6"/>
-            <line x1="4" y1="12" x2="20" y2="12"/>
-            <line x1="4" y1="18" x2="20" y2="18"/>
-            <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>
-            <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>
-            <circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>
-          </svg>
+          <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
           <span
             v-if="filterCount > 0"
             class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
