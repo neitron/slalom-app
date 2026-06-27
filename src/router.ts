@@ -46,6 +46,12 @@ const routes: RouteRecordRaw[] = [
           component: () => import('./pages/spec/SelectionOptions.vue'),
           meta: { hideTabs: true },
         } as RouteRecordRaw,
+        {
+          path: '/spec/icons',
+          name: 'spec-icons',
+          component: () => import('./pages/spec/IconsPreview.vue'),
+          meta: { hideTabs: true },
+        } as RouteRecordRaw,
       ]
     : []),
 ]
