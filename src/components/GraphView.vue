@@ -552,6 +552,16 @@ function setupNodeDrag(): void {
       activeId = null;
       if (!id) return;
       if (moved) {
+        // Persist the new position to localStorage BEFORE notifying parent.
+        // Graph.vue's saveCurrentView reads positions from localStorage, so
+        // without this save the dragged position is lost on the next reload.
+        // (Cross-device sync via TrickOverlay.nodeX/nodeY is a follow-up.)
+        saveView({
+          positions: positions.value,
+          tx: tx.value,
+          ty: ty.value,
+          scale: scale.value,
+        });
         emit('nodeDragEnd', id);
       } else {
         const screen = clientFromEvent(event.sourceEvent);
