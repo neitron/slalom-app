@@ -62,54 +62,67 @@ function setCategory(v: string | string[]) {
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="visible"
-      class="fixed inset-0 z-[60] flex items-end"
-      role="dialog"
-      aria-modal="true"
-    >
+    <Transition name="sheet">
       <div
-        class="absolute inset-0 bg-black/60"
-        style="touch-action: none;"
-        @click="emit('close')"
-      />
-      <div
-        ref="panelRef"
-        class="sheet-panel gw-glass-strong relative w-full p-4 pt-2 max-h-[80dvh] overflow-y-auto"
-        :style="{
-          transform: `translateY(${dragY}px)`,
-          transition: dragging ? 'none' : 'transform 0.2s ease-out',
-          borderTopLeftRadius: 'var(--radius-g-panel)',
-          borderTopRightRadius: 'var(--radius-g-panel)',
-        }"
-        @touchstart.passive="onTouchStart"
-        @touchmove.passive="onTouchMove"
-        @touchend="onTouchEnd"
-        @touchcancel="onTouchEnd"
+        v-if="visible"
+        class="fixed inset-0 z-40 flex items-end"
+        role="dialog"
+        aria-modal="true"
       >
-        <div class="flex justify-center pb-2 -mt-1">
-          <div class="w-10 h-1 rounded-full bg-border-2" />
-        </div>
+        <div
+          class="absolute inset-0 bg-black/60"
+          style="touch-action: none;"
+          @click="emit('close')"
+        />
+        <div
+          ref="panelRef"
+          class="sheet-panel gw-glass-strong relative w-full p-4 pt-2 max-h-[80dvh] overflow-y-auto touch-pan-y overscroll-contain"
+          :style="{
+            transform: `translateY(${dragY}px)`,
+            transition: dragging ? 'none' : 'transform 280ms ease',
+            borderTopLeftRadius: 'var(--radius-g-panel)',
+            borderTopRightRadius: 'var(--radius-g-panel)',
+          }"
+          @touchstart.passive="onTouchStart"
+          @touchmove.passive="onTouchMove"
+          @touchend="onTouchEnd"
+          @touchcancel="onTouchEnd"
+        >
+          <div class="flex justify-center pb-2 -mt-1">
+            <div class="w-10 h-1 rounded-full bg-border-2" />
+          </div>
 
-        <div class="flex items-center gap-2 mb-3">
-          <h2 class="text-lg font-semibold flex-1">Filter transitions</h2>
-          <button
-            type="button"
-            class="p-1 text-muted hover:text-fg"
-            aria-label="Close"
-            @click="emit('close')"
-          ><IconClose :size="18" stroke="1.75" /></button>
-        </div>
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-lg font-semibold flex-1">Filter transitions</h2>
+            <button
+              type="button"
+              class="p-1 text-muted hover:text-fg"
+              aria-label="Close"
+              @click="emit('close')"
+            ><IconClose :size="18" stroke="1.75" /></button>
+          </div>
 
-        <section class="mt-2">
-          <h3 class="text-xs uppercase tracking-wide text-muted mb-1.5">Category</h3>
-          <ChipFilter
-            :options="categoryOptions"
-            :model-value="ui.transitionsCategory"
-            @update:model-value="setCategory"
-          />
-        </section>
+          <section class="mt-2">
+            <h3 class="text-xs uppercase tracking-wide text-muted mb-1.5">Category</h3>
+            <ChipFilter
+              :options="categoryOptions"
+              :model-value="ui.transitionsCategory"
+              @update:model-value="setCategory"
+            />
+          </section>
+        </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.sheet-enter-active,
+.sheet-leave-active { transition: opacity 240ms ease; }
+.sheet-enter-active .relative,
+.sheet-leave-active .relative { transition: transform 280ms cubic-bezier(.2, .8, .2, 1), opacity 240ms ease; }
+.sheet-enter-from,
+.sheet-leave-to { opacity: 0; }
+.sheet-enter-from .relative,
+.sheet-leave-to .relative { transform: translateY(100%); }
+</style>
