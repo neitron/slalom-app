@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { gw } from '../design/tokens'
 import { usePreferencesStore } from '../stores/preferences'
 import { defineComponent, h, type PropType } from 'vue'
@@ -17,13 +17,27 @@ const RateRow = defineComponent({
   setup(props) {
     const isLit = (i: number) => props.rate != null && i <= Math.round(props.rate as number)
 
+    // pulseSeq bumps whenever rate changes; embedded in the lit dot's :key so
+    // Vue remounts the dot and the CSS keyframe replays. Skip mount-time
+    // change (rate goes from null → value on first paint shouldn't pulse).
+    const pulseSeq = ref(0)
+    let isFirst = true
+    watch(
+      () => props.rate,
+      () => {
+        if (isFirst) { isFirst = false; return }
+        pulseSeq.value++
+      },
+    )
+
     function renderDot(i: number) {
       const lit = isLit(i)
       if (lit) {
         return h(
           'div',
           {
-            key: `lit-${i}`,
+            key: `lit-${i}-${pulseSeq.value}`,
+            class: 'rd-dot rd-lit',
             style: {
               width: '3px',
               height: '3px',
@@ -74,7 +88,8 @@ const RateRow = defineComponent({
         return h(
           'div',
           {
-            key: `lit-${i}`,
+            key: `lit-${i}-${pulseSeq.value}`,
+            class: 'rd-slash rd-lit',
             style: { ...base, opacity: 1, position: 'relative' },
           },
           [
@@ -112,7 +127,8 @@ const RateRow = defineComponent({
         return h(
           'div',
           {
-            key: `lit-${i}`,
+            key: `lit-${i}-${pulseSeq.value}`,
+            class: 'rd-bar rd-lit',
             style: { ...base, opacity: 1, position: 'relative' },
           },
           [
@@ -221,3 +237,27 @@ function tintFor(side: 'single' | 'l' | 'r'): string {
     </template>
   </div>
 </template>
+
+<!-- NOT scoped — the .rd-* classes are applied inside <RateRow>'s render-fn
+     children, which are deep descendants. Vue's scoped-CSS attribute would
+     not propagate to those, so we use a global block. The class names are
+     prefixed `rd-` to avoid collision. -->
+<style>
+.rd-lit {
+  /* Subtle pulse when a dot transitions to lit. Vue remounts the lit element
+     via a per-render key tied to the rate value, which retriggers this anim. */
+  animation: rd-pulse var(--motion-g-base, 240ms) cubic-bezier(0.32, 0.72, 0, 1);
+  transform-origin: center;
+}
+
+@keyframes rd-pulse {
+  0%   { transform: scale(1.45); opacity: 0.55; }
+  60%  { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-lit { animation: none; }
+}
+</style>
+
