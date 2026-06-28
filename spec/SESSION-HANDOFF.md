@@ -1,4 +1,4 @@
-# Session handoff — 2026-06-28 (autopilot animation pass)
+# Session handoff — 2026-06-28 (autopilot animation pass + device-review round)
 
 Picking up next session: paste the **"Prompt for new session"** at the bottom
 of this file into a fresh `claude` invocation at
@@ -9,9 +9,11 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `40b9c52`, **1 commit ahead of `origin/main`** (AP9
-  fibonacci breathing — push when ready; GH Pages redeploys on push).
-  Everything before AP9 already pushed during the autopilot run.
+- **Branch**: `main` at `06b56f7`, **in sync with `origin/main`** (all pushed).
+- **Post-autopilot device-review round** (commits `feab260`, `d9fbf57`,
+  `f6ec978`, `06b56f7`): fixed three issues the user caught on iOS PWA —
+  live PWA elastic scroll, tiny TabBar ripple, badge crop. See the
+  "Post-autopilot device fixes" section below.
 - **Autopilot animation pass shipped** (commits `1334441` through `40b9c52`):
   filter badge masking fixed, glass-frost compositing pre-warm, TabBar
   selection-morph + iOS touch ripple (slide-VT retired), sub-tab indicator
@@ -47,6 +49,11 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+06b56f7 Filter badge: keep overhang, give .search-row headroom inside its clip
+f6ec978 Filter badge: shift inside button bounds to escape search-row clip [SUPERSEDED by 06b56f7]
+d9fbf57 TabBar ripple: grid-level + scales across the full bar (iOS-native feel)
+feab260 Live PWA fluidity fix: restore iOS rubber-band scroll
+0b70e13 SESSION-HANDOFF: autopilot animation pass + drag-save fix shipped
 40b9c52 Autopilot AP9: Graph — ambient fibonacci breathing on nodes
 0cb13e8 Autopilot AP8: SequenceChain — stagger reveal on chip mount
 863e39a Autopilot AP7: FAB tap-active uses spring overshoot easing
@@ -136,6 +143,13 @@ ab6b1a0 Phase 6 polish: 4 missed × close affordances → IconClose
 ---
 
 ## What's shipped since the 2026-06-26 handoff (additive)
+
+### Post-autopilot device-review fixes (shipped 2026-06-28)
+Three iOS PWA issues the user caught after the autopilot push.
+
+- **Live PWA fluidity / no elastic scroll** (`feab260`): the `@media (display-mode: standalone)` block in `src/style.css` was setting `html, body { overscroll-behavior-y: none }`. That rule **kills iOS PWA rubber-band scroll**, which made the live PWA feel stiff and dead and made every animation feel less dynamic. Dev PWA escaped the bug because `vite-plugin-pwa` doesn't run in dev — no manifest is served, so iOS never enters real standalone mode and the media query never fires. Only the GH-Pages-installed PWA hit it. Removed the rule. The `translateZ(0)` on `.tabbar-fixed` (still present) is what actually keeps the TabBar pinned during overscroll — `overscroll-behavior` was never needed for that and was a regression.
+- **TabBar ripple too small** (`d9fbf57`): the per-tab ripple was clipped to button bounds (`.tab-button { overflow: hidden }` for the indicator pill) and scaled only 14px → 140px — barely a quarter of the bar's width. Rewrote as a single grid-level `<span>` whose position is calculated from `touch.clientX/Y` relative to `.tab-grid` and that scales 20px → 800px (40×) over 600ms with cubic-bezier ease-out. Added `mix-blend-mode: plus-lighter` for a warm additive glow that washes across the bar from the touch point like iOS native tab-press feedback. `.tab-grid` got `overflow: hidden` + `border-radius: inherit` so the ripple respects the bar's rounded shape.
+- **Filter badge clipped** (`06b56f7`, supersedes `f6ec978`): the AP1 fix (wrap button in a `relative` div with the badge as a *sibling outside* the button) didn't actually fix the crop — `backdrop-filter` on `.gw-glass-strong` was a red herring. The **real** clipping context is `.search-row { overflow: hidden }`, which the row needs for its collapse-on-scroll animation. First attempt (`f6ec978`, **superseded**) shifted the badge inside the button bounds to escape the clip — user didn't like the look. Final fix (`06b56f7`) keeps the original overhanging `-top-1 -right-1` badge and gives `.search-row` matching `padding: 5px 5px 0 0` so the row's `overflow:hidden` clip box extends 5px above and right of its content — overhang sits inside the clip region. Max-height bumped 80→88; padding zeros out in `.collapsed` so the animation still goes flat. Applied to Tricks.vue and Sequences.vue.
 
 ### Autopilot animation polish + bugfix pass (shipped 2026-06-28)
 - User left the session for several hours with carte blanche to ship fixes ("do your own chooses"). Nine commits, no spec doc (each commit message is the spec).
@@ -412,8 +426,7 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 
 Phase 5 motion language is *largely* shipped after the autopilot pass. Only small follow-ups remain (generator results-list stagger, optional dead-code cleanup of `useViewTransition` + `--vt-direction` CSS).
 
-1. **Push AP9** (`git push origin main`) so the live PWA gets the fibonacci-breathing graph + earlier autopilot commits land for real device verification.
-2. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
+1. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
 3. **Phase 4g (People + ForeignProfile pages).** Visual coherence sweep.
 4. **Phase 4i (Install + onboarding).** Visual sweep.
 5. **Phase 7 (PWA polish).** App icon, splash, perf budget pass. Best done last.
@@ -450,9 +463,8 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at 40b9c52, 1 commit
-ahead of origin (AP9 fibonacci breathing — push when ready). 176/176
-tests pass, build clean.
+Continue the Glasswork redesign. Branch is main at 06b56f7, in sync
+with origin. 176/176 tests pass, build clean.
 
 Autopilot animation pass shipped (commits 1334441 → 40b9c52, no spec
 doc; the SESSION-HANDOFF "Autopilot animation polish" section is the
@@ -520,10 +532,21 @@ Device smoke tests pending (after push to GH Pages):
 - Sequence-mode bubble min-width on empty state
 - SequenceSheet Glasswork chrome end-to-end
 
+Three iOS-PWA gotchas worth knowing about (caught in device review):
+- DO NOT add `overscroll-behavior-y: none` to html/body inside the
+  @media (display-mode: standalone) block. It kills iOS rubber-band
+  scroll and makes the whole app feel stiff. Sheets manage scroll
+  lock at sheet level; translateZ(0) on .tabbar-fixed pins it
+  during overscroll. Both already in place.
+- Ripples / overlays on TabBar tabs must live on .tab-grid, not on
+  individual .tab-button (.tab-button has overflow:hidden).
+- Filter-button count badge overhangs (-top-1/-right-1). The
+  containing .search-row has overflow:hidden for collapse animation;
+  give the row 5px top+right padding to fit the overhang inside its
+  clip box. NOT a backdrop-filter issue.
+
 Recommended next moves (in order):
-1. Push AP9 so live PWA gets fibonacci breathing + earlier autopilot
-   commits for real-device verification.
-2. Phase 4f (Learning fold-in to Home) — smallest open screen item.
+1. Phase 4f (Learning fold-in to Home) — smallest open screen item.
 3. Phase 4g (People + ForeignProfile pages) — visual coherence sweep.
 4. Phase 4i (Install + onboarding) — visual sweep.
 5. Phase 7 (PWA polish) — app icon, splash, perf budget pass. Last.
