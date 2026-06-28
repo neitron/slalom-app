@@ -863,11 +863,11 @@ function nextSpawnPosition(): { x: number; y: number } {
         </g>
         <g class="slalom-nodes">
           <g
-            v-for="t in graphTricks"
+            v-for="(t, i) in graphTricks"
             :key="t.id"
             class="slalom-node"
             :data-id="t.id"
-            :style="{ cursor: 'pointer' }"
+            :style="{ cursor: 'pointer', '--i': i }"
           >
             <template v-if="t.id && positions[t.id]">
               <!-- S3 selected glow ring (stays unscaled, outside the scale group) -->
@@ -1100,5 +1100,22 @@ function nextSpawnPosition(): { x: number; y: number } {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Ambient breathing: each node fades opacity slightly on an 8s cycle.
+   Per-node delay is golden-ratio offset so phases distribute pseudo-randomly
+   across the canvas — no sync, no visible wave, just gentle liveness. */
+.slalom-node {
+  animation: gw-node-breathe 8s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -1.618s);
+}
+
+@keyframes gw-node-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.92; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slalom-node { animation: none; }
 }
 </style>
