@@ -41,6 +41,13 @@
 
 .sheet-panel {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  /* GPU-promote so backdrop-filter is composited and ready before the sheet
+     animates in — without this, iOS Safari shows the glass briefly as
+     transparent for the first 1–2 frames after mount as the compositor
+     warms up the backdrop blur. */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, backdrop-filter;
 }
 .sheet-panel.kb-open {
   padding-bottom: 0;
@@ -56,7 +63,13 @@
   transition:
     transform var(--motion-g-base) var(--ease-g-out),
     opacity var(--motion-g-base) var(--ease-g-out);
-  will-change: transform;
+  /* Always GPU-composited so backdrop-filter is warm across browser + PWA
+     modes (the @media (display-mode: standalone) block below adds the same
+     forces, but we want eager compositing everywhere — saves the first-paint
+     transparent-glass flash). */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, backdrop-filter;
   overflow: hidden;
 }
 .tabbar-fixed.is-hidden {

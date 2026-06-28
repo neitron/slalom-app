@@ -133,21 +133,24 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
               :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
               @click="cycleSort"
             >{{ sortLabel }}</button>
-            <button
-              v-if="showFilterButton"
-              type="button"
-              class="shrink-0 relative w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
-              :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
-              aria-label="Open filters"
-              @click="transitionsFilterOpen = true"
-            >
-              <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
+            <!-- Wrap so the badge sits OUTSIDE gw-glass-strong's backdrop-filter
+                 clip region (iOS Safari clips children at border-box). -->
+            <div v-if="showFilterButton" class="relative shrink-0">
+              <button
+                type="button"
+                class="w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
+                :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
+                aria-label="Open filters"
+                @click="transitionsFilterOpen = true"
+              >
+                <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
+              </button>
               <span
                 v-if="filterCount > 0"
-                class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
+                class="pointer-events-none absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
                 :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
               >{{ filterCount }}</span>
-            </button>
+            </div>
           </div>
 
           <!-- Row 2: sub-tabs (always pinned; pt-* gap lives on .search-row's margin-bottom so it collapses with the row) -->
