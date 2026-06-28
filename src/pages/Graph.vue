@@ -651,7 +651,8 @@ const sequenceLegStyle = computed<Record<string, string>>(() => {
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.18),
     0 4px 16px rgba(0, 0, 0, 0.30);
   z-index: 30;
-  transition: transform var(--motion-g-fast) var(--ease-g-out);
+  /* Spring overshoot on release for tactile feel. */
+  transition: transform var(--motion-g-fast) var(--ease-g-spring);
 }
 .fab:active {
   transform: scale(0.95);
