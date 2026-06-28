@@ -134,24 +134,24 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
               :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
               @click="cycleSort"
             >{{ sortLabel }}</button>
-            <!-- Wrap so the badge sits OUTSIDE gw-glass-strong's backdrop-filter
-                 clip region (iOS Safari clips children at border-box). -->
-            <div v-if="showFilterButton" class="relative shrink-0">
-              <button
-                type="button"
-                class="w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
-                :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
-                aria-label="Open filters"
-                @click="transitionsFilterOpen = true"
-              >
-                <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
-              </button>
+            <!-- Badge sits INSIDE the button bounds (top-right corner, inset 2px)
+                 so .search-row's overflow:hidden (collapse animation) doesn't
+                 clip it. Overhanging the badge outside caused the corner crop. -->
+            <button
+              v-if="showFilterButton"
+              type="button"
+              class="relative shrink-0 w-9 h-9 grid place-items-center active:scale-95 transition-transform gw-glass-strong"
+              :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)' }"
+              aria-label="Open filters"
+              @click="transitionsFilterOpen = true"
+            >
+              <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
               <span
                 v-if="filterCount > 0"
-                class="pointer-events-none absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
-                :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
+                class="pointer-events-none absolute top-[2px] right-[2px] min-w-[14px] h-[14px] px-1 grid place-items-center rounded-full font-semibold"
+                :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '9px', lineHeight: '1' }"
               >{{ filterCount }}</span>
-            </div>
+            </button>
           </div>
 
           <!-- Row 2: sub-tabs (always pinned; pt-* gap lives on .search-row's margin-bottom so it collapses with the row) -->
