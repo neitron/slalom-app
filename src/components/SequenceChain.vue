@@ -63,7 +63,8 @@ function warnBetween(i: number): boolean {
       :key="c.key"
     >
       <span
-        class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-card-2 border border-border-2 text-xs"
+        class="chain-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-card-2 border border-border-2 text-xs"
+        :style="{ animationDelay: (i * 50) + 'ms' }"
       >
         <span
           v-if="c.icon"
@@ -78,12 +79,41 @@ function warnBetween(i: number): boolean {
       <template v-if="i < chips.length - 1">
         <span
           v-if="warnBetween(i)"
-          class="text-xs font-bold"
+          class="chain-arrow text-xs font-bold"
           style="color: var(--rate-bad)"
           title="No matching learned transition"
+          :style="{ animationDelay: (i * 50 + 25) + 'ms' }"
         >⚠</span>
-        <IconArrowRight :size="14" stroke="1.75" class="text-muted" />
+        <IconArrowRight
+          :size="14"
+          stroke="1.75"
+          class="chain-arrow text-muted"
+          :style="{ animationDelay: (i * 50 + 25) + 'ms' }"
+        />
       </template>
     </template>
   </div>
 </template>
+
+<style scoped>
+.chain-chip {
+  animation: chain-reveal var(--motion-g-base) cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}
+.chain-arrow {
+  animation: chain-arrow-reveal var(--motion-g-fast) var(--ease-g-out) backwards;
+}
+
+@keyframes chain-reveal {
+  from { opacity: 0; transform: translateX(-8px) scale(0.92); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes chain-arrow-reveal {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain-chip,
+  .chain-arrow { animation: none; }
+}
+</style>
