@@ -134,9 +134,10 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
               :style="{ borderRadius: 'var(--radius-g-chip)', color: 'var(--color-g-fg)', fontSize: 'var(--text-g-micro)' }"
               @click="cycleSort"
             >{{ sortLabel }}</button>
-            <!-- Badge sits INSIDE the button bounds (top-right corner, inset 2px)
-                 so .search-row's overflow:hidden (collapse animation) doesn't
-                 clip it. Overhanging the badge outside caused the corner crop. -->
+            <!-- Filter button with overhanging count badge. The .search-row
+                 wrapper has padding-top/right of 5px to give the -top-1/-right-1
+                 badge room inside the row's overflow:hidden clip box (which is
+                 mandatory for the collapse-on-scroll animation). -->
             <button
               v-if="showFilterButton"
               type="button"
@@ -148,8 +149,8 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
               <IconFilter :size="16" stroke="1.75" aria-hidden="true" />
               <span
                 v-if="filterCount > 0"
-                class="pointer-events-none absolute top-[2px] right-[2px] min-w-[14px] h-[14px] px-1 grid place-items-center rounded-full font-semibold"
-                :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '9px', lineHeight: '1' }"
+                class="pointer-events-none absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 grid place-items-center rounded-full font-semibold"
+                :style="{ background: 'var(--color-g-brand)', color: 'var(--color-g-base)', fontSize: '10px' }"
               >{{ filterCount }}</span>
             </button>
           </div>
@@ -244,17 +245,23 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
 }
 
 .search-row {
-  max-height: 80px;
+  max-height: 88px;
+  /* 5px headroom (top + right) so the filter button's overhanging count badge
+     (-top-1/-right-1) isn't clipped by overflow:hidden, which is required for
+     the collapse-on-scroll animation. */
+  padding: 5px 5px 0 0;
   overflow: hidden;
   opacity: 1;
   margin-bottom: 8px;
   transition:
     max-height var(--motion-g-base) var(--ease-g-out),
     opacity var(--motion-g-base) var(--ease-g-out),
-    margin-bottom var(--motion-g-base) var(--ease-g-out);
+    margin-bottom var(--motion-g-base) var(--ease-g-out),
+    padding var(--motion-g-base) var(--ease-g-out);
 }
 .search-row.collapsed {
   max-height: 0;
+  padding: 0;
   opacity: 0;
   margin-bottom: 0;
   pointer-events: none;
