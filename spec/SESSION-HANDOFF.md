@@ -1,4 +1,4 @@
-# Session handoff — 2026-06-28
+# Session handoff — 2026-06-28 (autopilot animation pass)
 
 Picking up next session: paste the **"Prompt for new session"** at the bottom
 of this file into a fresh `claude` invocation at
@@ -9,13 +9,24 @@ recent slalom-app session.
 
 ## State right now
 
-- **Branch**: `main` at `5d9a314`, **20 commits ahead of `origin/main`** —
-  user pushes manually when ready (GH Pages redeploys on every push).
-  **Trick Library** shipped (canonical+overlay data split; `My Tricks |
+- **Branch**: `main` at `40b9c52`, **1 commit ahead of `origin/main`** (AP9
+  fibonacci breathing — push when ready; GH Pages redeploys on push).
+  Everything before AP9 already pushed during the autopilot run.
+- **Autopilot animation pass shipped** (commits `1334441` through `40b9c52`):
+  filter badge masking fixed, glass-frost compositing pre-warm, TabBar
+  selection-morph + iOS touch ripple (slide-VT retired), sub-tab indicator
+  morph extracted as `SubTabSwitcher`, RateDots pulse, FAB spring
+  tap-active, SequenceChain stagger reveal, Graph fibonacci breathing.
+  Most of the previously-deferred Phase 5 motion follow-ups are now in.
+- **Trick Library** shipped (canonical+overlay data split; `My Tricks |
   Library` sub-tabs; per-user customization isolation; community
-  adoption flow). Supabase migration applied. Add-new-trick + Phase 5.1
-  (TabBar VT) + Phase 5 (motion foundation) all shipped earlier in this
-  session. Four Phase 5 follow-ups still deferred.
+  adoption flow). Supabase migration applied. Two hotfixes after live
+  testing (camelCase outbox mapping + RLS-safe null-creator skip).
+- Add-new-trick + Phase 5.1 (TabBar VT, **later replaced by AP3 morph**) +
+  Phase 5 (motion foundation) all shipped earlier in this session.
+- **Node positions now save on drag** (commit `dfb5c99`) — pre-existing
+  bug where `saveCurrentView` read stale positions from `loadView()`
+  instead of GraphView's live state. GraphView now self-saves on drag-end.
 - 176/176 tests pass, build clean.
 - **OAuth bug on dev still open** — Supabase auth provider redirect URIs
   are configured for prod only. Dev sign-in fails after the Google
@@ -36,6 +47,17 @@ recent slalom-app session.
 ## Recent commits worth scanning (most recent first)
 
 ```
+40b9c52 Autopilot AP9: Graph — ambient fibonacci breathing on nodes
+0cb13e8 Autopilot AP8: SequenceChain — stagger reveal on chip mount
+863e39a Autopilot AP7: FAB tap-active uses spring overshoot easing
+d65a858 Autopilot AP6: RateDots — pulse animation when rate changes
+256c009 Autopilot AP5: sub-tab indicator morph (Sequences + Tricks umbrellas)
+6acb68d Autopilot AP3+AP4: TabBar — indicator morph + touch ripple, drop slide-VT
+1334441 Autopilot AP1+AP2: filter badge unmasked + glass-frost compositing pre-warm
+dfb5c99 Graph: persist node positions on drag end (was silently dropped)
+abb07bb Trick Library hotfix #2: outbox tricks push — use camelCase→snake_case mapper
+b7cdc51 Trick Library hotfix: outbox skips canonical-trick pushes with null created_by
+db112c1 SESSION-HANDOFF: Trick Library shipped + Supabase migration applied
 5d9a314 Trick Library T14: sync.ts — new mapping fns + canonical/overlay-aware push/pull
 42453e5 Trick Library T12: TrickSheet — Share-with-library toggle
 8e455f3 Trick Library T11: Tricks.vue umbrella + sub-tabs
@@ -114,6 +136,20 @@ ab6b1a0 Phase 6 polish: 4 missed × close affordances → IconClose
 ---
 
 ## What's shipped since the 2026-06-26 handoff (additive)
+
+### Autopilot animation polish + bugfix pass (shipped 2026-06-28)
+- User left the session for several hours with carte blanche to ship fixes ("do your own chooses"). Nine commits, no spec doc (each commit message is the spec).
+- **AP1 — Filter badge masking** (`1334441`): badge corner was clipped on Tricks/Sequences pages. Root cause: `backdrop-filter` on `.gw-glass-strong` implicitly clips children at border-box on iOS Safari, even with `overflow: visible`. Fix: wrap the filter button in `<div class="relative shrink-0">` and render the badge as a *sibling* of the button (not a child), positioned absolutely. Sibling sits outside the backdrop-filter clip stack.
+- **AP2 — Glass-frost compositing pre-warm** (`1334441`): sheets and TabBar showed 1-2 frames of transparency before `backdrop-filter` engaged on iOS Safari. Fix: added `transform: translateZ(0); will-change: transform, backdrop-filter;` to `.sheet-panel` and `.tabbar-fixed` in `src/style.css` — promotes elements to a GPU layer eagerly so the compositor has the backdrop primed before paint.
+- **AP3 — TabBar selection morph** (`6acb68d`, replaces Phase 5.1): the View Transitions API page-slide jittered on iOS PWA. Replaced with an absolute-positioned indicator pill that morphs between tab slots via CSS `left` + `transform`. `left: calc(0.25rem + var(--active-idx, 0) * (((100% - 1.25rem) / 4) + 0.25rem))`. Apple's tab-switch curve `cubic-bezier(0.32, 0.72, 0, 1)` over `--motion-g-base`. `--active-idx` updates on route change. `useViewTransition` composable is now unused (kept in tree for future use, but `useViewTransition.ts` is no longer imported). The slide-VT CSS in `src/style.css` is dormant — `@supports (view-transition-name: root)` block still present but nothing triggers it. Can be deleted in a future cleanup.
+- **AP4 — TabBar touch ripple** (`6acb68d`): on tap, a radial-gradient pseudo-element expands from the touch position (`pointerdown.clientX/Y` translated to button-local coords via `getBoundingClientRect`) over `--motion-g-base` then fades. Stored in `--ripple-x` / `--ripple-y` / `--ripple-seq` CSS vars; the seq counter is in the pseudo-element's `animation-name` so consecutive taps replay the animation.
+- **AP5 — Sub-tab indicator morph** (`256c009`): extracted reusable `SubTabSwitcher.vue` component. API: `{ tabs: [{ label, value }], value, @update:value }`. Same indicator-morph pattern as TabBar, parameterized via `--active-idx` + `--tab-count`. Adopted by `Sequences.vue` (Sequences | Transitions) and `Tricks.vue` (My Tricks | Library) umbrellas. The two pages previously had inline ad-hoc sub-tab markup.
+- **AP6 — RateDots pulse** (`d65a858`): when a rate changes, the lit dots scale-pulse (1.45 → 0.95 → 1.0) via `rd-pulse` keyframe over `--motion-g-base`. Mechanism: `pulseSeq` ref bumps on every `watch(props.rate)` (skipping the first fire to avoid mount-time triggers); seq is embedded in the lit-dot `:key` so Vue remounts the element and the animation replays. Lives in `<RateRow>`'s render-fn children, so the `<style>` block must be **non-scoped** (deep-descendant problem). Reduced-motion disables the animation.
+- **AP7 — FAB spring tap-active** (`863e39a`): `<button>:active` on Sequences/Graph/Tricks FABs uses `var(--ease-g-spring)` (1.2-amplitude overshoot) on the transform transition. Tap → quick scale-down 0.94 → release → spring-back through 1.04 → 1.0. Tactile without being theatrical.
+- **AP8 — SequenceChain stagger reveal** (`0cb13e8`): chips mount with a 50ms-per-index `animation-delay` cascade. Chip animation: `chain-reveal` keyframe `translateX(-8px) scale(0.92) → 0/1` over `--motion-g-base`. Arrows fade in 25ms after the chip on each side. `animation-fill-mode: backwards` so initial state pre-renders during the delay. Applied on every chain mount (sequence preview, SequenceSheet, etc.) — feels like the chain assembles itself when opened.
+- **AP9 — Graph ambient breathing** (`40b9c52`): every graph node fades opacity (1 ↔ 0.92) over an 8s cycle. Per-node `animation-delay` is `calc(var(--i, 0) * -1.618s)` (golden-ratio offset, negative so each node starts mid-cycle without waiting). Phases distribute pseudo-randomly across the canvas — no visible wave, no sync, just gentle liveness. `--i` is set inline per-node via the v-for index. Respects `prefers-reduced-motion`.
+- **Node-positions-not-saving bug fix** (`dfb5c99`, pre-autopilot): `Graph.vue:saveCurrentView` was reading positions from `loadView()` (which returns the stale persisted snapshot) instead of GraphView's live in-memory state. After a drag, the persisted positions never updated. Fix: GraphView's drag-end handler now calls `saveView({ positions, tx, ty, scale })` itself before emitting `nodeDragEnd` (it already owns the live positions). Eliminates one layer of indirection.
+- **Phase 5 motion-follow-up status update**: AP3 (TabBar VT replacement), AP6 (RateDots pulse), AP7 (spring tap-bounce), AP8 (generator-adjacent stagger via SequenceChain), AP9 (fibonacci breathing) all SHIPPED. Still deferred: spring-physics library (none added — vanilla CSS sufficed), real generator-output stagger (separate from SequenceChain — the generator results list itself).
 
 ### Trick Library — canonical+overlay split + community sub-tab (shipped 2026-06-28)
 - Spec: `spec/2026-06-28-trick-library-design.md` (commit `3f28d57`). Plan: `docs/superpowers/plans/2026-06-28-trick-library.md` (commit `d2e374c`). 13 implementation commits + cutover handoff (`8833461` through `5d9a314`).
@@ -266,10 +302,16 @@ Components re-skinned, pages not redesigned.
 ### Phase 4i — Install + onboarding
 Visual sweep not done.
 
-### Phase 5 — Motion language
-Spring physics presets, View Transitions API, sheet choreography,
-generator stagger, fibonacci grid breathing animation, tap-to-cycle
-pulse on RateDots — all with `prefers-reduced-motion: reduce` paths.
+### Phase 5 — Motion language (mostly done after autopilot pass)
+Foundation (tokens + reduced-motion + sheet choreography) shipped earlier.
+Autopilot pass shipped: TabBar selection morph + iOS touch ripple,
+sub-tab indicator morph (SubTabSwitcher), RateDots pulse, FAB spring
+tap-active, SequenceChain stagger, Graph fibonacci breathing.
+**Still deferred**: generator results-list stagger reveal (the chips inside
+the generator output list itself, distinct from SequenceChain); any
+spring-physics library (vanilla CSS has covered every site so far);
+deletion or repurposing of the now-dormant `useViewTransition`
+composable + `--vt-direction` CSS block.
 
 ### Phase 7 — PWA polish
 App icons at all sizes, iOS PWA splash images, theme-color + viewport
@@ -368,13 +410,15 @@ refinements, install funnel polish, final iOS Safari perf budget pass.
 
 ## Recommended next moves
 
-Phase 5 (foundation pass) is shipped. The motion follow-ups (spring physics, View Transitions API, generator stagger, fibonacci breathing, RateDots pulse) remain deferred — pick up individually as needed.
+Phase 5 motion language is *largely* shipped after the autopilot pass. Only small follow-ups remain (generator results-list stagger, optional dead-code cleanup of `useViewTransition` + `--vt-direction` CSS).
 
-1. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
-2. **Phase 4g (People + ForeignProfile pages).** Visual coherence sweep.
-3. **Phase 4i (Install + onboarding).** Visual sweep.
-4. **Phase 7 (PWA polish).** App icon, splash, perf budget pass. Best done last.
-5. **Phase 5 follow-ups** (any subset, in any order): spring physics, View Transitions for sub-tab/route changes, generator stagger, fibonacci breathing, RateDots pulse.
+1. **Push AP9** (`git push origin main`) so the live PWA gets the fibonacci-breathing graph + earlier autopilot commits land for real device verification.
+2. **Phase 4f (Learning fold-in to Home).** Smallest open screen-level item; depends on 4a, which is shipped.
+3. **Phase 4g (People + ForeignProfile pages).** Visual coherence sweep.
+4. **Phase 4i (Install + onboarding).** Visual sweep.
+5. **Phase 7 (PWA polish).** App icon, splash, perf budget pass. Best done last.
+6. **OAuth-on-dev fix.** Add localhost origins to Supabase Authentication → URL Configuration. Small standalone item; unblocks dev-side Library testing.
+7. **Dead-code cleanup**: delete `src/composables/useViewTransition.ts` and the `@supports (view-transition-name: root)` block in `src/style.css` if no future plan needs them. Currently dormant after AP3 replaced them with the indicator-morph approach.
 
 ## Device smoke-test queue (verify after pushing R2)
 
@@ -406,13 +450,26 @@ After `git push origin main` (deploys to GH Pages), eyeball these on the iOS PWA
 Paste this into a fresh `claude` invocation:
 
 ```
-Continue the Glasswork redesign. Branch is main at 5d9a314, 20 commits
-ahead of origin (push when ready). 176/176 tests pass, build clean.
+Continue the Glasswork redesign. Branch is main at 40b9c52, 1 commit
+ahead of origin (AP9 fibonacci breathing — push when ready). 176/176
+tests pass, build clean.
 
-Trick Library just shipped (canonical+overlay split, My Tricks |
-Library sub-tabs, adoption flow). Supabase migration applied. After
-push: verify on live (dev OAuth still broken; library requires sign-in
-to test beyond canonical seed). Document any device issues for follow-up.
+Autopilot animation pass shipped (commits 1334441 → 40b9c52, no spec
+doc; the SESSION-HANDOFF "Autopilot animation polish" section is the
+spec): badge unmask, glass-frost pre-warm, TabBar indicator morph +
+touch ripple (replaces slide-VT), SubTabSwitcher, RateDots pulse, FAB
+spring tap-active, SequenceChain stagger, Graph fibonacci breathing.
+
+Trick Library shipped earlier this session (canonical+overlay split,
+My Tricks | Library sub-tabs, adoption flow). Supabase migration
+applied. Two hotfixes after live testing (camelCase outbox mapping +
+RLS-safe null-creator skip). After push: verify on live (dev OAuth
+still broken; library requires sign-in to test beyond canonical seed).
+Document any device issues for follow-up.
+
+Node positions now save on drag (was a pre-existing silent bug —
+saveCurrentView read stale persisted state instead of GraphView's
+live in-memory positions).
 
 READ FIRST (in this order):
 - spec/SESSION-HANDOFF.md  ← single source of truth for current state
@@ -464,12 +521,15 @@ Device smoke tests pending (after push to GH Pages):
 - SequenceSheet Glasswork chrome end-to-end
 
 Recommended next moves (in order):
-1. Phase 5 (motion language) — spring physics, View Transitions,
-   sheet choreography, generator stagger, reduced-motion paths.
+1. Push AP9 so live PWA gets fibonacci breathing + earlier autopilot
+   commits for real-device verification.
 2. Phase 4f (Learning fold-in to Home) — smallest open screen item.
 3. Phase 4g (People + ForeignProfile pages) — visual coherence sweep.
 4. Phase 4i (Install + onboarding) — visual sweep.
 5. Phase 7 (PWA polish) — app icon, splash, perf budget pass. Last.
+6. Fix OAuth-on-dev (Supabase redirect URIs).
+7. Optional cleanup: delete dormant useViewTransition composable + the
+   --vt-direction CSS block (replaced by AP3 indicator morph).
 
 What I want to do this session: [ describe the phase or specific issue ]
 ```
