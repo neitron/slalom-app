@@ -96,9 +96,14 @@
 }
 
 @media (display-mode: standalone), (display-mode: fullscreen) {
-  html, body {
-    overscroll-behavior-y: none;
-  }
+  /* NOTE: do NOT set `overscroll-behavior-y: none` on html/body here.
+     That rule kills iOS PWA rubber-band scroll — the page stops elastic-
+     bouncing at top/bottom and the whole app starts feeling stiff and
+     dead. Sheets handle their OWN scroll lock at sheet level. The
+     translateZ(0) on .tabbar-fixed below is what keeps the TabBar
+     pinned during overscroll — overscroll-behavior was never needed
+     for that and was a regression. */
+
   /* GPU-composite the fixed TabBar so iOS keeps it pinned during
      rubber-band overscroll instead of letting it follow the scroll. */
   .tabbar-fixed {
