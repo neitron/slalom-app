@@ -10,6 +10,7 @@ import TricksFilterSheet from '../components/TricksFilterSheet.vue'
 import TrickCreationSheet from '../components/TrickCreationSheet.vue'
 import LibraryList from '../components/LibraryList.vue'
 import LibraryFilterSheet from '../components/LibraryFilterSheet.vue'
+import SubTabSwitcher from '../components/SubTabSwitcher.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
 import { IconFavOn, IconSearch, IconFilter, IconClose, IconPlus } from '../icons'
 
@@ -255,24 +256,14 @@ function onVideo(t: Trick) {
           </div>
 
           <!-- Row 2: sub-tabs (always pinned; margin-bottom on .search-row collapses the gap) -->
-          <div class="flex flex-wrap gap-1">
-            <button
-              type="button"
-              class="px-3 py-1.5 transition-colors"
-              :style="ui.tricksSubTab === 'my-tricks'
-                ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
-                : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)' }"
-              @click="switchSubTab('my-tricks')"
-            >My Tricks</button>
-            <button
-              type="button"
-              class="px-3 py-1.5 transition-colors"
-              :style="ui.tricksSubTab === 'library'
-                ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
-                : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)' }"
-              @click="switchSubTab('library')"
-            >Library</button>
-          </div>
+          <SubTabSwitcher
+            :tabs="[
+              { label: 'My Tricks', value: 'my-tricks' },
+              { label: 'Library', value: 'library' },
+            ]"
+            :value="ui.tricksSubTab"
+            @update:value="(v) => switchSubTab(v as TricksSubTab)"
+          />
         </div>
       </div>
 

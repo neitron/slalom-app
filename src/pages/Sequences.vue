@@ -10,6 +10,7 @@ import SequenceCard from '../components/SequenceCard.vue'
 import GeneratorSheet from '../components/GeneratorSheet.vue'
 import TransitionsList from '../components/TransitionsList.vue'
 import TransitionsFilterSheet from '../components/TransitionsFilterSheet.vue'
+import SubTabSwitcher from '../components/SubTabSwitcher.vue'
 import { useScrollDirection } from '../composables/useScrollDirection'
 import { IconSearch, IconFilter, IconGenerate } from '../icons'
 
@@ -154,24 +155,14 @@ const { hidden: stickyHidden } = useScrollDirection({ threshold: 8 })
           </div>
 
           <!-- Row 2: sub-tabs (always pinned; pt-* gap lives on .search-row's margin-bottom so it collapses with the row) -->
-          <div class="flex flex-wrap gap-1">
-            <button
-              type="button"
-              class="px-3 py-1.5 transition-colors"
-              :style="ui.sequencesSubTab === 'sequences'
-                ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
-                : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)' }"
-              @click="switchSubTab('sequences')"
-            >Sequences</button>
-            <button
-              type="button"
-              class="px-3 py-1.5 transition-colors"
-              :style="ui.sequencesSubTab === 'transitions'
-                ? { background: 'var(--color-g-fg)', color: 'var(--color-g-base)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)', fontWeight: 600 }
-                : { background: 'rgba(255,255,255,0.04)', color: 'var(--color-g-fg-muted)', borderRadius: 'var(--radius-g-chip)', fontSize: 'var(--text-g-micro)' }"
-              @click="switchSubTab('transitions')"
-            >Transitions</button>
-          </div>
+          <SubTabSwitcher
+            :tabs="[
+              { label: 'Sequences', value: 'sequences' },
+              { label: 'Transitions', value: 'transitions' },
+            ]"
+            :value="ui.sequencesSubTab"
+            @update:value="(v) => switchSubTab(v as SequencesSubTab)"
+          />
         </div>
       </div>
 
