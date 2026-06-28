@@ -60,20 +60,24 @@ function isActive(to: string): boolean {
 }
 
 /**
- * Touch-position ripple — keyed per tab so re-tapping the same tab restarts
- * the animation (Vue re-renders the <span> when `key` changes).
+ * Touch-position ripple — single grid-level ripple positioned from the touch
+ * point relative to .tab-grid (NOT the tab button). Scales large enough to
+ * propagate across the full bar like iOS native. Re-keyed per tap to restart.
  */
 interface RippleState { x: number; y: number; key: number }
-const ripples = ref<Record<number, RippleState>>({})
+const ripple = ref<RippleState | null>(null)
 let rippleSeq = 0
+const gridRef = ref<HTMLElement | null>(null)
 
-function onTouchStart(idx: number, e: TouchEvent): void {
+function onTouchStart(_idx: number, e: TouchEvent): void {
   const touch = e.touches[0]
-  if (!touch) return
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  ripples.value = {
-    ...ripples.value,
-    [idx]: { x: touch.clientX - rect.left, y: touch.clientY - rect.top, key: ++rippleSeq },
+  const grid = gridRef.value
+  if (!touch || !grid) return
+  const rect = grid.getBoundingClientRect()
+  ripple.value = {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top,
+    key: ++rippleSeq,
   }
 }
 
@@ -99,11 +103,20 @@ async function onTabClick(
       role="tablist"
       aria-label="Primary navigation"
     >
-      <div class="tab-grid">
+      <div class="tab-grid" ref="gridRef">
         <!-- Morphing selection pill — absolute, sits BEHIND tab buttons. -->
         <span
           class="tab-indicator"
           :style="{ borderRadius: indicatorRadius }"
+          aria-hidden="true"
+        />
+        <!-- Grid-level touch ripple. Spans the full bar width; re-keyed to replay.
+             Painted after the indicator so it washes over the active pill too. -->
+        <span
+          v-if="ripple"
+          :key="ripple.key"
+          class="tab-ripple"
+          :style="{ left: ripple.x + 'px', top: ripple.y + 'px' }"
           aria-hidden="true"
         />
 
@@ -123,14 +136,6 @@ async function onTabClick(
             @click.prevent="onTabClick(navigate)"
             @touchstart.passive="onTouchStart(idx, $event)"
           >
-            <!-- Touch ripple from tap position (re-keyed per tap to restart anim). -->
-            <span
-              v-if="ripples[idx]"
-              :key="ripples[idx].key"
-              class="tab-ripple"
-              :style="{ left: ripples[idx].x + 'px', top: ripples[idx].y + 'px' }"
-              aria-hidden="true"
-            />
             <svg
               width="22"
               height="22"
@@ -178,13 +183,16 @@ async function onTabClick(
 </template>
 
 <style scoped>
-/* Grid container — relative so the indicator can absolute-position over its cells. */
+/* Grid container — relative so the indicator can absolute-position over its cells.
+   overflow: hidden contains the ripple within the bar's rounded shape. */
 .tab-grid {
   position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.25rem;
   padding: 0.25rem;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 /* Morphing selection pill. Slides horizontally between tab cells.
@@ -257,25 +265,33 @@ async function onTabClick(
   border-radius: 50%;
 }
 
-/* Touch-position light ripple. Subtle, fades quickly. */
+/* Grid-level touch ripple. Starts at touch position and expands to cover the
+   whole bar — mimics iOS native tab-press feedback. Pointer-events off so the
+   ripple never eats taps. z-index above the indicator so the wash is visible
+   over the active-tab pill too. */
 .tab-ripple {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.45) 0%,
-    rgba(255, 255, 255, 0) 70%
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.25) 35%,
+    rgba(255, 255, 255, 0) 75%
   );
   pointer-events: none;
-  transform: translate(-50%, -50%);
-  animation: tab-ripple-out 520ms ease-out forwards;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0.85;
+  z-index: 1;
+  animation: tab-ripple-out 600ms cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+  mix-blend-mode: plus-lighter;
 }
 
 @keyframes tab-ripple-out {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-  100% { transform: translate(-50%, -50%) scale(10); opacity: 0; }
+  0%   { transform: translate(-50%, -50%) scale(1);  opacity: 0.85; }
+  60%  { opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(40); opacity: 0; }
 }
 
 .tabbar-active {
