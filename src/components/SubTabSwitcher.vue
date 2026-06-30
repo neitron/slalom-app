@@ -57,31 +57,28 @@ function onClick(v: string): void {
   background: rgba(255, 255, 255, 0.04);
 }
 
-/* Morphing selection pill. Math mirrors TabBar (padding 3px ≈ 0.1875rem,
-   gap 0.25rem). Per-tab width = (100% - 2*padding - (n-1)*gap) / n. */
+/* Morphing selection pill. Math mirrors TabBar (padding 3px, gap 0.25rem).
+   Per-tab width = (100% - 2*padding - (n-1)*gap) / n.
+   Pinned at leftmost slot via `left`; per-slot stepping is transform-only
+   so the morph runs on the compositor (no layout). translateX(100%) shifts
+   by the indicator's own width (= per-tab width). */
 .sub-tab-indicator {
   position: absolute;
   top: 3px;
   bottom: 3px;
+  left: 3px;
   width: calc((100% - 6px - (var(--tab-count, 2) - 1) * 0.25rem) / var(--tab-count, 2));
-  left: calc(
-    3px + var(--active-idx, 0) * (
-      ((100% - 6px - (var(--tab-count, 2) - 1) * 0.25rem) / var(--tab-count, 2))
-      + 0.25rem
-    )
-  );
   background: var(--color-g-fg);
   border-radius: var(--radius-g-chip);
   z-index: 0;
-  transition:
-    left var(--motion-g-slow) cubic-bezier(0.32, 0.72, 0, 1),
-    transform var(--motion-g-fast) var(--ease-g-out);
-  will-change: left, transform;
+  transform: translateX(calc(var(--active-idx, 0) * (100% + 0.25rem)));
+  transition: transform var(--motion-g-slow) cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
   pointer-events: none;
 }
 
 .sub-tab-grid:active .sub-tab-indicator {
-  transform: scale(0.97);
+  transform: translateX(calc(var(--active-idx, 0) * (100% + 0.25rem))) scale(0.97);
 }
 
 .sub-tab-button {
@@ -108,7 +105,10 @@ function onClick(v: string): void {
 @media (prefers-reduced-motion: reduce) {
   .sub-tab-indicator,
   .sub-tab-button { transition: none; }
-  .sub-tab-grid:active .sub-tab-indicator,
+  /* Keep the slot translation (positioning), drop the press squash. */
+  .sub-tab-grid:active .sub-tab-indicator {
+    transform: translateX(calc(var(--active-idx, 0) * (100% + 0.25rem)));
+  }
   .sub-tab-button:active { transform: none; }
 }
 </style>

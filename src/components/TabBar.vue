@@ -196,32 +196,33 @@ async function onTabClick(
 }
 
 /* Morphing selection pill. Slides horizontally between tab cells.
-   Position math (matches .tab-grid's padding 0.25rem + gap 0.25rem):
+   Pinned at the leftmost slot via `left`; per-slot stepping is done with
+   transform: translateX so the morph runs on the GPU compositor (no layout).
      per-tab width = (100% - 1.25rem) / 4
                      where 1.25rem = 2 * padding (0.5rem) + 3 * gap (0.75rem)
-     tab N's left = padding + N * (perTabWidth + gap) */
+     translateX(100%) shifts by the indicator's own width (= per-tab width),
+     plus 0.25rem per step for the gap between cells. */
 .tab-indicator {
   position: absolute;
   top: 0.25rem;
   bottom: 0.25rem;
+  left: 0.25rem;
   width: calc((100% - 1.25rem) / 4);
-  left: calc(
-    0.25rem + var(--active-idx, 0) * (((100% - 1.25rem) / 4) + 0.25rem)
-  );
   background: var(--color-g-fg);
   z-index: 0;
+  transform: translateX(calc(var(--active-idx, 0) * (100% + 0.25rem)));
   /* Apple's iOS tab-switch curve. Spring-like settling without overshoot. */
   transition:
-    left var(--motion-g-slow) cubic-bezier(0.32, 0.72, 0, 1),
-    border-radius var(--motion-g-slow) cubic-bezier(0.32, 0.72, 0, 1),
-    transform var(--motion-g-fast) var(--ease-g-out);
-  will-change: left, transform;
+    transform var(--motion-g-slow) cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius var(--motion-g-slow) cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
   pointer-events: none;
 }
 
-/* Tactile press: indicator squashes slightly when ANY tab is being pressed. */
+/* Tactile press: indicator squashes slightly when ANY tab is being pressed.
+   Compound transform keeps the slot translation alongside the scale. */
 .tab-grid:active .tab-indicator {
-  transform: scale(0.97);
+  transform: translateX(calc(var(--active-idx, 0) * (100% + 0.25rem))) scale(0.97);
 }
 
 .tab-button {
@@ -305,7 +306,11 @@ async function onTabClick(
   .tab-indicator,
   .tab-button { transition: none; }
   .tab-ripple { animation: none; opacity: 0; }
-  .tab-grid:active .tab-indicator,
+  /* Keep the indicator's slot translation (it's positioning, not motion);
+     just drop the press squash. */
+  .tab-grid:active .tab-indicator {
+    transform: translateX(calc(var(--active-idx, 0) * (100% + 0.25rem)));
+  }
   .tab-button:active { transform: none; }
 }
 </style>
