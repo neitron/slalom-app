@@ -134,8 +134,6 @@ export async function pullAll(): Promise<{
     return { tricks: 0, transitions: 0, sequences: 0, practice_log: 0 };
   }
 
-  const pending = await collectPendingIds();
-
   let trickProgressRows: UserTrickProgressRow[] = [];
   let progressTablesMissing = false;
 
@@ -160,6 +158,15 @@ export async function pullAll(): Promise<{
     fetchAll<SequenceRow>(sb, 'sequences', { column: 'user_id', value: uid }),
     fetchAll<PracticeLogRow>(sb, 'practice_log'),
   ]);
+
+  // Collect pending (unpushed) ids AFTER the network fetch, not before. The
+  // fetch is the long window; a local write made during it (a new sequence, an
+  // emoji edit) enqueues an outbox entry that a pre-fetch snapshot would miss,
+  // and the destructive reconcile below would then delete/overwrite that local
+  // row against a server that never saw it. Reading the outbox here — right
+  // before we reconcile — shrinks that window to microseconds so concurrent
+  // edits survive the pull instead of visibly reverting.
+  const pending = await collectPendingIds();
 
   // Map server rows to overlay objects (TrickOverlay, not UserTrickProgress)
   const overlayByTrickId = new Map<string, TrickOverlay>();
@@ -388,6 +395,13 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
   let flushed = 0;
   let failed = 0;
 
+  // A single failing entry must NOT block the rest of the queue. Older code
+  // `break`-ed on the first error, so one poisoned row (e.g. an RLS/FK reject
+  // or a pre-migration payload) permanently stalled every later write —
+  // notably trick customizations (emoji/aliases/tags), which then never
+  // reached the server. We now `continue` past failures: the failing row is
+  // left in the outbox for a later retry (transient errors clear on their
+  // own), while independent rows behind it still sync.
   for (const row of rows) {
     try {
       if (row.op === 'upsert') {
@@ -413,7 +427,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
             reportSyncError(`Push ${row.table}: ${error.message}`);
           }
           failed++;
-          break;
+          continue;
         }
       } else {
         if (row.table === 'user_trick_progress' || row.table === 'user_blocks') {
@@ -430,7 +444,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
           console.warn('[sync] delete failed', row.table, error.message);
           reportSyncError(`Delete ${row.table}: ${error.message}`);
           failed++;
-          break;
+          continue;
         }
       }
       await removeOutbox(row.id);
@@ -439,7 +453,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
       console.warn('[sync] flush exception', e);
       reportSyncError(`Sync error: ${(e as Error).message}`);
       failed++;
-      break;
+      continue;
     }
   }
 
