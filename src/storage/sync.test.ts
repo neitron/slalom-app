@@ -159,3 +159,84 @@ describe('pullAll — a local write during the fetch window must survive', () =>
     expect(still).toBeTruthy();
   });
 });
+
+const CANONICAL_NO_LR = {
+  id: 't-nolr',
+  createdBy: null,
+  visibility: 'public',
+  name: 'Backwards Nelson Reverse',
+  tier: 2,
+  category: 'cross',
+  entry: '2/f',
+  exit: '2/f',
+  lr: false,
+  defaultAliases: [],
+  defaultTags: [],
+  defaultIcon: null,
+  defaultVideo: null,
+};
+
+const STALE_SIDE_ENTRY = {
+  userId: UID,
+  trickId: 't-nolr',
+  rate: 3,
+  rateL: 4,
+  rateR: 2,
+  last: null,
+  status: 'In Progress',
+  fav: false,
+};
+
+describe('flushOutbox — pending side rates are reconciled with per-user L/R', () => {
+  it('drops sides queued for a trick whose L/R the user has since turned off', async () => {
+    await db.tricks.put(CANONICAL_NO_LR as never);
+    await enqueue('upsert', 'user_trick_progress', STALE_SIDE_ENTRY);
+    behaviors.user_trick_progress = { upsertError: null };
+
+    const res = await flushOutbox();
+
+    expect(res.failed).toBe(0);
+    const push = upserts.find((u) => u.table === 'user_trick_progress');
+    expect(push?.row).toMatchObject({
+      trick_id: 't-nolr',
+      rate: 3,
+      rate_l: null,
+      rate_r: null,
+      lr_enabled: false,
+    });
+    expect(await listOutbox()).toEqual([]);
+  });
+
+  it('keeps sides — and declares lr_enabled — when the user enabled L/R locally', async () => {
+    // The catalog row still says lr = false and the user cannot change it
+    // (tricks_update RLS); the overlay is what makes the sides legal.
+    await db.tricks.put(CANONICAL_NO_LR as never);
+    await db.user_trick_progress.put({
+      ...STALE_SIDE_ENTRY,
+      rate: null,
+      lrEnabled: true,
+      aliases: [],
+      tags: [],
+      mainAlias: null,
+      iconOverride: null,
+      videoOverride: null,
+      nodeX: null,
+      nodeY: null,
+    } as never);
+    await enqueue('upsert', 'user_trick_progress', STALE_SIDE_ENTRY);
+    behaviors.user_trick_progress = { upsertError: null };
+
+    const res = await flushOutbox();
+
+    expect(res.failed).toBe(0);
+    const push = upserts.find((u) => u.table === 'user_trick_progress');
+    expect(push?.row).toMatchObject({
+      trick_id: 't-nolr',
+      rate: null,
+      rate_l: 4,
+      rate_r: 2,
+      lr_enabled: true,
+    });
+    expect(await listOutbox()).toEqual([]);
+  });
+});

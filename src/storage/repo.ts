@@ -181,6 +181,7 @@ export async function reportTrick(id: string, side: Side, score: number): Promis
         nodeX: null,
         nodeY: null,
         fav: false,
+        lrEnabled: null,
       };
 
       // Merge into a Trick-like object so applyReport can mutate it
@@ -191,9 +192,13 @@ export async function reportTrick(id: string, side: Side, score: number): Promis
       if (uid) {
         const nextOverlay: TrickOverlay = {
           ...(existingOverlay ?? blankOverlay),
-          rate: canonical.lr ? null : workingMerged.rate,
-          rateL: canonical.lr ? workingMerged.rateL : null,
-          rateR: canonical.lr ? workingMerged.rateR : null,
+          // Route by the EFFECTIVE per-user mode (mergeTrick already resolved
+          // overlay.lrEnabled against the canonical default), not canonical.lr —
+          // otherwise a side rating on a trick whose L/R the user enabled
+          // himself is written to the wrong field and lost.
+          rate: workingMerged.lr ? null : workingMerged.rate,
+          rateL: workingMerged.lr ? workingMerged.rateL : null,
+          rateR: workingMerged.lr ? workingMerged.rateR : null,
           last: workingMerged.last,
           status: workingMerged.status,
         };
@@ -377,18 +382,6 @@ export async function toggleOwnTrickFav(trickId: string, fav: boolean): Promise<
         fav,
       };
   await upsertTrickOverlay(next);
-}
-
-export async function setOwnTrickLrEnabled(trickId: string, lrEnabled: boolean): Promise<void> {
-  // lrEnabled is now a canonical-level property (canonical.lr). This function is kept
-  // for backward compat; T5 store rewrite will replace the calling pattern.
-  // If signed in, update canonical lr field. Otherwise no-op.
-  const uid = await getCurrentUserId();
-  if (!uid) return;
-  const canonical = await db.tricks.get(trickId) as CanonicalTrick | undefined;
-  if (!canonical) return;
-  canonical.lr = lrEnabled;
-  await upsertCanonicalTrick(canonical);
 }
 
 export async function resetOwnTrickProgress(trickId: string): Promise<void> {

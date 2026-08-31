@@ -107,7 +107,7 @@ export interface UserTrickProgressRow {
   last_practiced: string | null;
   status: TrickStatus;
   fav: boolean;
-  lr_enabled: boolean;
+  lr_enabled: boolean | null;
   updated_at?: string | null;
   // Overlay columns (added in T2 migration)
   aliases?: string[];
@@ -221,6 +221,7 @@ export function mapTrickOverlayToServer(o: TrickOverlay): Record<string, unknown
     node_x: o.nodeX,
     node_y: o.nodeY,
     fav: o.fav,
+    lr_enabled: o.lrEnabled,
   }) as Record<string, unknown>;
 }
 
@@ -241,6 +242,7 @@ export function mapTrickOverlayFromServer(r: UserTrickProgressRow): TrickOverlay
     nodeX: r.node_x ?? null,
     nodeY: r.node_y ?? null,
     fav: r.fav ?? false,
+    lrEnabled: r.lr_enabled ?? null,
   };
 }
 
@@ -388,7 +390,7 @@ export function mapUserTrickProgressFromServer(r: UserTrickProgressRow): UserTri
     last: r.last_practiced,
     status: r.status ?? 'Not Started',
     fav: !!r.fav,
-    lrEnabled: !!r.lr_enabled,
+    lrEnabled: r.lr_enabled ?? null,
     updatedAt: r.updated_at ?? null,
   };
 }

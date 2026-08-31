@@ -82,6 +82,8 @@ export interface TrickOverlay {
   nodeX: number | null
   nodeY: number | null
   fav: boolean
+  /** Per-user L/R mode. null/absent = inherit the canonical trick's `lr` default. */
+  lrEnabled?: boolean | null
 }
 
 export interface Transition {
@@ -161,7 +163,7 @@ export interface UserTrickProgress {
   last: string | null;
   status: TrickStatus;
   fav: boolean;
-  lrEnabled: boolean;
+  lrEnabled: boolean | null;
   updatedAt: string | null;
 }
 

@@ -98,3 +98,16 @@ describe('mergeTrick', () => {
     expect(m.visibility).toBe('private')
   })
 })
+
+describe('mergeTrick — L/R is per-user', () => {
+  it('inherits the canonical default when the overlay has no opinion', () => {
+    expect(mergeTrick(canonical({ lr: true }), overlay()).lr).toBe(true)
+    expect(mergeTrick(canonical({ lr: false }), overlay()).lr).toBe(false)
+    expect(mergeTrick(canonical({ lr: true }), null).lr).toBe(true)
+  })
+
+  it('lets the overlay override the canonical default both ways', () => {
+    expect(mergeTrick(canonical({ lr: false }), overlay({ lrEnabled: true })).lr).toBe(true)
+    expect(mergeTrick(canonical({ lr: true }), overlay({ lrEnabled: false })).lr).toBe(false)
+  })
+})

@@ -378,6 +378,40 @@ function mapPayloadToServer(
   }
 }
 
+/**
+ * L/R is per-user (`user_trick_progress.lr_enabled`); the canonical `tricks.lr`
+ * is only the default for someone who has never toggled it. The utp_lr_check
+ * trigger rejects side rates when the row says L/R is off, so outbox entries
+ * queued before a toggle carry a stale view and would fail forever. Reconcile
+ * each pending row against the CURRENT local state before pushing.
+ */
+async function effectiveLrByTrick(uid: string): Promise<Map<string, boolean>> {
+  const [canonicals, overlays] = await Promise.all([
+    db.tricks.toArray(),
+    db.user_trick_progress.where('userId').equals(uid).toArray(),
+  ]);
+  const out = new Map<string, boolean>();
+  for (const t of canonicals) if (t.id) out.set(t.id, !!t.lr);
+  for (const o of overlays) {
+    if (o.lrEnabled != null) out.set(o.trickId, o.lrEnabled);
+  }
+  return out;
+}
+
+function reconcileLrRow(
+  row: Record<string, unknown>,
+  lrByTrick: Map<string, boolean>,
+): Record<string, unknown> {
+  const enabled = lrByTrick.get(row.trick_id as string) ?? false;
+  if (!enabled) {
+    if (row.rate_l == null && row.rate_r == null) return row;
+    return { ...row, rate_l: null, rate_r: null, lr_enabled: false };
+  }
+  // With L/R on the single `rate` is meaningless (see progressMap/reportTrick),
+  // so a stale one queued before the toggle must not ride along.
+  return { ...row, lr_enabled: true, rate: null };
+}
+
 function progressConflict(table: OutboxTable): string {
   switch (table) {
     case 'user_trick_progress':
@@ -394,6 +428,8 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
   const rows = await listOutbox();
   let flushed = 0;
   let failed = 0;
+  const uid = await currentUserId();
+  const lrByTrick = uid ? await effectiveLrByTrick(uid) : new Map<string, boolean>();
 
   // A single failing entry must NOT block the rest of the queue. Older code
   // `break`-ed on the first error, so one poisoned row (e.g. an RLS/FK reject
@@ -405,7 +441,10 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
   for (const row of rows) {
     try {
       if (row.op === 'upsert') {
-        const serverRow = mapPayloadToServer(row.table, row.payload);
+        let serverRow = mapPayloadToServer(row.table, row.payload);
+        if (row.table === 'user_trick_progress') {
+          serverRow = reconcileLrRow(serverRow, lrByTrick);
+        }
         // Trick Library RLS: tricks INSERT requires created_by = auth.uid().
         // Skip + drain canonical tricks with null created_by (anonymous-created
         // locals or pre-migration seed dupes — they should never go to the
@@ -530,12 +569,18 @@ export async function pushOwnProgressFromCatalog(): Promise<void> {
     )
     .toArray();
 
+  const lrByTrick = await effectiveLrByTrick(uid);
+
   try {
     await bulkUpsert(
       sb,
       'user_trick_progress',
       overlays,
-      (o) => mapTrickOverlayToServer(o) as unknown as Record<string, unknown>,
+      (o) =>
+        reconcileLrRow(
+          mapTrickOverlayToServer(o) as unknown as Record<string, unknown>,
+          lrByTrick,
+        ),
       'user_id,trick_id',
     );
     await withoutOutbox(async () => {

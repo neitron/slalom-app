@@ -12,7 +12,7 @@ export function mergeTrick(catalog: Trick, progress: UserTrickProgress | null | 
       fav: false,
     };
   }
-  const lrEnabled = catalog.lr && progress.lrEnabled;
+  const lrEnabled = progress.lrEnabled ?? catalog.lr;
   return {
     ...catalog,
     lr: lrEnabled,

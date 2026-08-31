@@ -17,6 +17,7 @@ import { mergeTrick } from '../domain/mergeTrick';
 import {
   effectiveRate,
   toggleLrOff,
+  toggleLrOn,
 } from '../domain/rating';
 import type {
   CanonicalTrick,
@@ -78,6 +79,7 @@ function blankOverlay(userId: string, trickId: string): TrickOverlay {
     nodeX: null,
     nodeY: null,
     fav: false,
+    lrEnabled: null,
   };
 }
 
@@ -242,26 +244,51 @@ export const useTricksStore = defineStore('tricks', {
       await this._patchOverlay(id, { fav: !current.fav });
     },
 
+    /**
+     * L/R is per-user (overlay `lrEnabled`), NOT canonical. The catalog row is
+     * read-only for everyone but its creator (tricks_update RLS), so a canonical
+     * toggle silently never syncs on seed/community tricks — and then the server
+     * rejects the side rates it never agreed to.
+     */
     async toggleLr(id: string): Promise<void> {
-      // lr is a canonical field — only the creator (or best-effort) can toggle
       const canonical = await getCanonicalTrick(id);
       if (!canonical) return;
-      if (canonical.lr) {
-        toggleLrOff({ lr: canonical.lr, rate: null, rateL: null, rateR: null } as Trick);
-        canonical.lr = false;
+      const userId = await getCurrentUserId();
+      if (!userId) throw new Error('Sign in to change L/R mode');
+      const existing = await getTrickOverlay(userId, id);
+      const current = existing ?? blankOverlay(userId, id);
+      const wasLr = current.lrEnabled ?? canonical.lr;
+      const patch: Partial<TrickOverlay> = { lrEnabled: !wasLr };
+
+      if (wasLr) {
+        // Collapse both sides into the single rate.
+        const collapsed = toggleLrOff({
+          lr: true,
+          rate: current.rate,
+          rateL: current.rateL,
+          rateR: current.rateR,
+          status: current.status,
+        } as Trick);
+        patch.rate = collapsed.rate;
+        patch.rateL = null;
+        patch.rateR = null;
+        patch.status = collapsed.status;
       } else {
-        canonical.lr = true;
+        // Seed both sides from the single rate.
+        const split = toggleLrOn({
+          lr: false,
+          rate: current.rate,
+          rateL: current.rateL,
+          rateR: current.rateR,
+          status: current.status,
+        } as Trick);
+        patch.rate = null;
+        patch.rateL = split.rateL;
+        patch.rateR = split.rateR;
+        patch.status = split.status;
       }
-      await upsertCanonicalTrick(canonical);
-      // Update local canonicals list
-      const idx = this.canonicals.findIndex((c) => c.id === id);
-      if (idx >= 0) {
-        this.canonicals = [
-          ...this.canonicals.slice(0, idx),
-          { ...canonical },
-          ...this.canonicals.slice(idx + 1),
-        ];
-      }
+
+      await this._patchOverlay(id, patch);
     },
 
     async resetProgress(id: string): Promise<void> {
@@ -289,7 +316,8 @@ export const useTricksStore = defineStore('tricks', {
       const afterL = side === 'L' ? null : current.rateL;
       const afterR = side === 'R' ? null : current.rateR;
       const afterRate = side === null ? null : current.rate;
-      const stillRated = canonical?.lr
+      const lr = current.lrEnabled ?? canonical?.lr ?? false;
+      const stillRated = lr
         ? afterL != null || afterR != null
         : afterRate != null;
       if (!stillRated) {

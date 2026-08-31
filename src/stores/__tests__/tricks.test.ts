@@ -456,3 +456,51 @@ describe('tricks store — adopt / unadopt', () => {
     await expect(store.unadopt('lib-trick')).rejects.toThrow(/progress or customizations/i)
   })
 })
+
+describe('toggleLr — per-user, never touches the catalog row', () => {
+  beforeEach(() => { _mockUserId = 'user-1' })
+
+  it('enables L/R on a catalog trick the user cannot write, seeding both sides', async () => {
+    const canonical = mkCanonical({ id: 'seed-1', createdBy: null, lr: false })
+    _mockCanonicals.set('seed-1', canonical)
+    _mockOverlays.set('seed-1', {
+      userId: 'user-1', trickId: 'seed-1',
+      rate: 4, rateL: null, rateR: null, last: '2026-01-01', status: 'In Progress',
+      aliases: [], tags: [], mainAlias: null, iconOverride: null, videoOverride: null,
+      nodeX: null, nodeY: null, fav: false,
+    })
+    const store = useTricksStore()
+    store.canonicals = [canonical]
+
+    await store.toggleLr('seed-1')
+
+    const o = _mockOverlays.get('seed-1')!
+    expect(o.lrEnabled).toBe(true)
+    expect([o.rateL, o.rateR]).toEqual([4, 4])
+    expect(o.rate).toBeNull()
+    // catalog row untouched — the user has no write access to it
+    expect(_mockCanonicals.get('seed-1')!.lr).toBe(false)
+  })
+
+  it('disabling collapses both sides into the average and clears them', async () => {
+    const canonical = mkCanonical({ id: 'seed-2', createdBy: null, lr: true })
+    _mockCanonicals.set('seed-2', canonical)
+    _mockOverlays.set('seed-2', {
+      userId: 'user-1', trickId: 'seed-2',
+      rate: null, rateL: 5, rateR: 2, last: '2026-01-01', status: 'In Progress',
+      aliases: [], tags: [], mainAlias: null, iconOverride: null, videoOverride: null,
+      nodeX: null, nodeY: null, fav: false,
+    })
+    const store = useTricksStore()
+    store.canonicals = [canonical]
+
+    await store.toggleLr('seed-2')
+
+    const o = _mockOverlays.get('seed-2')!
+    expect(o.lrEnabled).toBe(false)
+    expect(o.rate).toBe(3.5)
+    expect(o.rateL).toBeNull()
+    expect(o.rateR).toBeNull()
+    expect(_mockCanonicals.get('seed-2')!.lr).toBe(true)
+  })
+})

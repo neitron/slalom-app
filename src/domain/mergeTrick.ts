@@ -5,8 +5,11 @@ import type { CanonicalTrick, Trick, TrickOverlay } from './types'
  * into the single `Trick` shape consumed by Vue components.
  *
  * Rules:
- * - Canonical fields (name, tier, category, entry, exit, lr, createdBy, visibility)
+ * - Canonical fields (name, tier, category, entry, exit, createdBy, visibility)
  *   always come from canonical.
+ * - lr: per-user. The overlay's `lrEnabled` wins; null means inherit the
+ *   canonical default. L/R can never be a shared field — the catalog row is
+ *   read-only for everyone but its creator.
  * - aliases/tags: overlay value wins if non-empty array; otherwise canonical defaults.
  * - icon/video: overlay value wins if non-null; otherwise canonical defaults.
  * - mainAlias, fav, node_x/y, rate/rateL/rateR/last/status: overlay-only (no
@@ -22,7 +25,7 @@ export function mergeTrick(canonical: CanonicalTrick, overlay: TrickOverlay | nu
     category: canonical.category,
     entry: canonical.entry,
     exit: canonical.exit,
-    lr: canonical.lr,
+    lr: overlay?.lrEnabled ?? canonical.lr,
     aliases: overlay && overlay.aliases.length > 0 ? overlay.aliases : canonical.defaultAliases,
     tags: overlay && overlay.tags.length > 0 ? overlay.tags : canonical.defaultTags,
     mainAlias: overlay?.mainAlias ?? null,

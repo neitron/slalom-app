@@ -112,6 +112,7 @@ watch(
   () => trick.value?.id,
   () => {
     editMode.value = false
+    lrConfirm.value = null
     emojiDraft.value = trick.value?.icon ?? ''
     aliasDraft.value = ''
     tagDraft.value = ''
@@ -197,10 +198,41 @@ async function toggleFav() {
   await tricksStore.toggleFav(trick.value.id)
 }
 
+// Switching mode rewrites ratings (per-leg -> average, both-legs -> seed both
+// sides), so ask first whenever there is something to lose.
+const lrConfirm = ref<boolean | null>(null)
+
 function onModeChange(toLr: boolean): void {
-  if (!trick.value?.id) return
-  if (trick.value.lr === toLr) return
-  void tricksStore.toggleLr(trick.value.id)
+  const t = trick.value
+  if (!t?.id || t.lr === toLr) return
+  const hasRates = t.lr ? t.rateL != null || t.rateR != null : t.rate != null
+  if (hasRates) {
+    lrConfirm.value = toLr
+    return
+  }
+  void tricksStore.toggleLr(t.id)
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key !== 'Escape' || !isOpen.value) return
+  if (lrConfirm.value !== null) lrConfirm.value = null
+  else close()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', onKeydown)
+  onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+}
+
+async function applyModeChange() {
+  const id = trick.value?.id
+  lrConfirm.value = null
+  if (!id) return
+  try {
+    await tricksStore.toggleLr(id)
+  } catch (e) {
+    uiStore.showError((e as Error).message || 'Failed to change L/R mode')
+  }
 }
 
 async function saveEmoji() {
@@ -744,6 +776,55 @@ async function onToggleShare(): Promise<void> {
           </div>
         </div>
         <!-- /.sheet-panel-anim -->
+
+        <!-- L/R mode change confirmation -->
+        <div
+          v-if="lrConfirm !== null"
+          class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-black/60"
+          role="alertdialog"
+          aria-modal="true"
+          aria-label="Confirm rate mode change"
+          @click.self="lrConfirm = null"
+        >
+          <div
+            class="gw-glass-strong flex flex-col gap-3 p-4 w-full max-w-xs"
+            :style="{ borderRadius: 'var(--radius-g-panel)' }"
+          >
+            <p class="font-semibold" :style="{ fontSize: 'var(--text-g-body)' }">
+              {{ lrConfirm ? 'Rate each leg separately?' : 'Rate both legs together?' }}
+            </p>
+            <p class="text-muted" :style="{ fontSize: 'var(--text-g-micro)' }">
+              {{
+                lrConfirm
+                  ? 'Your current rating is copied to both legs, then they change independently.'
+                  : 'Your L and R ratings merge into their average. Per-leg values are lost.'
+              }}
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="gw-glass-strong flex-1 py-2 font-semibold"
+                :style="{
+                  borderRadius: 'var(--radius-g-chip)',
+                  fontSize: 'var(--text-g-micro)',
+                  color: 'var(--color-g-fg-muted)',
+                }"
+                @click="lrConfirm = null"
+              >Cancel</button>
+              <button
+                type="button"
+                class="flex-1 py-2 font-semibold"
+                :style="{
+                  background: 'var(--color-g-fg)',
+                  color: 'var(--color-g-base)',
+                  borderRadius: 'var(--radius-g-chip)',
+                  fontSize: 'var(--text-g-micro)',
+                }"
+                @click="applyModeChange"
+              >Switch</button>
+            </div>
+          </div>
+        </div>
       </div>
     </Transition>
   </Teleport>
