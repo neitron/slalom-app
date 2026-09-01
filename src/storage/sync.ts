@@ -1,6 +1,6 @@
 import { getSb, reportSyncError } from './supabase';
 import { db, clearAllUserProgress, clearCatalogRateFields } from './dexie';
-import { listOutbox, removeOutbox, type OutboxTable } from './outbox';
+import { listOutbox, removeOutbox, type OutboxRow, type OutboxTable } from './outbox';
 import { withoutOutbox } from './repo';
 import { useAuthStore } from '../stores/auth';
 import {
@@ -106,6 +106,43 @@ async function fetchAll<T>(
     from += PAGE;
   }
   return acc;
+}
+
+/**
+ * A foreign-key rejection means the row points at a parent the server does not
+ * have — e.g. an overlay written against a device-local seed id (ensureSeeded
+ * mints fresh UUIDs per device) before the first pull swapped in the server's
+ * ids. Nothing the client can do will ever make that push succeed, so retrying
+ * only spams the user with the same toast on every flush.
+ */
+function isForeignKeyViolation(error: { code?: string; message?: string }): boolean {
+  return error.code === '23503' || !!error.message?.includes('violates foreign key constraint');
+}
+
+/** Trick ids that this flush will actually create server-side. */
+function pushableTrickIds(rows: OutboxRow[]): Set<string> {
+  const out = new Set<string>();
+  for (const r of rows) {
+    if (r.table !== 'tricks' || r.op !== 'upsert') continue;
+    const id = r.payload.id ?? r.payload.trickId;
+    // created_by null is skipped below (tricks_insert RLS), so it never lands.
+    const createdBy = r.payload.createdBy ?? r.payload.created_by;
+    if (typeof id === 'string' && createdBy != null) out.add(id);
+  }
+  return out;
+}
+
+/** Is the parent this row needs still waiting its turn in the same queue? */
+function parentStillQueued(
+  table: OutboxTable,
+  payload: Record<string, unknown>,
+  pushableTricks: Set<string>,
+): boolean {
+  const has = (v: unknown): boolean => typeof v === 'string' && pushableTricks.has(v);
+  // Only these two reference tricks(id); practice_log carries no FK.
+  if (table === 'user_trick_progress') return has(payload.trickId) || has(payload.trick_id);
+  if (table === 'transitions') return has(payload.from) || has(payload.to);
+  return false;
 }
 
 function isMissingTable(message: string | undefined): boolean {
@@ -430,6 +467,7 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
   let failed = 0;
   const uid = await currentUserId();
   const lrByTrick = uid ? await effectiveLrByTrick(uid) : new Map<string, boolean>();
+  const pushableTricks = pushableTrickIds(rows);
 
   // A single failing entry must NOT block the rest of the queue. Older code
   // `break`-ed on the first error, so one poisoned row (e.g. an RLS/FK reject
@@ -459,6 +497,14 @@ export async function flushOutbox(): Promise<{ flushed: number; failed: number }
           .from(row.table)
           .upsert(serverRow, { onConflict: progressConflict(row.table) });
         if (error) {
+          if (
+            isForeignKeyViolation(error) &&
+            !parentStillQueued(row.table, row.payload, pushableTricks)
+          ) {
+            console.info('[sync] dropping row whose parent will never exist', row.table, row.payload);
+            await removeOutbox(row.id);
+            continue;
+          }
           console.warn('[sync] upsert failed', row.table, error.message);
           if (isMissingTable(error.message)) {
             reportSyncError(`${row.table} not migrated yet — run M3.5 SQL.`);

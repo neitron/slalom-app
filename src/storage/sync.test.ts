@@ -240,3 +240,57 @@ describe('flushOutbox — pending side rates are reconciled with per-user L/R', 
     expect(await listOutbox()).toEqual([]);
   });
 });
+
+describe('flushOutbox — rows pointing at a trick the server does not have', () => {
+  const FK_ERROR = {
+    message:
+      'insert or update on table "user_trick_progress" violates foreign key constraint "user_trick_progress_trick_id_fkey"',
+  };
+
+  it('drops an overlay orphaned by a device-local seed id instead of retrying forever', async () => {
+    await enqueue('upsert', 'user_trick_progress', {
+      userId: UID,
+      trickId: 'local-seed-id',
+      rate: 3,
+      rateL: null,
+      rateR: null,
+      last: null,
+      status: 'In Progress',
+      fav: false,
+    });
+    behaviors.user_trick_progress = { upsertError: FK_ERROR };
+
+    const res = await flushOutbox();
+
+    // Dropped quietly — no failure to report, nothing left to retry.
+    expect(res.failed).toBe(0);
+    expect(await listOutbox()).toEqual([]);
+  });
+
+  it('keeps the overlay when the trick it needs is still queued behind it', async () => {
+    await enqueue('upsert', 'user_trick_progress', {
+      userId: UID,
+      trickId: 'new-trick',
+      rate: 3,
+      rateL: null,
+      rateR: null,
+      last: null,
+      status: 'In Progress',
+      fav: false,
+    });
+    await enqueue('upsert', 'tricks', {
+      id: 'new-trick',
+      createdBy: UID,
+      name: 'Mine',
+      defaultAliases: [],
+      defaultTags: [],
+    });
+    behaviors.user_trick_progress = { upsertError: FK_ERROR };
+    behaviors.tricks = { upsertError: null };
+
+    const res = await flushOutbox();
+
+    expect(res.failed).toBe(1);
+    expect((await listOutbox()).map((r) => r.table)).toEqual(['user_trick_progress']);
+  });
+});
